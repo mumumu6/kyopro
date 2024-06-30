@@ -10,21 +10,24 @@ using ll   = long long;
 #define sd second
 #define all(x) std::begin(x), std::end(x)
 
-
-
 int main() {
-    int h, w, q;
-    cin >> h >> w >> q;
+    string s, t;
+    cin >> s >> t;
+    string ans;
+    int size = s.size();
 
-    rep(i,q){
-        int t;
-        cin >> t;
-        if(t == 1){
-
+    reps(w,1,size){
+        vector<string> ss(w ,"");
+        rep(i,size){
+            ss[ i % w] += s[i];
         }
-
-        if(t == 2){
-
+        rep(i,w){
+            if(ss[i] == t){
+                cout << "Yes" << endl;
+                return 0;
+            }
         }
     }
+
+    cout << "No" << endl; 
 }

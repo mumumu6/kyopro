@@ -10,21 +10,23 @@ using ll   = long long;
 #define sd second
 #define all(x) std::begin(x), std::end(x)
 
-
-
 int main() {
-    int h, w, q;
-    cin >> h >> w >> q;
+    ll n;
+    cin >> n;
+    vector<pair<ll, ll>> a(n);
+    rep(i, n) cin >> a[i].ft;
+    rep(i, n) cin >> a[i].sd;
 
-    rep(i,q){
-        int t;
-        cin >> t;
-        if(t == 1){
-
+    int ans = 0;
+    sort(all(a));
+    int check =a[0].ft;
+    reps(i,1,n){
+        while(a[i].ft  == check){
+            ans += a[i - 1].sd;
+            i++;
         }
-
-        if(t == 2){
-
-        }
+        check = a[i].ft;
     }
+
+    cout << ans << endl;
 }

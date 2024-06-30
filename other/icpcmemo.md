@@ -1,6 +1,6 @@
 # 忘れそうな書き方
 
-テンプレート1
+テンプレート 1
 
 ```cpp
 #include <bits/stdc++.h>
@@ -67,9 +67,10 @@ int main{
 # 忘れそうな書き方
 
 queue
+
 ```cpp
     queue<int> q;
-    q.push(10);
+    q.push(10); //q.push_back(10)とかは普通の配列だね
     q.push(20);
     q.push(30);
     q.front();
@@ -78,7 +79,9 @@ queue
     q.size() //qのサイズ
     q.pop() //最初の要素が消される
 ```
+
 stack
+
 ```cpp
     stack<int> s;
 
@@ -90,6 +93,66 @@ stack
     s.top() // スタックの最上部の要素を表示
 
     s.pop();// 要素をスタックから取り出す
-    
+
     s.empty()// スタックが空かどうかをチェック
+```
+
+```cpp
+const auto &[h, c] = rectangles.back(); //これ便利
+
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+  vector<tuple<int, int, int>> a;
+  a.push_back(make_tuple(3, 1, 1));
+  a.push_back(make_tuple(1, 2, 100));
+  a.push_back(make_tuple(3, 5, 1));
+  a.push_back(make_tuple(1, 2, 3));
+  sort(a.begin(), a.end());
+
+  for (tuple<int, int, int> t : a) {
+    int x, y, z;
+    tie(x, y, z) = t;
+    cout << x << " " << y << " " << z << endl;
+  }
+}
+
+
+```
+
+実行結果
+
+```cpp
+1 2 3
+1 2 100
+3 1 1
+3 5 1
+```
+
+```cpp
+ vec.pop_back(); // 末尾の要素を削除
+//erase
+ vector<int> vec = {1, 2, 3, 4};
+vec.erase(vec.begin + 2); // {1, 2, 4}
+
+vector<int> vec = {1, 2, 3, 4, 5, 6};
+vec.erase(vec.begin(), vec.begin() + 2); // {4, 5, 6}
+//remove　
+vector<int> vec = {1, 0, 2, 0, 3, 0, 4, 0};
+auto newEnd = remove(vec.begin(), vec.end(), 0);
+for(auto it=vec.begin(); it != newEnd; ++it){
+    cout << *it << " "; // 1 2 3 4
+} 
+//unique関数　連続した重複する要素を削除する
+vector<int> vec = {1, 2, 2, 2, 3, 4};
+auto newEnd = unique(vec.begin(), vec.end());
+for(auto it=vec.begin(); it != newEnd; ++it){
+    cout << *it << " "; // 1 2 3 4
+} 
+
+
+
+
+
 ```

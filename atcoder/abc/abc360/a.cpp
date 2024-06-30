@@ -10,21 +10,18 @@ using ll   = long long;
 #define sd second
 #define all(x) std::begin(x), std::end(x)
 
-
-
 int main() {
-    int h, w, q;
-    cin >> h >> w >> q;
+    string s;
+    cin >> s;
+    bool miso = true;
 
-    rep(i,q){
-        int t;
-        cin >> t;
-        if(t == 1){
-
+    rep(i,3){
+        if(s[i] =='R' && miso){
+            cout <<"Yes" << endl;
+            return 0;
         }
 
-        if(t == 2){
-
-        }
+        if(s[i] =='M')miso =  false;
     }
+    cout << "No" << endl;
 }

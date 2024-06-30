@@ -10,21 +10,18 @@ using ll   = long long;
 #define sd second
 #define all(x) std::begin(x), std::end(x)
 
-
-
 int main() {
-    int h, w, q;
-    cin >> h >> w >> q;
+    ll n;
+    int k;
+    cin >> n >> k;
 
-    rep(i,q){
-        int t;
-        cin >> t;
-        if(t == 1){
-
-        }
-
-        if(t == 2){
-
-        }
+    mint p = mint(2 * (n - 1)) / mint(n).pow(2);
+    mint q = mint(2) / mint(n).pow(2);
+    mint d   = 1;
+    for (int i = 0; i < k; ++i) {
+        d = (1 - q - p) * d + q;
     }
+
+    mint u = mint(n + 2) / 2;
+    cout << (d + u * (1 - d)).val() << endl;
 }
