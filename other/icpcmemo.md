@@ -1,5 +1,7 @@
-##   忘れそうな書き方
+# 忘れそうな書き方
+
 テンプレート1
+
 ```cpp
 #include <bits/stdc++.h>
 using namespace std;
@@ -14,40 +16,44 @@ using ll   = long long;
 #define all(x) std::begin(x), std::end(x)
 
 int main() {
-   
+
 }
 ```
+
 多分上は無理なので
+
 ```cpp
-# include <iostream>
-# include <vector>
-# include <deque>
-# include <algorithm>
-# include <iomanip>
-# include <map>
-# include <memory>
-# include <cmath>
-# include <functional>
-# include <queue>
-# include <stack>
-# include <numeric>
-# include <string>
-using namespace std;
-#include <atcoder/all> //動くか怪しい
-using namespace atcoder;
-using mint = modint998244353;
-using ll   = long long;
-#define rep(i, n) for (ll i = 0; i < (n); i++)
-#define reps(i, a, b) for (ll i = (a); i < (b); i++)
-#define ft first
-#define sd second
-#define all(x) std::begin(x), std::end(x)
+　# include <iostream>
+　# include <vector>
+　# include <deque>
+　# include <algorithm>
+　# include <iomanip>
+　# include <map>
+　# include <memory>
+　# include <cmath>
+　# include <functional>
+　# include <queue>
+　# include <stack>
+　# include <numeric>
+　# include <string>
+　using namespace std;
+　#include <atcoder/all> //動くか怪しい
+　using namespace atcoder;
+　using mint = modint998244353;
+　using ll   = long long;
+　#define rep(i, n) for (ll i = 0; i < (n); i++)
+　#define reps(i, a, b) for (ll i = (a); i < (b); i++)
+　#define ft first
+　#define sd second
+　#define all(x) std::begin(x), std::end(x)
 
 int main{
 
 }
 ```
+
 入出力
+
 ```cpp
     ofstream outputfile("test.txt");
     ifstream inputfile("A1");
@@ -57,7 +63,33 @@ int main{
     inputfile.close();
     outputfile.close();
 ```
-忘れそうな書き方
-```cpp
 
+# 忘れそうな書き方
+
+queue
+```cpp
+    queue<int> q;
+    q.push(10);
+    q.push(20);
+    q.push(30);
+    q.front();
+    q.back();
+    q.empty(); //qが空かどうか
+    q.size() //qのサイズ
+    q.pop() //最初の要素が消される
+```
+stack
+```cpp
+    stack<int> s;
+
+    // 要素をスタックに追加
+    s.push(10);
+    s.push(20);
+    s.push(30);
+
+    s.top() // スタックの最上部の要素を表示
+
+    s.pop();// 要素をスタックから取り出す
+    
+    s.empty()// スタックが空かどうかをチェック
 ```
