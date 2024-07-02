@@ -143,16 +143,64 @@ vector<int> vec = {1, 0, 2, 0, 3, 0, 4, 0};
 auto newEnd = remove(vec.begin(), vec.end(), 0);
 for(auto it=vec.begin(); it != newEnd; ++it){
     cout << *it << " "; // 1 2 3 4
-} 
+}
 //unique関数　連続した重複する要素を削除する
 vector<int> vec = {1, 2, 2, 2, 3, 4};
 auto newEnd = unique(vec.begin(), vec.end());
 for(auto it=vec.begin(); it != newEnd; ++it){
     cout << *it << " "; // 1 2 3 4
-} 
+}
+
+```
+
+```cpp
+ after[i] = make_tuple(x[i].ft + t, x[i].sd, rnum);
+  ans += get<2>(after[i]) - newr;
+```
+
+```cpp
+  set<int> s;
+  s.insert(3);
+  for( int x : s ) cout << x << " ";
+    cout << endl;//各要素を列挙
+
+   s.erase(7);
 
 
+      //find
+    decltype(s)::iterator it = s.find(3);
+    int value;
+    if(it != s.end()){
+        value = *it;
+        cout << value << endl;
+    }else{
+        cout << "not found" << endl;
+    }
 
+   it = s.find(8);
+    if(it != s.end()){
+        value = *it;
+        cout << value << endl;
+    }else{
+        cout << "not found" << endl;
+    }
+
+
+      decltype(s)::iterator itl = lower_bound(s.begin(),s.end(),3);
+    if(itl != s.end()){
+        value = *itl;
+        cout << value << endl;
+    }else{
+        cout << "not found" << endl;
+    }
+
+    decltype(s)::iterator itu = upper_bound(s.begin(),s.end(),3);
+    if(itu != s.end()){
+        value = *itu;
+        cout << value << endl;
+    }else{
+        cout << "not found" << endl;
+    }
 
 
 ```
