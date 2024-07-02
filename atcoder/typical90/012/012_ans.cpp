@@ -6,8 +6,8 @@ class UnionFind {
   public:
     vector<int> par;
 
-    void init(int sz){  par.resize(sz, -1); }
-
+    void init(int sz) { par.resize(sz, -1); }
+   // UnionFind(int n) { init(n); }
     int root(int pos) {
         if (par[pos] == -1) return pos;
         par[pos] = root(par[pos]);
@@ -17,7 +17,7 @@ class UnionFind {
         u = root(u);
         v = root(v);
         if (u == v) return;
-        par[u] = v;   
+        par[u] = v;
     }
     bool same(int u, int v) {
         if (root(u) == root(v)) return true;

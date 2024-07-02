@@ -22,10 +22,8 @@ struct UnionFind {
     }
 
     int root(int x) {
-        if (par[x] == -1)
-            return x;
-        else
-            return par[x] = root(par[x]);
+        if (par[x] == -1) return x;
+        else return par[x] = root(par[x]);
     }
 
     void unite(int u, int v) {
@@ -34,8 +32,7 @@ struct UnionFind {
 
         if (u_root == v_root) return;
 
-        if (rank[u_root] < rank[v_root])
-            swap(u_root, v_root); // vのrankが小さい
+        if (rank[u_root] < rank[v_root]) swap(u_root, v_root); // vのrankが小さい
         par[v_root] = u_root;
 
         if (rank[u_root] == rank[v_root]) rank[u_root]++;
@@ -55,7 +52,7 @@ int main() {
     vector<vector<bool>> red(h, vector<bool>(w, false));
 
     auto que1 = [&](int x, int y) {
-        red[x][y]                = true;
+        red[x][y] = true;
         vector<pair<int, int>> d = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
         rep(i, 4) {
             int nx = x + d[i].ft;
@@ -67,7 +64,6 @@ int main() {
     };
 
     auto que2 = [&](int x1, int y1, int x2, int y2) {
-        if (red[x1][y1] == false || red[x2][y2] == false) return false;
         return uf.same(x1 * w + y1, x2 * w + y2);
     };
 
@@ -88,10 +84,8 @@ int main() {
             rb--;
             cb--;
 
-            if (que2(ra, ca, rb, cb))
-                cout << "Yes" << endl;
-            else
-                cout << "No" << endl;
+            if (que2(ra, ca, rb, cb)) cout << "Yes" << endl;
+            else cout << "No" << endl;
         }
     }
 
