@@ -12,11 +12,9 @@ using ll   = long long;
 
 class UnionFind {
   public:
-    vector<int> par ,size;
+    vector<int> par, size;
 
-    void init(int sz) {
-         par.resize(sz, -1); 
-    }
+    void init(int sz) { par.resize(sz, -1); }
 
     int root(int pos) {
         if (par[pos] == -1) return pos;
