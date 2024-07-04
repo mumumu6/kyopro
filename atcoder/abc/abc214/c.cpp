@@ -22,5 +22,20 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(8);
 
-    
+    int n;
+    cin >> n;
+    vec s(n), t(n);
+
+    rep(i, n) cin >> s[i];
+    rep(i, n) cin >> t[i];
+
+    vec memo = t;
+
+    rep(i, 2 * n) {
+        memo[(i + 1) % n] = min(memo[(i + 1) % n], memo[i % n] + s[i % n]);
+    }
+
+    for(auto c:memo){
+        cout << c << endl;
+    }
 }
