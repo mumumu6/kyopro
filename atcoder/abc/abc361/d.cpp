@@ -25,16 +25,39 @@ int main() {
     int n;
     string s, t;
     cin >> n >> s >> t;
-    int ct = 0;
 
-    rep(i, n) {
-        if (s[i] == 'B') ct++;
-        if (t[i] == 'B') ct--;
+    s += "..";
+    t += "..";
+
+    map<string, int> dp;
+    dp[s] = 0;
+    queue<string> que;
+    que.push(s);
+
+    while (!que.empty()) {
+        string str = que.front();
+        que.pop();
+        int j = 0;
+        while (str[j] != '.') j++;
+
+        rep(i, n + 1) {
+            string ns = str;
+            if (str[i] == '.' || str[i + 1] == '.') continue;
+
+            swap(ns[i], ns[j]);
+            swap(ns[i + 1], ns[j + 1]);
+            if (dp.find(ns) == dp.end()) {
+                que.push(ns);
+                dp[ns] = dp[str] + 1;
+                // cout << ns << endl;
+            }
+        }
     }
-    if (ct != 0) {
+
+    if (dp.find(t) == dp.end()) {
         cout << -1 << endl;
         return 0;
     }
 
-    
+    cout << dp[t] << endl;
 }
