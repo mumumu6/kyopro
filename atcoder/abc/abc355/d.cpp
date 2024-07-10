@@ -21,20 +21,23 @@ int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(8);
+
     ll n;
     cin >> n;
-
-    mint d = 10;
-    ll nn = n;
-    while (nn / 10 > 0) {
-        nn /= 10;
-        d *= 10;
+    vector<ll> s(n);
+    vector<ll> t(n);
+    rep(i,n)cin >> s[i] >> t[i];
+    sort(s.begin(),s.end());
+    sort(t.begin(),t.end());
+    ll r = 0;
+    ll ans = n*(n-1)/2;
+    rep(i,n){
+        while(r < n && s[r] <= t[i])r++;
+        ans -= n-r;
     }
+    cout << ans << endl;
 
-    mint ans = 0;
 
-    ans += (mint(d).pow(n) - mint(1)) * (mint(d) - mint(1)).inv();
-    ans *= mint(n);
-
-    cout << ans.val() << endl;
+    
+    
 }
