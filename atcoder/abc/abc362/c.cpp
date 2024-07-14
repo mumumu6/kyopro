@@ -24,31 +24,34 @@ int main() {
 
     ll n;
     cin >> n;
-    vector<ll> a(n);
-    rep(i, n) cin >> a[i];
+    vec l(n);
+    vec r(n);
+    rep(i, n) cin >> l[i] >> r[i];
 
-    mint ans = 0;
-
-    rep(i, n) ans += mint(i) * mint(a[i]);
-    vector<vector<ll>> s(n + 1, vector<ll>(11, 0));
-
+    ll d   = 0;
+    ll min = 0;
     rep(i, n) {
-        s[i + 1] = s[i];
-        s[i + 1][to_string(a[i]).size()]++;
+        d += r[i] - l[i];
+        min += l[i];
     }
-    // cout << ans.val() << endl;
-    reps(i, 1, n + 1) {
-        mint d = 0;
 
-        rep(j, 11) {
-            d += mint(10).pow(j) * (s[n][j] - s[i][j]);
-            // cout << s[n][j] - s[i][j] << " " << j <<endl;;
+    if (min <= 0 && min + d >= 0) {
+        ll dif = abs(min);
+        cout << "Yes" << endl;
+
+        rep(i, n) {
+            if (dif >= r[i] - l[i]) {
+                dif -= r[i] - l[i];
+                cout << r[i] << " ";
+            } else if (dif > 0) {
+                cout << l[i] + dif << " ";
+                dif = 0;
+            } else {
+                cout << l[i] << " ";
+            }
         }
-        // cout << d.val() << endl;
-        ans += d * mint(a[i - 1]);
-        mint c = d * mint(a[i - 1]);
-        // cout << c.val() << endl;
-        //  cout  << "ans"<< ans.val()<< endl;
+
+    } else {
+        cout << "No" << endl;
     }
-    cout << ans.val() << endl;
 }
