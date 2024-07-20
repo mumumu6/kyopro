@@ -18,26 +18,24 @@ using ll   = long long;
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
 
-struct edge {
-    ll to;   // 行き先
-    ll cost; // 　コスト
-};
-
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
-    cout << fixed << setprecision(8);
+    cout << fixed << setprecision(10);
 
-    const ll M = 1010101010;
-    vector<bool> p(M, true);
+    ll t, l, x, y, q;
+    cin >> t >> l >> x >> y >> q;
 
-    p[0] = p[1] = false;
+    rep(i, q) {
+        ll e;
+        cin >> e;
+        double c  = -e * 2 * 3.141592653589 / t - 3.141592653589 / 2;
+        double dz = (l / 2.0) * (sin(c) + 1.0);
 
-    for (ll i = 0; i < M ; i++) {
-        if(!p[i])continue;
-        cout << i << endl;
-        for (ll j = i* i; j < M; j += i) {
-            p[j] = false;
-        }
+        // cout << " dy " << dy << " x " << x << endl;
+        cout << atan2(dz, sqrt(x * x + (y - (l / 2.0) * cos(c)) *
+                                           (y - (l / 2.0) * cos(c)))) *
+                    180 / 3.1415926535
+             << endl;
     }
 }

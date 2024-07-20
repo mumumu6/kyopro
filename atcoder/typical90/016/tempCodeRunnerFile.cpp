@@ -18,26 +18,23 @@ using ll   = long long;
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
 
-struct edge {
-    ll to;   // 行き先
-    ll cost; // 　コスト
-};
-
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(8);
 
-    const ll M = 1010101010;
-    vector<bool> p(M, true);
+    ll n, a, b, c;
+    cin >> n >> a >> b >> c;
 
-    p[0] = p[1] = false;
+    int m  = 9999;
+    ll ans = 4e8;
 
-    for (ll i = 0; i < M ; i++) {
-        if(!p[i])continue;
-        cout << i << endl;
-        for (ll j = i* i; j < M; j += i) {
-            p[j] = false;
-        }
+    rep(x, m) rep(y, m - x) {
+        if ((n - a * x - b * y) % c != 0 && n - a * x - b * y < 0) continue;
+        int z = (n - a * x - b * y) / c;
+
+        ans = min(ans, x + y + z);
     }
+
+    cout << ans << endl;
 }
