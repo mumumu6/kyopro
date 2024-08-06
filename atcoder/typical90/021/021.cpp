@@ -84,13 +84,12 @@ int main() {
                     component.pb(vv);
                     for (auto u : gg[vv]) {
                         if (!used[u]) ss.push(u);
-                        cout << vv << " " << u << '\n';
                     }
                 }
             }
             scc.push_back(component);
-            // for (auto x : component) cout << x << " ";
-            // cout << '\n';
+            //  for (auto x : component) cout << x << " ";
+            //  cout << '\n';
         }
     }
 
