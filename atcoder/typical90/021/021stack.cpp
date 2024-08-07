@@ -23,14 +23,14 @@ bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
-    cout << fixed << setprecision(20);
 
     ll n, m;
     cin >> n >> m;
     vecc g(n), gg(n);
     vector<bool> used(n, false);
+    vector<bool> us(n, false);
     rep(i, m) {
-        int a, b;
+        ll a, b;
         cin >> a >> b;
         a--;
         b--;
@@ -41,55 +41,42 @@ int main() {
     stack<ll> s, back;
     rep(i, n) {
         if (used[i]) continue;
-
-        s.push(~i);
         s.push(i);
         while (!s.empty()) {
-            ll x = s.top();
+            ll v = s.top();
             s.pop();
 
-            if (x >= 0) {
-                used[x] = true;
+            if (v >= 0) {
+                if (used[v]) continue; // 同じ頂点が複数個入力されてもここで弾く
+                used[v] = true;
+                s.push(~v); // ノードを訪問した後にスタックに戻す
 
-                for (auto u : g[x]) {
+                for (auto u : g[v]) {
                     if (!used[u]) {
-                        s.push(~u);
                         s.push(u);
                     }
                 }
             } else {
-                back.push(~x);
+                back.push(~v); // 負の値を元に戻してスタックに追加
             }
         }
     }
-
     fill(all(used), false);
-    ll ans = 0;
-
+    ll ans                  = 0;
+    ll cnt                  = 0;
+    function<void(ll)> dfs2 = [&](ll pos) {
+        used[pos] = true;
+        cnt++;
+        for (int i : gg[pos]) {
+            if (used[i] == false) dfs2(i);
+        }
+    };
     while (!back.empty()) {
-
         ll v = back.top();
         back.pop();
-
+        cnt = 0;
         if (used[v]) continue;
-        stack<ll> ss;
-        ss.push(v);
-        ll cnt = 1;
-        while (!ss.empty()) {
-            ll u = ss.top();
-            ss.pop();
-            if (!used[u]) {
-
-                used[u] = true;
-                for (auto x : gg[u]) {
-                    if (!used[x]) {
-                        cnt++;
-                        ss.push(x);
-                    }
-                }
-            }
-        }
-
+        dfs2(v);
         ans += cnt * (cnt - 1LL) / 2LL;
     }
 

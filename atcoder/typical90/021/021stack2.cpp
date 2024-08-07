@@ -6,6 +6,8 @@ using mint = modint998244353;
 using ll   = long long;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
 #define reps(i, a, b) for (ll i = (a); i < (b); i++)
+bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
+bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
 #define ft first
 #define sd second
 #define all(x) std::begin(x), std::end(x)
@@ -21,15 +23,12 @@ using ll   = long long;
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
-    ofstream outputfile("output.txt");
 
     ll n, m;
-    ll cnts = 0, ans = 0;
     cin >> n >> m;
     vecc g(n), gg(n);
-    stack<ll> back;
     vector<bool> used(n, false);
-
+    vector<bool> us(n, false);
     rep(i, m) {
         ll a, b;
         cin >> a >> b;
@@ -39,37 +38,50 @@ int main() {
         gg[b].pb(a);
     }
 
-    function<void(ll)> dfs1 = [&](ll u) {
-        outputfile << u << " ";
-        used[u] = true;
-        for (auto x : g[u]) {
-            outputfile << u << "から" << x << " ";
-            if (!used[x]) dfs1(x);
+    stack<ll> s, back;
+    rep(i, n) {
+        if (used[i]) continue;
+        s.push(~i);
+        s.push(i);
+        while (!s.empty()) {
+            ll v = s.top();
+            s.pop();
+
+            if (v >= 0) {
+                if (used[v]) continue; // 同じ頂点が複数個入力されてもここで弾く
+                used[v] = true;
+                
+
+                for (auto u : g[v]) {
+                    if (!used[u]) {
+                        s.push(~u);
+                        s.push(u);
+                    }
+                }
+            } else {
+                if(!us[~v])back.push(~v); // 負の値を元に戻してスタックに追加
+                us[~v] = true;
+            }
         }
-        back.push(u);
-        outputfile << u << endl;
-    };
+    }
+    fill(all(used), false);
+    ll ans                  = 0;
+    ll cnt                  = 0;
     function<void(ll)> dfs2 = [&](ll pos) {
         used[pos] = true;
-        cnts++;
+        cnt++;
         for (int i : gg[pos]) {
             if (used[i] == false) dfs2(i);
         }
     };
-
-    rep(i, n) {
-        if (!used[i]) dfs1(i);
-    }
-    fill(all(used), false);
-
     while (!back.empty()) {
         ll v = back.top();
         back.pop();
-        cnts = 0;
-
+        cnt = 0;
+        if (used[v]) continue;
         dfs2(v);
-        ans += cnts * (cnts - 1LL) / 2LL;
+        ans += cnt * (cnt - 1LL) / 2LL;
     }
 
-    outputfile << ans << endl;
+    cout << ans << endl;
 }
