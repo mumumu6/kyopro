@@ -25,29 +25,43 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    int n;
-    cin >> n;
+    ll n, m;
+    cin >> n >> m;
 
-    vector<vecc> a(n, vector<vector<ll>>(n, vector<ll>(n)));
-    rep(i, n) rep(j, n) rep(k, n) cin >> a[i][j][k];
+    vec a(n);
+    rep(i, n) cin >> a[i];
 
-    int q;
-    cin >> q;
+    vec sum(n + 1, 0);
 
-    vector<vecc> s(n + 1, vecc(n + 1, vec(n + 1, 0)));
+    sort(all(a));
 
-    rep(i, n) rep(j, n) rep(k, n) {
-        s[i + 1][j + 1][k + 1] = s[i][j + 1][k + 1] + s[i + 1][j][k + 1] + s[i + 1][j + 1][k] 
-        - s[i+1][j][k] - s[i][j+1][k] - s[i][j][k+1] + s[i][j][k] +  a[i][j][k];
+    rep(i, n) { sum[i + 1] = sum[i] + a[i]; }
+
+    ll ok  = 0;
+    ll ng = 4e18;
+
+    if (sum[n] <= m) {
+        cout << "infinite" << endl;
+        return 0;
     }
 
-    rep(i,q){
-        int lx,rx,ly,ry,lz,rz;
-        cin >> lx >> rx >> ly >> ry >> lz >> rz;
+    auto f = [&](ll x) -> bool {
+        auto itr = lower_bound(all(a), x) - a.begin();
 
-        cout << s[rx][ry][rz] - s[rx][ry][lz-1] - s[rx][ly-1][rz] - s[lx-1][ry][rz] 
-        + s[lx-1][ly-1][rz] + s[lx-1][ry][lz-1] + s[rx][ly-1][lz-1] - s[lx-1][ly-1][lz-1] << endl;
+        if (sum[itr] + x * (n - itr) > m)
+            return false;
+        else
+            return true;
+    };
+
+    while (abs(ok - ng) > 1) {
+        ll mid = (ok + ng) / 2;
+
+        if (f(mid))
+            ok = mid;
+        else
+            ng = mid;
     }
 
-    
+    cout << ok << endl;
 }

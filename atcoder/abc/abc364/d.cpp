@@ -6,6 +6,8 @@ using mint = modint998244353;
 using ll   = long long;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
 #define reps(i, a, b) for (ll i = (a); i < (b); i++)
+bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
+bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
 #define ft first
 #define sd second
 #define all(x) std::begin(x), std::end(x)
@@ -21,32 +23,37 @@ using ll   = long long;
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
-    cout << fixed << setprecision(8);
+    cout << fixed << setprecision(20);
 
-    int n, q;
+    ll n, q;
     cin >> n >> q;
-    vector<int> a(n);
+    vec a(n);
     rep(i, n) cin >> a[i];
+
     sort(all(a));
 
-    while (q--) {
-        int b, k;
+    auto f = [&](ll x, ll bb, ll kk) -> bool {
+        ll l = lower_bound(all(a), bb - x) - a.begin();
+        ll r = lower_bound(all(a), bb + x + 1) - a.begin();
+
+        return r - l >= kk;
+    };
+
+    rep(i, q) {
+        ll b, k;
         cin >> b >> k;
-        auto f = [&](int x) {
-            auto lb = lower_bound(a.begin(), a.end(), b - x);
-            auto ub = upper_bound(a.begin(), a.end(), b + x);
-            return ub - lb >= k;
-        };
-        int ng = -1, ok = 2e8 + 10;
+        ll ok = 4e8;
+        ll ng = -1;
         while (abs(ok - ng) > 1) {
-            int mid = (ok + ng) / 2;
-            if (f(mid)) {
+            ll mid = (ok + ng) / 2;
+
+            if (f(mid, b, k)) {
                 ok = mid;
             } else {
                 ng = mid;
             }
         }
-        cout << ok << endl;
-    }
 
+        cout << ok << '\n';
+    }
 }

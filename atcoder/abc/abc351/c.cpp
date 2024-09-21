@@ -25,29 +25,33 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    int n;
+    ll n;
     cin >> n;
+    vec a(n), b(n);
+    rep(i, n) cin >> a[i];
 
-    vector<vecc> a(n, vector<vector<ll>>(n, vector<ll>(n)));
-    rep(i, n) rep(j, n) rep(k, n) cin >> a[i][j][k];
+    ll r = -1;
 
-    int q;
-    cin >> q;
+    rep(i, n) {
+        function<void(ll)> f = [&](ll x) -> void {
+            if (b.size() <= 1) {
+                return;
+            }
 
-    vector<vecc> s(n + 1, vecc(n + 1, vec(n + 1, 0)));
+            if (b[r - 1] == x) {
+                b[r - 1]++;
+                r--;
+                f(b[r]);
+            }
 
-    rep(i, n) rep(j, n) rep(k, n) {
-        s[i + 1][j + 1][k + 1] = s[i][j + 1][k + 1] + s[i + 1][j][k + 1] + s[i + 1][j + 1][k] 
-        - s[i+1][j][k] - s[i][j+1][k] - s[i][j][k+1] + s[i][j][k] +  a[i][j][k];
+            // for (auto y : b) cout << y << ' ';
+            // cout << " r  " << r << endl;
+        };
+        r++;
+        b[r] = a[i];
+        
+        f(b[r]);
     }
 
-    rep(i,q){
-        int lx,rx,ly,ry,lz,rz;
-        cin >> lx >> rx >> ly >> ry >> lz >> rz;
-
-        cout << s[rx][ry][rz] - s[rx][ry][lz-1] - s[rx][ly-1][rz] - s[lx-1][ry][rz] 
-        + s[lx-1][ly-1][rz] + s[lx-1][ry][lz-1] + s[rx][ly-1][lz-1] - s[lx-1][ly-1][lz-1] << endl;
-    }
-
-    
+    cout << r + 1 << endl;
 }

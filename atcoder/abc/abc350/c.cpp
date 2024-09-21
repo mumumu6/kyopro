@@ -25,29 +25,34 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    int n;
+    ll n;
     cin >> n;
+    vec a(n);
+    vec pos(n);
 
-    vector<vecc> a(n, vector<vector<ll>>(n, vector<ll>(n)));
-    rep(i, n) rep(j, n) rep(k, n) cin >> a[i][j][k];
-
-    int q;
-    cin >> q;
-
-    vector<vecc> s(n + 1, vecc(n + 1, vec(n + 1, 0)));
-
-    rep(i, n) rep(j, n) rep(k, n) {
-        s[i + 1][j + 1][k + 1] = s[i][j + 1][k + 1] + s[i + 1][j][k + 1] + s[i + 1][j + 1][k] 
-        - s[i+1][j][k] - s[i][j+1][k] - s[i][j][k+1] + s[i][j][k] +  a[i][j][k];
+    rep(i, n) {
+        cin >> a[i];
+        pos[a[i] - 1] = i;
     }
 
-    rep(i,q){
-        int lx,rx,ly,ry,lz,rz;
-        cin >> lx >> rx >> ly >> ry >> lz >> rz;
+    vector<pair<ll, ll>> ans;
 
-        cout << s[rx][ry][rz] - s[rx][ry][lz-1] - s[rx][ly-1][rz] - s[lx-1][ry][rz] 
-        + s[lx-1][ly-1][rz] + s[lx-1][ry][lz-1] + s[rx][ly-1][lz-1] - s[lx-1][ly-1][lz-1] << endl;
+    rep(i, n) {
+        if (i == pos[i]) continue;
+        ll x = pos[i];
+
+        a[pos[i]]     = a[i];
+        pos[a[i] - 1] = pos[i];
+        a[i]          = i + 1;
+        pos[i]        = i;
+
+        ans.push_back({i + 1, x + 1});
     }
+    ll k = ans.size();
+    cout << k << endl;
 
-    
+    rep(i, k) {
+        cout << ans[i].ft << ' ' << ans[i].sd;
+        cout << endl;
+    }
 }

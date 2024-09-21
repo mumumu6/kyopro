@@ -26,28 +26,31 @@ int main() {
     cout << fixed << setprecision(20);
 
     int n;
-    cin >> n;
+    string s;
+    cin >> n >> s;
 
-    vector<vecc> a(n, vector<vector<ll>>(n, vector<ll>(n)));
-    rep(i, n) rep(j, n) rep(k, n) cin >> a[i][j][k];
+    auto f = [&](char s) -> int {
+        if (s == 'R') return 0;
+        if (s == 'P') return 1;
+        if (s == 'S') return 2;
+    };
 
-    int q;
-    cin >> q;
+    vecc dp(n + 1, vec(3, 0));
 
-    vector<vecc> s(n + 1, vecc(n + 1, vec(n + 1, 0)));
+    reps(i, 1, n + 1) {
+        char t = s[i - 1];
+        // R グー
+        dp[i][0] = max(dp[i - 1][1], dp[i - 1][2]) + (t == 'S');
+        if (t == 'P') dp[i][0] = -4e18;
 
-    rep(i, n) rep(j, n) rep(k, n) {
-        s[i + 1][j + 1][k + 1] = s[i][j + 1][k + 1] + s[i + 1][j][k + 1] + s[i + 1][j + 1][k] 
-        - s[i+1][j][k] - s[i][j+1][k] - s[i][j][k+1] + s[i][j][k] +  a[i][j][k];
+        // P パー
+        dp[i][1] = max(dp[i - 1][0], dp[i - 1][2]) + (t == 'R');
+        if (t == 'S') dp[i][1] = -4e18;
+
+        // S チョキ
+        dp[i][2] = max(dp[i - 1][0], dp[i - 1][1]) + (t == 'P');
+        if (t == 'R') dp[i][2] = -4e18;
     }
 
-    rep(i,q){
-        int lx,rx,ly,ry,lz,rz;
-        cin >> lx >> rx >> ly >> ry >> lz >> rz;
-
-        cout << s[rx][ry][rz] - s[rx][ry][lz-1] - s[rx][ly-1][rz] - s[lx-1][ry][rz] 
-        + s[lx-1][ly-1][rz] + s[lx-1][ry][lz-1] + s[rx][ly-1][lz-1] - s[lx-1][ly-1][lz-1] << endl;
-    }
-
-    
+    cout << max({dp[n][0], dp[n][1], dp[n][2]}) << endl;
 }

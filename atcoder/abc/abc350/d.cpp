@@ -25,29 +25,28 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    int n;
-    cin >> n;
+    ll n, m;
+    cin >> n >> m;
 
-    vector<vecc> a(n, vector<vector<ll>>(n, vector<ll>(n)));
-    rep(i, n) rep(j, n) rep(k, n) cin >> a[i][j][k];
+    dsu uf(n);
 
-    int q;
-    cin >> q;
+    rep(i, m) {
+        ll a, b;
+        cin >> a >> b;
+        a--, b--;
 
-    vector<vecc> s(n + 1, vecc(n + 1, vec(n + 1, 0)));
-
-    rep(i, n) rep(j, n) rep(k, n) {
-        s[i + 1][j + 1][k + 1] = s[i][j + 1][k + 1] + s[i + 1][j][k + 1] + s[i + 1][j + 1][k] 
-        - s[i+1][j][k] - s[i][j+1][k] - s[i][j][k+1] + s[i][j][k] +  a[i][j][k];
+        uf.merge(a, b);
     }
 
-    rep(i,q){
-        int lx,rx,ly,ry,lz,rz;
-        cin >> lx >> rx >> ly >> ry >> lz >> rz;
 
-        cout << s[rx][ry][rz] - s[rx][ry][lz-1] - s[rx][ly-1][rz] - s[lx-1][ry][rz] 
-        + s[lx-1][ly-1][rz] + s[lx-1][ry][lz-1] + s[rx][ly-1][lz-1] - s[lx-1][ly-1][lz-1] << endl;
+    ll ans = 0;
+
+    rep(i, n) {
+        if (i == uf.leader(i)) {
+            ll k = uf.size(i);
+            ans += k * (k - 1) / 2;
+        }
     }
 
-    
+    cout << ans - m << endl;
 }
