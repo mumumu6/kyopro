@@ -25,46 +25,54 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n, m;
-    cin >> n >> m;
-
-    vector<pair<pll, vec>> q(m);
-
-    dsu uf(n);
-
-    rep(i, m) {
-        cin >> q[i].ft.ft >> q[i].ft.sd;
-
-        rep(j, q[i].ft.ft) {
-            ll a;
-            cin >> a;
-            a--;
-            q[i].sd.pb(a);
-        };
+    ll n, q;
+    cin >> n >> q;
+    vec x(q);
+    rep(i, q) {
+        cin >> x[i];
+        x[i]--;
     }
 
-    sort(all(q), [](const pair<pll, vec> &a, const pair<pll, vec> &b) {
-        return a.ft.sd < b.ft.sd;
-    });
-
     set<ll> s;
-    ll ans = 0;
 
-    rep(i, m) {
+    vec sum(q + 1,0);
 
-        rep(j, q[i].ft.ft) {
-            if (j == 0) continue;
-
-            if (!uf.same(q[i].sd[0], q[i].sd[j])) {
-                uf.merge(q[i].sd[0], q[i].sd[j]);
-                ans += q[i].ft.sd;
-            }
+    rep(i, q) {
+        if (s.find(x[i]) != s.end()) {
+            s.erase(x[i]);
+            sum[i + 1] = sum[i] + s.size();
+        } else {
+            s.insert(x[i]);
+            sum[i + 1] = sum[i] + s.size();
         }
     }
 
-    if (uf.size(0) != n) {
-        cout << -1 << endl;
-        return 0;
+    vecc a(n, vec());
+
+    rep(i, q) a[x[i]].pb(i);
+    rep(i, n) {
+        if (a[i].size() % 2 == 1) {
+            a[i].pb(q);
+        }
     }
-    cout << ans << endl;
+
+    vec ans(n,0);
+
+    rep(i, n) {
+        ll siz = a[i].size();
+        ll tim = siz / 2;
+
+        rep(j, tim){
+            ll in = a[i][2*j];
+            ll out = a[i][2*j+1];
+
+            ans[i] += sum[out] - sum[in];
+        }
+
+
+    }
+
+    rep(i, n) cout << ans[i] << " ";
+    cout << endl;
+    return 0;
 }

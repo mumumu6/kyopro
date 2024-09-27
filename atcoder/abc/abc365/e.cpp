@@ -25,32 +25,26 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    int n;
-    string s;
-    cin >> n >> s;
+    ll n;
+    cin >> n;
+    vec a(n);
+    rep(i, n) cin >> a[i];
 
-    auto f = [&](char s) -> int {
-        if (s == 'R') return 0;
-        if (s == 'P') return 1;
-        if (s == 'S') return 2;
-    };
+    vec sum(n + 1, 0);
 
-    vecc dp(n + 1, vec(3, 0));
+    rep(i, n) sum[i + 1] = sum[i] ^ a[i];
 
-    reps(i, 1, n + 1) {
-        char t = s[i - 1];
-        // R グー
-        dp[i][0] = max(dp[i - 1][1], dp[i - 1][2]) + (t == 'S');
-        if (t == 'P') dp[i][0] = -4e18;
+    n++;
 
-        // P パー
-        dp[i][1] = max(dp[i - 1][0], dp[i - 1][2]) + (t == 'R');
-        if (t == 'S') dp[i][1] = -4e18;
-
-        // S チョキ
-        dp[i][2] = max(dp[i - 1][0], dp[i - 1][1]) + (t == 'P');
-        if (t == 'R') dp[i][2] = -4e18;
+    ll ans = 0;
+    rep(k, 30) {
+        ll one = 0;
+        rep(i, n) if (sum[i] >> k & 1) one++;
+        ans += one * ll(n - one) * (1 << k);
     }
 
-    cout << max({dp[n][0], dp[n][1], dp[n][2]}) << endl;
+    rep(i, n - 1) ans -= a[i];
+
+    cout << ans << endl;
+    return 0;
 }
