@@ -1,70 +1,38 @@
 #include <bits/stdc++.h>
 using namespace std;
-#include <atcoder/all>
-using namespace atcoder;
-using mint = modint998244353;
-using ll   = long long;
-#define rep(i, n) for (ll i = 0; i < (n); i++)
-#define reps(i, a, b) for (ll i = (a); i < (b); i++)
-#define ft first
-#define sd second
-#define all(x) std::begin(x), std::end(x)
-#define mp(a, b) make_pair(a, b)
-#define pii pair<int, int>
-#define pb(x) push_back(x)
-#define so(z) sort(z.begin(), z.end())
-#define sor(z) sort(z.rbegin(), z.rend())
-#define vec vector<ll>
-#define vecc vector<vector<ll>>
+#define rep(i,n) for (int i = 0; i < (n); ++i)
+using ll = long long;
 
-class UnionFind {
-  public:
-    vector<int> par;
-
-    void init(int sz){  par.resize(sz, -1); }
-
-    int root(int pos) {
-        if (par[pos] == -1) return pos;
-        return par[pos];
-    }
-    void unite(int u, int v) {
-        u = root(u);
-        v = root(v);
-        if (u == v) return;
-        par[u] = v;   
-    }
-    bool same(int u, int v) {
-        if (root(u) == root(v)) return true;
-        return false;
-    }
+struct Edge {
+  int to, cost;
+  Edge(int to, int cost):to(to),cost(cost) {}
 };
 
 int main() {
-    UnionFind UF;
-    cin.tie(nullptr);
-    ios_base::sync_with_stdio(false);
-    cout << fixed << setprecision(8);
+  int n;
+  cin >> n;
+  ll ans = 0;
+  vector<vector<Edge>> g(n);
+  rep(i,n-1) {
+    int a, b, c;
+    cin >> a >> b >> c;
+    a--; b--;
+    g[a].emplace_back(b,c);
+    g[b].emplace_back(a,c);
+    ans += c*2;
+  }
 
-    ll n;
-    vecc g(n,vec());
-    vec a(n - 1), b(n - 1), c(n - 1);
-    rep(i, n - 1) cin >> a[i] >> b[i] >> c[i];
-
-    vec par(n,-1);
-    
-
-    rep(i, n - 1) {
-        g[a[i]].pb(b[i]);
-        g[b[i]].pb(a[i]);
-
-        UF.unite(a[i], b[i]);
+  auto dfs = [&](auto f, int v, ll d=0, int p=-1) -> pair<ll,int> {
+    auto res = make_pair(d,v);
+    for (auto e : g[v]) {
+      if (e.to == p) continue;
+      res = max(res, f(f, e.to, d+e.cost, v));
     }
-
-    rep(i,n){
-        if(g[i].size() == 1){
-            
-        }
-    }
-
-    
+    return res;
+  };
+  int a = dfs(dfs,0).second;
+  ll diameter = dfs(dfs,a).first;
+  ans -= diameter;
+  cout << ans << endl;
+  return 0;
 }

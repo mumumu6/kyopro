@@ -36,12 +36,10 @@ int main() {
         ll a = 0;
         ll b = 0;
         rep(j, n) {
-            if (i & (1 << j)) {
-                a += k[j];
-            } else {
-                b += k[j];
-            }
+            if (i & (1 << j)) a += k[j];
+            else b += k[j];
         }
+        
         sum = min(sum, max(a, b));
     }
 

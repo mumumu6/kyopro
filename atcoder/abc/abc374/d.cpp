@@ -20,64 +20,69 @@ bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
 
-double dist(double x1, double y1, double x2, double y2) {
-    double dx = x1 - x2;
-    double dy = y1 - y2;
-    return sqrt(dx * dx + dy * dy);
+long double dist(pll x, pll y) {
+    long double dx = x.ft - y.ft;
+    long double dy = x.sd - y.sd;
+    return sqrtl(dx * dx + dy * dy);
 }
 
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
-
-    ll n, s, t;
+    ll n;
+    long double s, t;
     cin >> n >> s >> t;
-    vecc a(n, vec(4));
+    vector<pair<long double, long double>> a(n);
+    vector<pair<long double, long double>> b(n);
 
     long double base = 0;
 
     vec p(n);
-
     rep(i, n) p[i] = i;
 
     rep(i, n) {
-        rep(j, 4) cin >> a[i][j];
-        base += dist(a[i][0], a[i][1], a[i][2], a[i][3]);
+        cin >> a[i].ft >> a[i].sd >> b[i].ft >> b[i].sd;
+        base += dist(a[i], b[i]); // 線分の長さはここで計算
     }
-    base /= (long double)(t);
-    long double x   = 4e18;
+    base /= (t);
+
+    long double x   = 4e18; // 線分間の移動の距離の和
     long double now = 0;
-    ll s1, s2, g1, g2;
+    pair<long double, long double> s1, g1, s2, g2;
     do {
         rep(bit, (1 << n)) {
             now = 0.0;
+            if (bit & (1 << 0)) s1 = a[p[0]];
+            else s1 = b[p[0]];
+
+            now += dist(make_pair(0.0, 0.0), s1); // 始点からスタート地点までの距離
+
             rep(i, n - 1) {
-                if (bit & (1 << i)) {
-                    s1 = 0;
-                    g1 = 2;
+
+                if (bit & (1 << i)) { // bitがたってたらaがスタート
+                    s1 = a[p[i]];
+                    g1 = b[p[i]];
                 } else {
-                    s1 = 2;
-                    g1 = 0;
+                    s1 = b[p[i]];
+                    g1 = a[p[i]];
                 }
                 if (bit & (1 << (i + 1))) {
-                    s2 = 0;
-                    g2 = 2;
+                    s2 = a[p[i + 1]];
+                    g2 = b[p[i + 1]];
                 } else {
-                    s2 = 2;
-                    g2 = 0;
+                    s2 = b[p[i + 1]];
+                    g2 = a[p[i + 1]];
                 }
 
-                if (i == 0) {
-                    // 最初の点からの距離
-                    now += dist(0, 0, a[p[i]][s1], a[p[i]][s1 + 1]);
-                }
-
-                now += dist(a[p[i]][g1], a[p[i]][g1 + 1], a[p[i + 1]][s2], a[p[i + 1]][s2 + 1]);
+                now += dist(g1, s2); // 線分間の移動距離
             }
+
             chmin(x, now);
         }
     } while (next_permutation(p.begin(), p.end()));
-                                                                                                           
-    cout << x / (long double)(s) + base << endl;
+
+    x /= s;
+
+    cout << x + base << endl;
 }
