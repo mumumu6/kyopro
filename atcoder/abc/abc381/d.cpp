@@ -52,7 +52,7 @@ int main() {
         // cout << "l: " << l << " r: " << r << endl;
         // cout << "a[l]: " << a[l] << " a[r]: " << a[r] << endl;
     }
-    
+
     l = 1, r = 1;
     cnt = vec(10, 0);
     while (r < n) {
