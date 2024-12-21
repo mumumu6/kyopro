@@ -8,8 +8,9 @@ using ll   = long long;
 #define reps(i, a, b) for (ll i = (a); i < (b); i++)
 bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
 bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
-vector<ll> dx = {0, 1, 0, -1};
-vector<ll> dy = {1, 0, -1, 0};
+vector<ll> dx    = {0, 1, 0, -1};
+vector<ll> dy    = {1, 0, -1, 0};
+vector<ll> sin45 = {0, 1, 1, 1, 0, -1, -1, -1}, cos45 = {1, 1, 0, -1, -1, -1, 0, 1};
 #define ft first
 #define sd second
 #define all(x) std::begin(x), std::end(x)
@@ -27,23 +28,26 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    string s;
-    cin >> s;
+    ll n, m;
+    cin >> n >> m;
 
-    vector<ll> cnt(26, 0);
+    set<pll> s;
+    vector<pair<int, int>> knight_move{{2, 1},   {1, 2},   {-1, 2}, {-2, 1},
+                                       {-2, -1}, {-1, -2}, {1, -2}, {2, -1}};
 
-    for (auto c : s)  cnt[c - 'a']++; 
-    ll n = s.size();
-
-    ll ans = n*(n-1)/2;
-    bool flag = false;
-
-    for (auto c : cnt) {
-        ans -= c*(c-1)/2;
-        if(c > 1) flag = true;
+    rep(i, m) {
+        ll a, b;
+        cin >> a >> b;
+        a--;
+        b--;
+        s.insert(mp(a, b));
+        rep(i, 8) {
+            ll na = a + knight_move[i].ft;
+            ll nb = b + knight_move[i].sd;
+            if (0 <= na && na < n && 0 <= nb && nb < n) { s.insert(mp(na, nb)); }
+        }
     }
 
-    if(flag) ans++;
-
+    ll ans = n * n - s.size();
     cout << ans << endl;
 }

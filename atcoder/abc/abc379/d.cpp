@@ -27,23 +27,34 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    string s;
-    cin >> s;
+    ll Q;
+    cin >> Q;
+    queue<ll> que;
+    vector<ll> hight(Q + 1, 0);
 
-    vector<ll> cnt(26, 0);
+    rep(i, Q) {
+        ll q;
+        cin >> q;
 
-    for (auto c : s)  cnt[c - 'a']++; 
-    ll n = s.size();
+        if (q == 1) {
+            que.push(i);
+            hight[i + 1] = hight[i];
+        } else if (q == 2) {
+            ll t;
+            cin >> t;
+            hight[i + 1] = hight[i] + t;
+        } else {
+            hight[i + 1] = hight[i];
 
-    ll ans = n*(n-1)/2;
-    bool flag = false;
+            ll h;
+            cin >> h;
+            ll ans = 0;
+            while (!que.empty() && hight[i + 1] - hight[que.front()] >= h) {
+                que.pop();
+                ans++;
+            }
 
-    for (auto c : cnt) {
-        ans -= c*(c-1)/2;
-        if(c > 1) flag = true;
+            cout << ans << endl;
+        }
     }
-
-    if(flag) ans++;
-
-    cout << ans << endl;
 }

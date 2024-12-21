@@ -27,23 +27,42 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    string s;
-    cin >> s;
+    ll n, m;
+    cin >> n >> m;
+  
+    ll now = -1;
+    vector<pll> a(m);
+    rep(i, m) {
+        cin >> a[i].ft;
+        a[i].ft--;
+    }
+    rep(i, m) cin >> a[i].sd;
 
-    vector<ll> cnt(26, 0);
-
-    for (auto c : s)  cnt[c - 'a']++; 
-    ll n = s.size();
-
-    ll ans = n*(n-1)/2;
     bool flag = false;
+    so(a);
 
-    for (auto c : cnt) {
-        ans -= c*(c-1)/2;
-        if(c > 1) flag = true;
+    ll ans    = 0;
+
+  
+    
+    rep(i, m) {
+        if(now  + 1 <  a[i].ft ){
+            cout << -1 << endl;
+            return 0;
+        }
+
+        ans += (now + 1 - a[i].ft + now - a[i].ft  + a[i].sd) * (a[i].sd) / 2;
+
+        now += a[i].sd;
+        
+        // cout << "now: " << now << " ans: " << ans << " i: " << i << endl;
     }
 
-    if(flag) ans++;
+
+    if(now != n -1){
+        cout << -1 << endl;
+        return 0;
+    }
 
     cout << ans << endl;
 }
