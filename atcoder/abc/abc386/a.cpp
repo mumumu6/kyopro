@@ -28,25 +28,16 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n;
-    cin >> n;
-    vec h(n);
-    rep(i,n) cin >> h[i];
-    ll ans = 1;
+    ll a,b,c,d;
+    cin >> a >> b >> c >> d;
 
-    rep(i,n)rep(j,n){ // iが幅　jがスタートのビル
-        ll cnt = 1;
-        if(i == 0) continue;
-        ll hight = h[j];
-        ll k = j;
-        while(k < n){
-            if(h[k + i] != hight)break;
-            k += i;
-            cnt++;
-            chmax(ans,cnt);
-        }
-        
-    }
+    multiset<ll> s;
+    s.insert(a);
+    s.insert(b);
+    s.insert(c);
+    s.insert(d);
 
-    cout << ans << endl;
+    if(s.count(a) == 2 && s.count(b) == 2 && s.count(c) == 2 && s.count(d) == 2) cout << "Yes" << endl;
+    else if(s.count(a) == 3 || s.count(b) == 3 || s.count(c) == 3 || s.count(d) == 3) cout << "Yes" << endl;
+    else cout << "No" << endl;
 }

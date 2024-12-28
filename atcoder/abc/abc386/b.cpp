@@ -28,23 +28,35 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll a, b, c;
-    cin >> a >> b >> c;
-    ll sum = a + b + c;
+    string s;
+    cin >> s;
 
-    if (a == sum / 2 || b == sum / 2 || c == sum / 2) {
-        cout << "Yes" << endl;
-        if(a == 0){
-            cout << "No" << endl;
-            return 0;
+    ll n   = s.size();
+    ll ans = 0;
+    ll cnt = 0;
+    rep(i, n) {
+        if (s[i] != '0') {
+            ans++;
+            
+            if (cnt == 1) {
+                ans++;
+                cnt = 0;
+            }
+            continue;
         }
-        return 0;
+
+        if (cnt == 0) {
+            cnt++;
+            continue;
+        } else if (cnt == 1) {
+            cnt = 0;
+            ans++;
+            continue;
+        }
     }
 
-    if(a == b && b == c && c == a) {
-        cout << "Yes" << endl;
-        return 0;
-    }
+    if (cnt == 1) ans++;
 
-    cout << "No" << endl;
+    cout << ans << endl;
+    return 0;
 }

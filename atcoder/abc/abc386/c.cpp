@@ -28,23 +28,68 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll a, b, c;
-    cin >> a >> b >> c;
-    ll sum = a + b + c;
+    ll k;
+    cin >> k;
 
-    if (a == sum / 2 || b == sum / 2 || c == sum / 2) {
-        cout << "Yes" << endl;
-        if(a == 0){
+    string s, t;
+    cin >> s >> t;
+
+    ll ns = s.size();
+    ll nt = t.size(); 
+
+    if (abs(ns - nt) > k) {
+        cout << "No" << endl;
+        return 0;
+    }
+
+    if (s.size() == t.size()) {
+        ll dif = 0;
+
+        rep(i, s.size()) {
+            if (s[i] != t[i])  dif++; 
+        }
+
+        if(dif <= k){
+            cout << "Yes" << endl;
+            return 0;
+        }else{
             cout << "No" << endl;
             return 0;
         }
-        return 0;
+
     }
 
-    if(a == b && b == c && c == a) {
+    // s.size() < t.size() にする
+    if( s.size() > t.size() ){
+        swap(s, t);
+    }
+
+    string st = "";
+    rep(i, s.size()){
+        if(s[i] == t[i]){
+            st += s[i];
+        }else{
+            st += t[i];
+
+            reps(j, i, s.size()){
+                st += s[j];
+            }
+
+            
+
+            break;
+        }
+
+        if(i == s.size()-1){
+            st += t[s.size()];
+        }
+    }
+
+
+    if(st == t){
         cout << "Yes" << endl;
-        return 0;
+    }else{
+        cout << "No" << endl;
     }
 
-    cout << "No" << endl;
 }
