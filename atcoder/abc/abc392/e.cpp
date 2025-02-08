@@ -50,30 +50,55 @@ int main() {
         }
     }
 
-    ll ans = 0;
     cout << uf.groups().size() - 1 << endl;
 
     vec haveno;
     auto groups = uf.groups();
 
     for (auto g : groups) {
-        if (extra.find(uf.leader(g[0])) != extra.end()) haveno.pb(g[0]);
+        if (extra.find(uf.leader(g[0])) == extra.end()) haveno.pb(g[0]);
     }
 
     ll x = 0;
-    for (auto g : groups) {
-        if (extra.find(uf.leader(g[0])) != extra.end()) continue;
 
-        if (x != haveno.size()) {
-            cout << extra[uf.leader(g[0])].sd << " " << extra[uf.leader(g[0])].ft + 1  << " "
-                 << uf.leader(haveno[x]) + 1<< endl;
-            uf.merge(uf.leader(g[0]), uf.leader(haveno[x]));
-            x++;    
+    ll t = 0;
+    rep(i, groups.size()) {
+        if (extra.find(uf.leader(groups[i][0])) == extra.end()) continue;
+        ll siz = extra[uf.leader(groups[i][0])].size();
 
+        rep(j, siz) {
+            if (x != haveno.size()) {
+                cout << extra[uf.leader(groups[i][0])][j].second << " "
+                     << extra[uf.leader(groups[i][0])][j].first + 1 << " " << uf.leader(haveno[x]) + 1
+                     << endl;
+
+                vector<pll> p = extra[uf.leader(groups[i][0])];
+                uf.merge(extra[uf.leader(groups[i][0])][j].first, haveno[x]);
+                extra[uf.leader(groups[i][0])] = p;
+                x++;
+                t++;
+            } else {
+                t++;
+                if (t >= groups.size()) continue;
+                while (1) {
+                    if (uf.same(groups[i][0], groups[t][0])) {
+                        t++;
+                        if (t >= groups.size()) break;
+                        continue;
+                    } else {
+                        cout << extra[uf.leader(groups[i][0])][j].second << " "
+                             << extra[uf.leader(groups[i][0])][j].first + 1 << " "
+                             << uf.leader(groups[t][0]) + 1 << endl;
+
+                        vector<pll> p = extra[uf.leader(groups[i][0])];
+                        uf.merge(extra[uf.leader(groups[i][0])][j].first, t);
+                        extra[uf.leader(groups[i][0])] = p;
+                        break;
+                    }
+                }
+            }
+
+            if (t >= groups.size() ) break;
         }
-    }
-
-    rep(i, groups.size() - 1) {
-        cout << extra[uf.leader(groups[i][0])].sd << " " << extra[uf.leader(groups[i][0])].ft + 1 << " " << uf.leader(groups[i + 1][0]) + 1 << endl;
     }
 }
