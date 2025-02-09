@@ -66,11 +66,13 @@ int main() {
             while (t < g.size() && merged.count(uf.leader(g[t][0]))) t++;
             if (t >= g.size()) continue;
 
-            cout << num << " " << la + 1 << " " << uf.leader(g[t][0]) + 1 << endl;
-
+            cout << num << " " << a + 1 << " " << uf.leader(g[t][0]) + 1 << endl;
+            merged.insert(uf.leader(g[t][0]));
+            merged.insert(a);
         } else {
-            cout << num << " " << la + 1 << " " << mergedLeader + 1 << endl;
+            cout << num << " " << a + 1 << " " << mergedLeader + 1 << endl;
             merged.insert(la);
+            merged.insert(a);
         }
 
         if (i >= g.size() - 2) break;
