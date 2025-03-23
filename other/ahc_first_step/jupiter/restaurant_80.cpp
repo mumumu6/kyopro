@@ -20,7 +20,13 @@ struct Point {
     /// @brief 2点間のマンハッタン距離を計算する
     /// @param p 距離を計算する点
     /// @return 2点間のマンハッタン距離
-    int dist(const Point& p) const { return std::abs(x - p.x) + std::abs(y - p.y); }
+    int dist(const Point& p) const { return std::abs(x - p.x) + std::abs(y - p.y); } 
+};
+
+struct Route_index{
+    Point point;
+    int index;
+    bool is_restaurant;
 };
 
 /// @brief 入力データを表す構造体
@@ -67,10 +73,27 @@ struct Output {
     /// @brief 配達ルート
     std::vector<Point> route;
 
+    /// @brief 配達ルートのインデックス情報
+    std::vector<Route_index> route_indices;
+
     /// @brief 出力データを構築する
     /// @param orders 選択した注文のリスト
     /// @param route 配達ルート
     Output(std::vector<int> orders, std::vector<Point> route) : orders(orders), route(route) {
+        // 移動距離の合計を計算する
+        dist_sum = 0;
+
+        for (int i = 0; i < route.size() - 1; ++i) {
+            dist_sum += route[i].dist(route[i + 1]);
+        }
+    }
+
+    /// @brief 出力データを構築する（インデックス情報付き）
+    /// @param orders 選択した注文のリスト
+    /// @param route 配達ルート
+    /// @param route_indices 配達ルートのインデックス情報
+    Output(std::vector<int> orders, std::vector<Point> route, std::vector<Route_index> route_indices) 
+        : orders(orders), route(route), route_indices(route_indices) {
         // 移動距離の合計を計算する
         dist_sum = 0;
 
@@ -99,6 +122,16 @@ struct Output {
         }
 
         std::cout << std::endl;
+
+        インデックス情報が存在する場合は、デバッグ情報として出力
+        if (!route_indices.empty()) {
+            std::cerr << "Route indices information:" << std::endl;
+            for (int i = 0; i < route_indices.size(); ++i) {
+                std::cerr << "Point(" << route_indices[i].point.x << ", " << route_indices[i].point.y << ")";
+                std::cerr << " - Index: " << route_indices[i].index;
+                std::cerr << " - Is restaurant: " << (route_indices[i].is_restaurant ? "Yes" : "No") << std::endl;
+            }
+        }
     }
 };
 
@@ -127,6 +160,7 @@ Output solve(const Input& input) {
     std::vector<int> candidates; 
     std::vector<int> orders;   // 注文の集合
     std::vector<Point> route;  // 配達ルート
+    std::vector<Route_index> route_indices; // 配達ルートのインデックス情報
 
     // 1. オフィスから距離400以下の注文だけを候補にする
     for (int i = 0; i < input.order_count; i++) {
@@ -137,6 +171,9 @@ Output solve(const Input& input) {
 
     // 1.オフィスからスタート
     route.push_back(input.office);
+    // オフィスのインデックス情報を追加
+    route_indices.push_back({input.office, -1, false}); // オフィスなので特別な値 -1
+
     Point current_position = input.office;  // 現在地
     int total_dist = 0;                     // 総移動距離
 
@@ -175,6 +212,9 @@ Output solve(const Input& input) {
 
         // 【穴埋め】配達ルートに現在の位置を追加
         route.push_back(current_position);
+
+        // レストランのインデックス情報を追加
+        route_indices.push_back({current_position, nearest_restaurant, true});
 
         // 【穴埋め】訪問済みレストランの配列にtrueをセット
         visited_restaurant[nearest_restaurant] = true;
@@ -222,6 +262,9 @@ Output solve(const Input& input) {
         // 【穴埋め】配達ルートに現在の位置を追加
         route.push_back(current_position);
 
+        // 配達先のインデックス情報を追加
+        route_indices.push_back({current_position, nearest_destination, false});
+
         // 【穴埋め】配達先のリストから削除
         destinations.erase(destinations.begin() + nearest_index);
 
@@ -251,18 +294,23 @@ Output solve(const Input& input) {
     for (int idx : indices_to_remove) {
         // 対応するrouteを削除（route[0]はオフィスなのでインデックスを+1する）
         route.erase(route.begin() + idx + 1);
+        // 対応するroute_indicesを削除
+        route_indices.erase(route_indices.begin() + idx + 1);
         // orderを削除
         orders.erase(orders.begin() + idx);
     }
 
     // 4.オフィスに戻る
     route.push_back(input.office);
+    // オフィスのインデックス情報を追加
+    route_indices.push_back({input.office, -1, false}); // オフィスなので特別な値 -1
+    
     total_dist += current_position.dist(input.office);
 
     // 合計距離を標準エラー出力に出力
     std::cerr << "total distance: " << total_dist << std::endl;
 
-    return Output(orders, route);
+    return Output(orders, route, route_indices);
 }
 
 /// @brief 配達先の訪問順序を焼きなまし法で改善する関数
@@ -277,11 +325,13 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
     // 貪欲法で求めた解をコピー(これを初期解とする)
     std::vector<int> orders = output_greedy.orders;
     std::vector<Point> route = output_greedy.route;
+    std::vector<Route_index> route_indices = output_greedy.route_indices;
 
     // 現在の経路の距離を計算
     int current_dist = get_distance(route);
     int best_dist = current_dist;
     std::vector<Point> best_route = route;
+    std::vector<Route_index> best_route_indices = route_indices;
 
     // 乱数生成器を用意
     std::mt19937 rand{42};
@@ -295,7 +345,7 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
     auto start_time = std::chrono::system_clock::now();
 
     // 制限時間(1.9秒)
-    const int time_limit = 1900;
+    const int time_limit = 1800;
 
     // 試行回数
     int iteration = 0;
@@ -327,12 +377,18 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
 
             // i番目の訪問先を一時保存
             Point tmp = route[i];
+            Route_index tmp_index = route_indices[i];
+            
             // i番目の要素を削除
             route.erase(route.begin() + i);
+            route_indices.erase(route_indices.begin() + i);
+            
             // j番目に挿入（j>iの場合はj-1番目になることに注意）
             int insert_pos = j;
             if (i < j) insert_pos--;
+            
             route.insert(route.begin() + insert_pos, tmp);
+            route_indices.insert(route_indices.begin() + insert_pos, tmp_index);
 
             // 操作後の経路の距離を計算
             int new_dist = get_distance(route);
@@ -361,13 +417,16 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
                 if (new_dist < best_dist) {
                     best_dist = new_dist;
                     best_route = route;
+                    best_route_indices = route_indices;
                     std::cerr << "iteration: " << iteration << ", temp: " << temp 
                               << ", new best distance: " << best_dist << std::endl;
                 }
             } else {
                 // 解を棄却して元に戻す
                 route.erase(route.begin() + insert_pos);
+                route_indices.erase(route_indices.begin() + insert_pos);
                 route.insert(route.begin() + i, tmp);
+                route_indices.insert(route_indices.begin() + i, tmp_index);
             }
         } else {  // 25%の確率でレストランを入れ替え
             // レストラン（1～50番目）の入れ替え
@@ -376,12 +435,18 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
 
             // i番目の訪問先を一時保存
             Point tmp = route[i];
+            Route_index tmp_index = route_indices[i];
+            
             // i番目の要素を削除
             route.erase(route.begin() + i);
+            route_indices.erase(route_indices.begin() + i);
+            
             // j番目に挿入（j>iの場合はj-1番目になることに注意）
             int insert_pos = j;
             if (i < j) insert_pos--;
+            
             route.insert(route.begin() + insert_pos, tmp);
+            route_indices.insert(route_indices.begin() + insert_pos, tmp_index);
 
             // 操作後の経路の距離を計算
             int new_dist = get_distance(route);
@@ -410,13 +475,16 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
                 if (new_dist < best_dist) {
                     best_dist = new_dist;
                     best_route = route;
+                    best_route_indices = route_indices;
                     std::cerr << "iteration: " << iteration << ", temp: " << temp 
                               << ", new best distance: " << best_dist << std::endl;
                 }
             } else {
                 // 解を棄却して元に戻す
                 route.erase(route.begin() + insert_pos);
+                route_indices.erase(route_indices.begin() + insert_pos);
                 route.insert(route.begin() + i, tmp);
+                route_indices.insert(route_indices.begin() + i, tmp_index);
             }
         }
 
@@ -431,7 +499,32 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
     std::cerr << "improved      : " << improved << std::endl;
     std::cerr << "best distance : " << best_dist << std::endl;
 
-    return Output(orders, best_route);
+    return Output(orders, best_route, best_route_indices);
+}
+
+Output solve_mix_destination_and_restaurant(const Input& input,const Output& output_annealing){
+    // レストランを訪問した後、その近くに目的地があれば立ち寄る戦略
+    
+    std::vector<int> orders;          // 注文の集合
+    std::vector<Point> route;         // 配達ルート
+    std::vector<Route_index> route_indices; // 配達ルートのインデックス情報
+    std::vector<bool> visited_restaurant(input.order_count, false);
+    std::vector<bool> visited_destination(input.order_count, false);
+
+    // コピー
+    orders = output_annealing.orders;
+    route = output_annealing.route;
+    route_indices = output_annealing.route_indices;
+
+    // このあとの実装はここで行います
+    // routeの50番目までをコピー
+    std::vector<Point> restaurant_route(route.begin(), route.begin() + 50);
+    
+    // ここではまだ具体的な実装はありませんが、
+    // 最終的にはroute, route_indices, ordersを適切に更新します
+    
+    // 修正されたルートでOutputを作成
+    return Output(orders, route, route_indices);
 }
 
 int main() {
@@ -442,7 +535,9 @@ int main() {
     Output output = solve(input);
     Output output_annealing = solve_simulated_annealing(input, output);
 
+    Output output_mixed = solve_mix_destination_and_restaurant(input, output_annealing);
+
     // 出力する
-    output_annealing.print();
+    output_mixed.print();
     return 0;
 }
