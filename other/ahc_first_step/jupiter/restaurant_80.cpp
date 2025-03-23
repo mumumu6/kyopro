@@ -265,13 +265,14 @@ Output solve(const Input& input) {
     return Output(orders, route);
 }
 
-/// @brief 配達先の訪問順序を山登り法で改善する関数（この関数を実装していきます）
+/// @brief 配達先の訪問順序を焼きなまし法で改善する関数
 /// @param input 入力データ
 /// @param output_greedy 貪欲法で求めた出力データ
 /// @return 出力データ
-Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
-    // 山登り法
+Output solve_simulated_annealing(const Input& input, const Output& output_greedy) {
+    // 焼きなまし法
     // 「ある1つの配達先を訪問する順序を、別の場所に入れ替える」操作を繰り返すことで、経路を改善する
+    // 山登り法と異なり、一時的に解が悪化する操作も確率的に受け入れることで局所解から抜け出す
 
     // 貪欲法で求めた解をコピー(これを初期解とする)
     std::vector<int> orders = output_greedy.orders;
@@ -279,39 +280,47 @@ Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
 
     // 現在の経路の距離を計算
     int current_dist = get_distance(route);
+    int best_dist = current_dist;
+    std::vector<Point> best_route = route;
 
     // 乱数生成器を用意
-    // 乱数のシード値は固定のものにしておくと、デバッグがしやすくなります
     std::mt19937 rand{42};
+    std::uniform_real_distribution<double> uniform_dist(0.0, 1.0);
 
-    // 山登り法の開始時刻を取得
+    // 焼きなまし法のパラメータ
+    double start_temp = 10000.0;  // 開始温度
+    double end_temp = 10.0;      // 終了温度
+
+    // 焼きなまし法の開始時刻を取得
     auto start_time = std::chrono::system_clock::now();
 
     // 制限時間(1.9秒)
-    // 2秒ちょうどまでやるとTLEになるので、1.9秒程度にしておくとよい
     const int time_limit = 1900;
 
     // 試行回数
     int iteration = 0;
+    int accepted = 0;  // 受理された回数
+    int improved = 0;  // 改善された回数
 
-    // 山登り法の本体
+    // 焼きなまし法の本体
     while (true) {
         // 現在時刻を取得
-        int t = 0;
         auto current_time = std::chrono::system_clock::now();
+        int elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count();
 
         // 制限時間になったら終了
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() >= time_limit) {
+        if (elapsed_ms >= time_limit) {
             break;
         }
 
-        // 訪問先が配達先であるようなインデックスの中から、
-        // 「i番目の訪問先をj番目に移動」する操作をランダムに選ぶことで、
-        // ある配達先を訪れる順序を他の配達先の間に変える
-        // 貪欲法で求めた解では、配達先の訪問順序は0-indexedで51番目～100番目であることに注意
-        // (AtCoderオフィス、レストラン50軒、配達先50軒、AtCoderオフィスの順に並んでいる)
+        // 経過時間から現在の温度を計算
+        // 時間の経過とともに指数関数的に温度を下げる
+        double progress = static_cast<double>(elapsed_ms) / time_limit;
+        double temp = start_temp * std::pow(end_temp / start_temp, progress);
 
-        if (t % 4 != 0) {
+        // 近傍操作をランダムに選択
+        int t = rand() % 4;
+        if (t < 3) {  // 75%の確率で配達先を入れ替え
             // 配達先（51～100番目）の入れ替え
             int i = 51 + rand() % input.pickup_count;
             int j = 51 + rand() % input.pickup_count;
@@ -327,24 +336,41 @@ Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
 
             // 操作後の経路の距離を計算
             int new_dist = get_distance(route);
+            int delta = new_dist - current_dist;
 
-            // 操作後の距離が現在の距離以下なら採用
-            if (new_dist <= current_dist) {
-                // 距離が真に小さくなった場合のみログ出力
-                if (new_dist < current_dist) {
-                    std::cerr << "iteration: " << iteration << ", total distance: " << new_dist << std::endl;
-                }
-                // 現在の距離を更新
-                current_dist = new_dist;
+            // 確率的に受理するかどうかを決定
+            bool accept = false;
+            if (delta <= 0) {
+                // 改善する場合は常に受理
+                accept = true;
+                improved++;
             } else {
-                // 操作前より悪化していたら元に戻す
-                // 正しく元に戻す処理
+                // 悪化する場合は温度に応じた確率で受理
+                double probability = std::exp(-delta / temp);
+                if (uniform_dist(rand) < probability) {
+                    accept = true;
+                }
+            }
+
+            if (accept) {
+                // 解を受理
+                current_dist = new_dist;
+                accepted++;
+                
+                // 最良解の更新
+                if (new_dist < best_dist) {
+                    best_dist = new_dist;
+                    best_route = route;
+                    std::cerr << "iteration: " << iteration << ", temp: " << temp 
+                              << ", new best distance: " << best_dist << std::endl;
+                }
+            } else {
+                // 解を棄却して元に戻す
                 route.erase(route.begin() + insert_pos);
                 route.insert(route.begin() + i, tmp);
             }
-        } else {
+        } else {  // 25%の確率でレストランを入れ替え
             // レストラン（1～50番目）の入れ替え
-            // オフィス（0番目）は除外して1～50番目から選ぶ
             int i = 1 + rand() % input.pickup_count;
             int j = 1 + rand() % input.pickup_count;
 
@@ -359,17 +385,36 @@ Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
 
             // 操作後の経路の距離を計算
             int new_dist = get_distance(route);
+            int delta = new_dist - current_dist;
 
-            // 操作後の距離が現在の距離以下なら採用
-            if (new_dist <= current_dist) {
-                // 距離が真に小さくなった場合のみログ出力
-                if (new_dist < current_dist) {
-                    std::cerr << "iteration: " << iteration << ", restaurants distance: " << new_dist << std::endl;
-                }
-                // 現在の距離を更新
-                current_dist = new_dist;
+            // 確率的に受理するかどうかを決定
+            bool accept = false;
+            if (delta <= 0) {
+                // 改善する場合は常に受理
+                accept = true;
+                improved++;
             } else {
-                // 操作前より悪化していたら元に戻す
+                // 悪化する場合は温度に応じた確率で受理
+                double probability = std::exp(-delta / temp);
+                if (uniform_dist(rand) < probability) {
+                    accept = true;
+                }
+            }
+
+            if (accept) {
+                // 解を受理
+                current_dist = new_dist;
+                accepted++;
+                
+                // 最良解の更新
+                if (new_dist < best_dist) {
+                    best_dist = new_dist;
+                    best_route = route;
+                    std::cerr << "iteration: " << iteration << ", temp: " << temp 
+                              << ", new best distance: " << best_dist << std::endl;
+                }
+            } else {
+                // 解を棄却して元に戻す
                 route.erase(route.begin() + insert_pos);
                 route.insert(route.begin() + i, tmp);
             }
@@ -377,18 +422,17 @@ Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
 
         // 試行回数のカウントを増やす
         iteration++;
-        t++;
     }
 
     // 試行回数と合計距離を標準エラー出力に出力
     std::cerr << "--- Result ---" << std::endl;
     std::cerr << "iteration     : " << iteration << std::endl;
-    std::cerr << "total distance: " << current_dist << std::endl;
+    std::cerr << "accepted      : " << accepted << std::endl;
+    std::cerr << "improved      : " << improved << std::endl;
+    std::cerr << "best distance : " << best_dist << std::endl;
 
-    return Output(orders, route);
+    return Output(orders, best_route);
 }
-
-
 
 int main() {
     // 入力データを読み込む
@@ -396,10 +440,9 @@ int main() {
 
     // 問題を解く
     Output output = solve(input);
-    Output output_hill_climbing = solve_hill_climbing(input, output);
-
+    Output output_annealing = solve_simulated_annealing(input, output);
 
     // 出力する
-    output_hill_climbing.print();
+    output_annealing.print();
     return 0;
 }
