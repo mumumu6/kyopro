@@ -146,7 +146,7 @@ Output solve(const Input& input) {
     std::vector<bool> visited_restaurant(input.order_count, false);
 
     // pickup_count(=50)回ループ
-    for (int i = 0; i < input.pickup_count + 100; ++i) {
+    for (int i = 0; i < input.pickup_count + 50; ++i) {
         // レストランを全探索して、最も近いレストランを探す
         int nearest_restaurant = 0;  // レストランの番号
         int min_dist = 1000000;      // 最も近いレストランの距離
@@ -297,6 +297,7 @@ Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
     // 山登り法の本体
     while (true) {
         // 現在時刻を取得
+        int t = 0;
         auto current_time = std::chrono::system_clock::now();
 
         // 制限時間になったら終了
@@ -310,40 +311,73 @@ Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
         // 貪欲法で求めた解では、配達先の訪問順序は0-indexedで51番目～100番目であることに注意
         // (AtCoderオフィス、レストラン50軒、配達先50軒、AtCoderオフィスの順に並んでいる)
 
-        // 訪問先が配達先であるようなインデックスの中から i, j をランダムに選ぶ
-        // ヒント: 配達先は51〜100番目の要素（オフィス+レストラン50軒の後）
-        int i = 51 + rand() % input.pickup_count;
-        int j = 51 + rand() % input.pickup_count;
+        if (t % 4 != 0) {
+            // 配達先（51～100番目）の入れ替え
+            int i = 51 + rand() % input.pickup_count;
+            int j = 51 + rand() % input.pickup_count;
 
-        // i番目の訪問先を一時保存
-        Point tmp = route[i];
-        // i番目の要素を削除
-        route.erase(route.begin() + i);
-        // j番目に挿入（j>iの場合はj-1番目になることに注意）
-        int insert_pos = j;
-        if (i < j) insert_pos--;
-        route.insert(route.begin() + insert_pos, tmp);
+            // i番目の訪問先を一時保存
+            Point tmp = route[i];
+            // i番目の要素を削除
+            route.erase(route.begin() + i);
+            // j番目に挿入（j>iの場合はj-1番目になることに注意）
+            int insert_pos = j;
+            if (i < j) insert_pos--;
+            route.insert(route.begin() + insert_pos, tmp);
 
-        // 操作後の経路の距離を計算
-        int new_dist = get_distance(route);
+            // 操作後の経路の距離を計算
+            int new_dist = get_distance(route);
 
-        // 操作後の距離が現在の距離以下なら採用
-        if (new_dist <= current_dist) {
-            // 距離が真に小さくなった場合のみログ出力
-            if (new_dist < current_dist) {
-                std::cerr << "iteration: " << iteration << ", total distance: " << new_dist << std::endl;
+            // 操作後の距離が現在の距離以下なら採用
+            if (new_dist <= current_dist) {
+                // 距離が真に小さくなった場合のみログ出力
+                if (new_dist < current_dist) {
+                    std::cerr << "iteration: " << iteration << ", total distance: " << new_dist << std::endl;
+                }
+                // 現在の距離を更新
+                current_dist = new_dist;
+            } else {
+                // 操作前より悪化していたら元に戻す
+                // 正しく元に戻す処理
+                route.erase(route.begin() + insert_pos);
+                route.insert(route.begin() + i, tmp);
             }
-            // 現在の距離を更新
-            current_dist = new_dist;
         } else {
-            // 操作前より悪化していたら元に戻す
-            // 正しく元に戻す処理
-            route.erase(route.begin() + insert_pos);
-            route.insert(route.begin() + i, tmp);
+            // レストラン（1～50番目）の入れ替え
+            // オフィス（0番目）は除外して1～50番目から選ぶ
+            int i = 1 + rand() % input.pickup_count;
+            int j = 1 + rand() % input.pickup_count;
+
+            // i番目の訪問先を一時保存
+            Point tmp = route[i];
+            // i番目の要素を削除
+            route.erase(route.begin() + i);
+            // j番目に挿入（j>iの場合はj-1番目になることに注意）
+            int insert_pos = j;
+            if (i < j) insert_pos--;
+            route.insert(route.begin() + insert_pos, tmp);
+
+            // 操作後の経路の距離を計算
+            int new_dist = get_distance(route);
+
+            // 操作後の距離が現在の距離以下なら採用
+            if (new_dist <= current_dist) {
+                // 距離が真に小さくなった場合のみログ出力
+                if (new_dist < current_dist) {
+                    std::cerr << "iteration: " << iteration << ", restaurants distance: " << new_dist << std::endl;
+                }
+                // 現在の距離を更新
+                current_dist = new_dist;
+            } else {
+                // 操作前より悪化していたら元に戻す
+                route.erase(route.begin() + insert_pos);
+                route.insert(route.begin() + i, tmp);
+            }
         }
 
         // 試行回数のカウントを増やす
         iteration++;
+        t++;
     }
 
     // 試行回数と合計距離を標準エラー出力に出力
