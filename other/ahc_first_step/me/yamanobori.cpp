@@ -122,9 +122,15 @@ Output solve(const Input& input) {
     // 2.訪問したレストランが50軒に達するまで、今いる場所から一番近いレストランに移動することを繰り返す
     // 3.受けた注文を捌ききるまで、今いる場所から一番近い配達先に移動することを繰り返す
     // 4.オフィスに帰る
-
+    std::vector<int> candidates;  // 注文の候補
     std::vector<int> orders;   // 注文の集合
     std::vector<Point> route;  // 配達ルート
+
+    for (int i = 0; i < input.order_count; i++) {
+        if (input.office.dist(input.restaurants[i]) <= 400 && input.office.dist(input.destinations[i]) <= 400) {
+            candidates.push_back(i);
+        }
+    }
 
     // 1.オフィスからスタート
     route.push_back(input.office);
