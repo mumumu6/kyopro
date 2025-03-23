@@ -124,21 +124,19 @@ Output solve(const Input& input) {
     std::vector<bool> visited_restaurant(input.order_count, false);
 
     // pickup_count(=50)回ループ
-    for (int i = 0; i < input.pickup_count; ++i) {
+    for (int i = 0; i < input.pickup_count + 30; ++i) {
         // レストランを全探索して、最も近いレストランを探す
         int nearest_restaurant = 0;  // レストランの番号
         int min_dist = 1000000;      // 最も近いレストランの距離
 
         for (int j = 0; j < input.order_count; ++j) {
             // 【穴埋め】既に訪れていたらスキップ
-            if (visited_restaurant[j]) continue;
-            
+            if(visited_restaurant[j]) continue;
 
             // 【穴埋め】最短距離が更新されたら記録
             // 【ヒント】int distance = p0.dist(p1); と書くと、p0とp1のマンハッタン距離が計算できる
             // 【ヒント】nearest_restaurant, min_distの2つを更新する
-            /* put your code here */
-            if (min_dist > current_position.dist(input.restaurants[j])) {
+            if(min_dist > current_position.dist(input.restaurants[j])){
                 min_dist = current_position.dist(input.restaurants[j]);
                 nearest_restaurant = j;
             }
@@ -146,18 +144,15 @@ Output solve(const Input& input) {
 
         // 最も近いレストラン(nearest_restaurant)に移動する
         // 【穴埋め】現在位置を最も近いレストランの位置に更新
-        /* put your code here */
         current_position = input.restaurants[nearest_restaurant];
+
         // 【穴埋め】注文の集合に選んだレストランを追加
-        /* put your code here */
         orders.push_back(nearest_restaurant);
 
         // 【穴埋め】配達ルートに現在の位置を追加
-        /* put your code here */
         route.push_back(current_position);
 
         // 【穴埋め】訪問済みレストランの配列にtrueをセット
-        /* put your code here */
         visited_restaurant[nearest_restaurant] = true;
 
         // 総移動距離の更新
@@ -189,12 +184,10 @@ Output solve(const Input& input) {
         // 0～999まで全探索するのではなく、50個のレストランに対応した配達先を全探索することに注意
         for (int j = 0; j < destinations.size(); ++j) {
             // 【穴埋め】最短距離が更新されたら記録
-            // 【ヒント】nearest_index, nearest_destination, min_distの3つを更新する
-            /* put your code here */
-            if (min_dist > current_position.dist(input.destinations[destinations[j]])) {
+            if(min_dist > current_position.dist(input.destinations[destinations[j]])){
                 min_dist = current_position.dist(input.destinations[destinations[j]]);
-                nearest_destination = destinations[j];
                 nearest_index = j;
+                nearest_destination = destinations[nearest_index];
             }
         }
 
@@ -209,7 +202,7 @@ Output solve(const Input& input) {
 
         // 【穴埋め】配達先のリストから削除
         /* put your code here */
-        destinations.erase(destinations.begin() + nearest_index);
+        destinations.erase((destinations.begin() + nearest_index));
 
         // 総移動距離の更新
         total_dist += min_dist;
@@ -218,6 +211,17 @@ Output solve(const Input& input) {
         Point destination_pos = input.destinations[nearest_destination];
         std::cerr << i << "番目の配達先: q_" << nearest_destination << " = (" << destination_pos.x << ", "
                   << destination_pos.y << ")" << std::endl;
+    }
+
+    for(int idx : destinations){
+        auto itr = orders.begin();
+        while(true){
+            if(*itr == idx){
+                orders.erase(itr);
+                break;
+            }
+            itr++;
+        }
     }
 
     // 4.オフィスに戻る
