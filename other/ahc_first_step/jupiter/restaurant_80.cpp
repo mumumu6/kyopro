@@ -130,7 +130,7 @@ Output solve(const Input& input) {
 
     // 1. オフィスから距離400以下の注文だけを候補にする
     for (int i = 0; i < input.order_count; i++) {
-        if (input.office.dist(input.restaurants[i]) <= 400 && input.office.dist(input.destinations[i]) <= 400) {
+        if (input.office.dist(input.restaurants[i]) <= 490 && input.office.dist(input.destinations[i]) <= 490) {
             candidates.push_back(i);
         }
     }
