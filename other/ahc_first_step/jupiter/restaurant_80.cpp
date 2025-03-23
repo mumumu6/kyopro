@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 /// @brief 2次元座標上の点を表す構造体
 struct Point {
@@ -124,7 +125,7 @@ Output solve(const Input& input) {
     std::vector<bool> visited_restaurant(input.order_count, false);
 
     // pickup_count(=50)回ループ
-    for (int i = 0; i < input.pickup_count + 30; ++i) {
+    for (int i = 0; i < input.pickup_count + 100; ++i) {
         // レストランを全探索して、最も近いレストランを探す
         int nearest_restaurant = 0;  // レストランの番号
         int min_dist = 1000000;      // 最も近いレストランの距離
@@ -193,16 +194,13 @@ Output solve(const Input& input) {
 
         // 最も近い配達先(nearest_destination)に移動する
         // 【穴埋め】現在位置を最も近い配達先の位置に更新
-        /* put your code here */
         current_position = input.destinations[nearest_destination];
 
         // 【穴埋め】配達ルートに現在の位置を追加
-        /* put your code here */
         route.push_back(current_position);
 
         // 【穴埋め】配達先のリストから削除
-        /* put your code here */
-        destinations.erase((destinations.begin() + nearest_index));
+        destinations.erase(destinations.begin() + nearest_index);
 
         // 総移動距離の更新
         total_dist += min_dist;
@@ -213,15 +211,25 @@ Output solve(const Input& input) {
                   << destination_pos.y << ")" << std::endl;
     }
 
-    for(int idx : destinations){
-        auto itr = orders.begin();
-        while(true){
-            if(*itr == idx){
-                orders.erase(itr);
+    // 削除対象のインデックスを特定
+    std::vector<int> indices_to_remove;
+    for (int idx : destinations) {
+        for (int i = 0; i < orders.size(); ++i) {
+            if (orders[i] == idx) {
+                indices_to_remove.push_back(i);
                 break;
             }
-            itr++;
         }
+    }
+    
+    // 大きいインデックスから削除（小さい方から削除するとインデックスがずれる）
+    std::sort(indices_to_remove.begin(), indices_to_remove.end(), std::greater<int>());
+    
+    for (int idx : indices_to_remove) {
+        // 対応するrouteを削除（route[0]はオフィスなのでインデックスを+1する）
+        route.erase(route.begin() + idx + 1);
+        // orderを削除
+        orders.erase(orders.begin() + idx);
     }
 
     // 4.オフィスに戻る
