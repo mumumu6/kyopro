@@ -313,7 +313,7 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
         // 【穴埋め】操作前より悪化していても、確率で採用する(悪化度合いが小さく、温度が高いほど採用されやすい)
         // 【ヒント】採用確率(0.0以上1.0未満)は std::exp((current_dist - new_dist) / current_temperature) で計算できる
         // 【ヒント】zero_one_dist(rand) と書くと、0.0以上1.0未満の乱数が得られる
-        if (current_dist /* put your code here */) {
+        if (current_dist > new_dist || zero_one_dist(rand) < std::exp((current_dist - new_dist) / current_temperature)) {
             current_dist = new_dist;
         } else {
             // 採用されなかったら元に戻す
@@ -332,7 +332,7 @@ Output solve_simulated_annealing(const Input& input, const Output& output_greedy
         double progress = (double) std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() / (double) time_limit;
         // 【穴埋め】温度の更新
         // 【ヒント】現在の経過時間の割合に対する温度は std::pow(start_temperature, 1.0 - progress) * std::pow(end_temperature, progress) で計算できる
-        /* put your code here */
+        current_temperature = std::pow(start_temperature, 1.0 - progress) * std::pow(end_temperature, progress);
 
         // ここまで穴埋めして実行できるようになったら、
         // 開始温度(start_temperature)と終了温度(end_temperature)を変えてみて、実行結果がどう変わるかを確認してみましょう
