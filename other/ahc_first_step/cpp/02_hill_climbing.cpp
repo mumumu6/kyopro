@@ -289,31 +289,36 @@ Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
         // 貪欲法で求めた解では、配達先の訪問順序は0-indexedで51番目～100番目であることに注意
         // (AtCoderオフィス、レストラン50軒、配達先50軒、AtCoderオフィスの順に並んでいる)
 
-        // 【穴埋め】訪問先が配達先であるようなインデックスの中から i, j をランダムに選ぶ
-        // 【ヒント】int i = rand() % k; と書くと、0以上k未満の乱数が得られる
-        /* put your code here */
+        // 訪問先が配達先であるようなインデックスの中から i, j をランダムに選ぶ
+        // ヒント: 配達先は51〜100番目の要素（オフィス+レストラン50軒の後）
+        int i = 51 + rand() % input.pickup_count;
+        int j = 51 + rand() % input.pickup_count;
 
-        // 【穴埋め】i番目の訪問先をj番目に移動する操作を行う
-        // 【ヒント】routeのi番目の要素を削除した後、削除した要素をj番目に挿入することで移動する操作になる
-        /* put your code here */
+        // i番目の訪問先を一時保存
+        Point tmp = route[i];
+        // i番目の要素を削除
+        route.erase(route.begin() + i);
+        // j番目に挿入（j>iの場合はj-1番目になることに注意）
+        int insert_pos = j;
+        if (i < j) insert_pos--;
+        route.insert(route.begin() + insert_pos, tmp);
 
-        // 【穴埋め】操作後の経路の距離を計算
-        // 【ヒント】get_distance(r)を使うと、経路rの距離が計算できる
-        int new_dist /* put your code here */;
+        // 操作後の経路の距離を計算
+        int new_dist = get_distance(route);
 
-        // 【穴埋め】操作後の距離が現在(操作前)の距離以下なら採用
-        // 【ヒント】現在の距離はcurrent_distに入っている
-        if (current_dist /* put your code here */) {
-            // 進行状況を可視化するため、距離が真に小さくなったら、現在の試行回数と合計距離を標準エラー出力に出力
+        // 操作後の距離が現在の距離以下なら採用
+        if (new_dist <= current_dist) {
+            // 距離が真に小さくなった場合のみログ出力
             if (new_dist < current_dist) {
                 std::cerr << "iteration: " << iteration << ", total distance: " << new_dist << std::endl;
             }
-            // 【穴埋め】現在の距離を操作後の距離で更新
-            /* put your code here */
+            // 現在の距離を更新
+            current_dist = new_dist;
         } else {
-            // 【穴埋め】操作前より悪化していたら元に戻す
-            // 【ヒント】「i番目の訪問先をj番目に移動する操作」を元に戻すには「j番目の訪問先をi番目に移動する操作」を行えばよい
-            /* put your code here */
+            // 操作前より悪化していたら元に戻す
+            // 正しく元に戻す処理
+            route.erase(route.begin() + insert_pos);
+            route.insert(route.begin() + i, tmp);
         }
 
         // 試行回数のカウントを増やす
