@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <random>
 
 /// @brief 2次元座標上の点を表す構造体
 struct Point {
@@ -99,6 +100,17 @@ struct Output {
         std::cout << std::endl;
     }
 };
+
+/// @brief 経路の距離を計算する
+/// @param route 経路
+/// @return 経路の距離
+int get_distance(const std::vector<Point>& route) {
+    int dist = 0;
+    for (int i = 0; i < route.size() - 1; ++i) {
+        dist += route[i].dist(route[i + 1]);
+    }
+    return dist;
+}
 
 /// @brief 問題を解く関数（この関数を実装していきます）
 /// @param input 入力データ
@@ -242,15 +254,107 @@ Output solve(const Input& input) {
     return Output(orders, route);
 }
 
+/// @brief 配達先の訪問順序を山登り法で改善する関数（この関数を実装していきます）
+/// @param input 入力データ
+/// @param output_greedy 貪欲法で求めた出力データ
+/// @return 出力データ
+Output solve_hill_climbing(const Input& input, const Output& output_greedy) {
+    // 山登り法
+    // 「ある1つの配達先を訪問する順序を、別の場所に入れ替える」操作を繰り返すことで、経路を改善する
+
+    // 貪欲法で求めた解をコピー(これを初期解とする)
+    std::vector<int> orders = output_greedy.orders;
+    std::vector<Point> route = output_greedy.route;
+
+    // 現在の経路の距離を計算
+    int current_dist = get_distance(route);
+
+    // 乱数生成器を用意
+    // 乱数のシード値は固定のものにしておくと、デバッグがしやすくなります
+    std::mt19937 rand{42};
+
+    // 山登り法の開始時刻を取得
+    auto start_time = std::chrono::system_clock::now();
+
+    // 制限時間(1.9秒)
+    // 2秒ちょうどまでやるとTLEになるので、1.9秒程度にしておくとよい
+    const int time_limit = 1900;
+
+    // 試行回数
+    int iteration = 0;
+
+    // 山登り法の本体
+    while (true) {
+        // 現在時刻を取得
+        auto current_time = std::chrono::system_clock::now();
+
+        // 制限時間になったら終了
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() >= time_limit) {
+            break;
+        }
+
+        // 訪問先が配達先であるようなインデックスの中から、
+        // 「i番目の訪問先をj番目に移動」する操作をランダムに選ぶことで、
+        // ある配達先を訪れる順序を他の配達先の間に変える
+        // 貪欲法で求めた解では、配達先の訪問順序は0-indexedで51番目～100番目であることに注意
+        // (AtCoderオフィス、レストラン50軒、配達先50軒、AtCoderオフィスの順に並んでいる)
+
+        // 訪問先が配達先であるようなインデックスの中から i, j をランダムに選ぶ
+        // ヒント: 配達先は51〜100番目の要素（オフィス+レストラン50軒の後）
+        int i = 51 + rand() % input.pickup_count;
+        int j = 51 + rand() % input.pickup_count;
+
+        // i番目の訪問先を一時保存
+        Point tmp = route[i];
+        // i番目の要素を削除
+        route.erase(route.begin() + i);
+        // j番目に挿入（j>iの場合はj-1番目になることに注意）
+        int insert_pos = j;
+        if (i < j) insert_pos--;
+        route.insert(route.begin() + insert_pos, tmp);
+
+        // 操作後の経路の距離を計算
+        int new_dist = get_distance(route);
+
+        // 操作後の距離が現在の距離以下なら採用
+        if (new_dist <= current_dist) {
+            // 距離が真に小さくなった場合のみログ出力
+            if (new_dist < current_dist) {
+                std::cerr << "iteration: " << iteration << ", total distance: " << new_dist << std::endl;
+            }
+            // 現在の距離を更新
+            current_dist = new_dist;
+        } else {
+            // 操作前より悪化していたら元に戻す
+            // 正しく元に戻す処理
+            route.erase(route.begin() + insert_pos);
+            route.insert(route.begin() + i, tmp);
+        }
+
+        // 試行回数のカウントを増やす
+        iteration++;
+    }
+
+    // 試行回数と合計距離を標準エラー出力に出力
+    std::cerr << "--- Result ---" << std::endl;
+    std::cerr << "iteration     : " << iteration << std::endl;
+    std::cerr << "total distance: " << current_dist << std::endl;
+
+    return Output(orders, route);
+}
+
+
+
 int main() {
     // 入力データを読み込む
     Input input = Input::read();
 
     // 問題を解く
     Output output = solve(input);
+    Output output_hill_climbing = solve_hill_climbing(input, output);
+
 
     // 出力する
-    output.print();
-
+    output_hill_climbing.print();
     return 0;
 }
