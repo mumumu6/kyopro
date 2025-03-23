@@ -1,7 +1,8 @@
 /**
  * @file 01_nearest_neighbor.cpp
  * @brief
- * 今いる点から最も近いレストランに行くことを50回繰り返し、その後今いる点から最も近い目的地に行くことを50回繰り返す解法プログラム
+ * オフィスから距離400以下の注文だけを候補にした上で、今いる点から最も近いレストランに行くことを50回繰り返し、
+ * その後今いる点から最も近い目的地に行くことを50回繰り返す解法プログラム
  */
 #include <chrono>
 #include <iostream>
@@ -116,15 +117,23 @@ int get_distance(const std::vector<Point>& route) {
 /// @param input 入力データ
 /// @return 出力データ
 Output solve(const Input& input) {
-    // 貪欲その1
+    // 貪欲その2
     // 以下を順に実行するプログラム
     // 1.高橋君は最初オフィスから出発する
     // 2.訪問したレストランが50軒に達するまで、今いる場所から一番近いレストランに移動することを繰り返す
     // 3.受けた注文を捌ききるまで、今いる場所から一番近い配達先に移動することを繰り返す
     // 4.オフィスに帰る
-
+    
+    std::vector<int> candidates; 
     std::vector<int> orders;   // 注文の集合
     std::vector<Point> route;  // 配達ルート
+
+    // 1. オフィスから距離400以下の注文だけを候補にする
+    for (int i = 0; i < input.order_count; i++) {
+        if (input.office.dist(input.restaurants[i]) <= 400 && input.office.dist(input.destinations[i]) <= 400) {
+            candidates.push_back(i);
+        }
+    }
 
     // 1.オフィスからスタート
     route.push_back(input.office);
@@ -142,15 +151,17 @@ Output solve(const Input& input) {
         int nearest_restaurant = 0;  // レストランの番号
         int min_dist = 1000000;      // 最も近いレストランの距離
 
-        for (int j = 0; j < input.order_count; ++j) {
-            // 【穴埋め】既に訪れていたらスキップ
-            if(visited_restaurant[j]) continue;
+        for (int j : candidates) {
+            // 既に訪れていたらスキップ
+            if (visited_restaurant[j]) {
+                continue;
+            }
 
-            // 【穴埋め】最短距離が更新されたら記録
-            // 【ヒント】int distance = p0.dist(p1); と書くと、p0とp1のマンハッタン距離が計算できる
-            // 【ヒント】nearest_restaurant, min_distの2つを更新する
-            if(min_dist > current_position.dist(input.restaurants[j])){
-                min_dist = current_position.dist(input.restaurants[j]);
+            // 最短距離が更新されたら記録
+            int distance = current_position.dist(input.restaurants[j]);
+
+            if (distance < min_dist) {
+                min_dist = distance;
                 nearest_restaurant = j;
             }
         }
