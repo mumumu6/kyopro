@@ -122,8 +122,8 @@ Output solve(const Input &input) {
     vector<Point> route;
 
     for (int i = 0; i < input.order_count; i++) {
-        if (input.office.dist(input.restaurants[i]) <= 300 &&
-            input.office.dist(input.destinations[i]) <= 500) {
+        if (input.office.dist(input.restaurants[i]) <= 400 &&
+            input.office.dist(input.destinations[i]) <= 400) {
             candidates.push_back(make_pair(i, true));
         }
     }
@@ -136,6 +136,8 @@ Output solve(const Input &input) {
     vector<vector<bool>> visited = vector<vector<bool>>(input.order_count, vector<bool>(2, false));
 
     int orders_count = 0;
+
+    vector<pair<int, bool>> delivery_candidates;
 
     // 最大50注文まで、または候補がなくなるまで
     while (!candidates.empty()) {
@@ -174,28 +176,24 @@ Output solve(const Input &input) {
         route.push_back(current_position);
 
         if (orders_count >= input.pickup_count) {
-            cerr << "注文数が上限に達しました: " << candidates.size() << " 残り候補, " << orders_count
-                 << " 注文" << endl;
+            // cerr << "注文数が上限に達しました: " << candidates.size() << " 残り候補, " << orders_count
+            //      << " 注文" << endl;
 
             // レストラン型の候補を安全に削除するため、後ろから削除する
             for (int i = candidates.size() - 1; i >= 0; --i) {
                 if (candidates[i].second) {
                     candidates.erase(candidates.begin() + i);
+                } else {
+                    delivery_candidates.push_back(candidates[i]);
                 }
             }
+
+            orders_count = 0;
             cerr << "フィルタリング後: " << candidates.size() << " 残り候補" << endl;
         }
     }
 
     cerr << "route: " << route.size() << endl;
-
-    // 配達先の候補を集める
-    vector<pair<int, bool>> delivery_candidates;
-    for (auto candidate : candidates) {
-        if (!candidate.second) { // 配達先のみを追加
-            delivery_candidates.push_back(candidate);
-        }
-    }
 
     // 配達先のみを対象に焼きなまし法を実施
     cerr << "焼きなまし開始: " << delivery_candidates.size() << " 個の配達先について最適化します"
@@ -204,7 +202,7 @@ Output solve(const Input &input) {
     // レストラン訪問後の配達先の開始インデックスを計算
     // まずは実際のルートのサイズをログ出力
     cerr << "ルートのサイズ: " << route.size() << ", 注文数: " << orders_count << endl;
-    
+
     // オフィス(1) + レストラン(50) = 51が配達先の開始インデックス
     int delivery_start_idx = 100 - delivery_candidates.size();
     cerr << "配達先開始インデックス: " << delivery_start_idx << endl;
@@ -214,9 +212,9 @@ Output solve(const Input &input) {
     cerr << "初期総距離: " << current_distance << endl;
 
     // 焼きなまし法のパラメータ
-    const double start_temperature = 1e3; // 開始温度を高く設定
-    const double end_temperature = 1e-2;  // 終了温度を低く設定
-    double current_temperature = start_temperature;
+    const double start_temperature = 5e2;  // 開始温度を高く設定
+    const double end_temperature   = 1e-2; // 終了温度を低く設定
+    double current_temperature     = start_temperature;
 
     vector<Point> best_route = route;
     int best_distance        = current_distance;
@@ -226,84 +224,86 @@ Output solve(const Input &input) {
     chrono::system_clock::time_point end_time = start + chrono::milliseconds(1900); // 1.9秒
 
     int iteration_count = 0;
-    int improved_count = 0; // 改善された回数
+    int improved_count  = 0; // 改善された回数
 
     // 乱数生成器
     mt19937 rand_gen(static_cast<unsigned int>(time(nullptr))); // 実行ごとに異なるシード値
     uniform_real_distribution<double> zero_one_dist(0.0, 1.0);
-    
+
     // 配達先の数を計算（レストラン訪問後の残りのルート）
     int delivery_count = route.size() - delivery_start_idx;
-    if (delivery_count <= 0) {
-        cerr << "配達先がありません。焼きなましをスキップします。" << endl;
+    if (delivery_count <= 1 || delivery_candidates.size() <= 1) {
+        cerr << "配達先が不足しています。焼きなましをスキップします。" << endl;
     } else {
         cerr << "配達先数: " << delivery_count << endl;
-        
+
         while (chrono::system_clock::now() < end_time) {
             // 新しい処理：ランダムな2つの配達先を選ぶ（範囲を適切に設定）
-            uniform_int_distribution<int> index_dist(delivery_start_idx, route.size() - 1);
-            int i = index_dist(rand_gen);
-            int j = index_dist(rand_gen);
-            
-            // 同じインデックスを避ける
-            while (i == j && delivery_count > 1) {
-                j = index_dist(rand_gen);
-            }
-            
+            int i = rand() % delivery_candidates.size() + delivery_start_idx - 1;
+            int j = rand() % delivery_candidates.size() + delivery_start_idx - 1;
+
             // 新しいルートの作成
             vector<Point> new_route = route;
-            
-            // 2つの方法を交互に試す：1. swap 2. 移動
-            if (iteration_count % 2 == 0) {
+
                 // 方法1: 単純なスワップ
                 swap(new_route[i], new_route[j]);
-            } else {
-                // 方法2: i番目の点をj番目の位置に移動（ピックアップして再挿入）
-                Point point_to_move = new_route[i];
-                new_route.erase(new_route.begin() + i);
-                new_route.insert(new_route.begin() + (i < j ? j - 1 : j), point_to_move);
-            }
             
+
             // 新しい距離を計算
             int new_distance = get_distance(new_route);
-            
+
             // 評価
             bool accepted = false;
             if (new_distance < current_distance) {
                 // 解が改善された場合は必ず採用
                 accepted = true;
                 improved_count++;
-            } else {
-                // 解が悪化した場合は確率的に採用
-                double acceptance_probability = exp((current_distance - new_distance) / current_temperature);
-                if (zero_one_dist(rand_gen) < acceptance_probability) {
-                    accepted = true;
-                }
-            }
-            
-            if (accepted) {
-                route = new_route;
-                current_distance = new_distance;
-                
+
+                cerr << "新しい距離: " << new_distance << endl;
+
                 // 最良解の更新
                 if (new_distance < best_distance) {
-                    best_route = new_route;
+                    best_route    = new_route;
                     best_distance = new_distance;
-                    cerr << "新たな最良解: " << best_distance << " (反復: " << iteration_count << ")" << endl;
+                    cerr << "新たな最良解: " << best_distance << " (反復: " << iteration_count << ")"
+                         << endl;
+                }
+                
+            } else {
+                // 解が悪化した場合は確率的に採用
+                double acceptance_probability =
+                    exp((current_distance - new_distance) / current_temperature);
+                if (zero_one_dist(rand_gen) < acceptance_probability) { accepted = true; }
+            }
+
+            if (accepted) {
+                route            = new_route;
+                current_distance = new_distance;
+
+
+                // 最良解の更新
+                if (new_distance < best_distance) {
+                    best_route    = new_route;
+                    best_distance = new_distance;
+                    cerr << "新たな最良解: " << best_distance << " (反復: " << iteration_count << ")"
+                         << endl;
                 }
             }
-            
+
             // 試行回数のカウント
             iteration_count++;
-            
+
             // 温度更新
             auto current_time = chrono::system_clock::now();
-            double progress = (double)chrono::duration_cast<chrono::milliseconds>(current_time - start).count() / 1900.0;
-            current_temperature = pow(start_temperature, 1.0 - progress) * pow(end_temperature, progress);
-            
+            double progress =
+                (double)chrono::duration_cast<chrono::milliseconds>(current_time - start).count() /
+                1900.0;
+            current_temperature =
+                pow(start_temperature, 1.0 - progress) * pow(end_temperature, progress);
+
             // 100,000回ごとに経過を報告
             if (iteration_count % 100000 == 0) {
-                cerr << "反復: " << iteration_count << ", 温度: " << current_temperature 
+                cerr << "反復: " << iteration_count << ", 温度: " << current_temperature
                      << ", 距離: " << current_distance << ", 改善回数: " << improved_count << endl;
             }
         }
@@ -314,12 +314,8 @@ Output solve(const Input &input) {
     route.push_back(input.office);
 
     chrono::duration<double> elapsed = chrono::system_clock::now() - start;
-    cerr << "焼きなまし終了: 距離 " << best_distance 
-         << ", 総反復回数: " << iteration_count 
-         << ", 改善回数: " << improved_count
-         << ", 実行時間: " << elapsed.count() << "秒"
-         << endl;
-
+    cerr << "焼きなまし終了: 距離 " << best_distance << ", 総反復回数: " << iteration_count
+         << ", 改善回数: " << improved_count << ", 実行時間: " << elapsed.count() << "秒" << endl;
 
     // 合計距離を標準エラー出力に出力
     cerr << "total distance: " << get_distance(route) << endl;
