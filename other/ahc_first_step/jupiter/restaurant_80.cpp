@@ -25,7 +25,6 @@ vector<ll> dy = {1, 0,-1, 0};
 
 
 
-/// @brief 2次元座標上の点を表す構造体
 struct Point {
     int x;
     int y;
@@ -35,13 +34,22 @@ struct Point {
     /// @brief 2点間のマンハッタン距離を計算する
     /// @param p 距離を計算する点
     /// @return 2点間のマンハッタン距離
-    int dist(const Point &p) const { return abs(x - p.x) + abs(y - p.y); }
+    int dist(const Point &p) const { return std::abs(x - p.x) + std::abs(y - p.y); }
+
+    // Add comparison operators for use in containers like multiset
+    bool operator<(const Point &other) const {
+        if (x != other.x) return x < other.x;
+        return y < other.y;
+    }
+
+    bool operator==(const Point &other) const { return x == other.x && y == other.y; }
 };
 
 struct Route_index {
     Point point;
     int index;
     bool is_restaurant;
+    int route_number; // 目的地ならレストラン、レストランなら目的地のルートの番目
 };
 
 /// @brief 入力データを表す構造体
@@ -91,6 +99,9 @@ struct Output {
     /// @brief 配達ルートのインデックス情報
     vector<Route_index> route_indices;
 
+    map<int, int> visit_restaurant_set;  // indexから何番目に訪れたかを分かるようにする
+    map<int, int> visit_destination_set; // indexから何番目に訪れたかを分かるようにする
+
     /// @brief 出力データを構築する
     /// @param orders 選択した注文のリスト
     /// @param route 配達ルート
@@ -111,6 +122,17 @@ struct Output {
         dist_sum = 0;
 
         for (int i = 0; i < route.size() - 1; ++i) { dist_sum += route[i].dist(route[i + 1]); }
+
+        // indexと訪問順を記録
+        for (int i = 0; i < route_indices.size(); ++i) {
+            if (route_indices[i].index != -1) { // オフィスでない場合
+                if (route_indices[i].is_restaurant) {
+                    visit_restaurant_set[route_indices[i].index] = i;
+                } else {
+                    visit_destination_set[route_indices[i].index] = i;
+                }
+            }
+        }
     }
 
     /// @brief 解を出力する
@@ -144,18 +166,12 @@ struct Output {
     }
 };
 
-/// @brief 経路の距離を計算する
-/// @param route 経路
-/// @return 経路の距離
-int get_distance(const vector<Point> &route) {
+int get_distance(const std::vector<Point> &route) {
     int dist = 0;
     for (int i = 0; i < route.size() - 1; ++i) { dist += route[i].dist(route[i + 1]); }
     return dist;
 }
 
-/// @brief 問題を解く関数（この関数を実装していきます）
-/// @param input 入力データ
-/// @return 出力データ
 Output solve(const Input &input) {
     // 貪欲その2
     // 以下を順に実行するプログラム
@@ -171,8 +187,8 @@ Output solve(const Input &input) {
 
     // 1. オフィスから距離400以下の注文だけを候補にする
     for (int i = 0; i < input.order_count; i++) {
-        if (input.office.dist(input.restaurants[i]) <= 490 &&
-            input.office.dist(input.destinations[i]) <= 490) {
+        if (input.office.dist(input.restaurants[i]) <= 380 &&
+            input.office.dist(input.destinations[i]) <= 380) {
             candidates.push_back(i);
         }
     }
@@ -503,28 +519,68 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
 }
 
 Output solve_mix_destination_and_restaurant(const Input &input, const Output &output_annealing) {
-    // レストランを訪問した後、その近くに目的地があれば立ち寄る戦略
+    // 焼きなまし結果のルートをそのまま使用
+    vector<int> orders                         = output_annealing.orders;
+    vector<Point> original_route               = output_annealing.route;
+    vector<Route_index> original_route_indices = output_annealing.route_indices;
+    map<int, int> visit_restaurant_set         = output_annealing.visit_restaurant_set;
+    map<int, int> visit_destination_set        = output_annealing.visit_destination_set;
+    vector<bool> visited_restaurant(50, false);
 
-    vector<int> orders;                // 注文の集合
-    vector<Point> route;               // 配達ルート
-    vector<Route_index> route_indices; // 配達ルートのインデックス情報
-    vector<bool> visited_restaurant(input.order_count, false);
-    vector<bool> visited_destination(input.order_count, false);
+    // 新しいルートを構築
+    vector<Point> new_route = original_route;
+    vector<Route_index> new_route_indices = original_route_indices; // 初期化を追加
 
-    // コピー
-    orders        = output_annealing.orders;
-    route         = output_annealing.route;
-    route_indices = output_annealing.route_indices;
+    multiset<pair<Point, int>> next_visit; // つぎ行っていい点の座標とrouteの番目
 
-    // このあとの実装はここで行います
-    // routeの50番目までをコピー
-    vector<Point> restaurant_route(route.begin(), route.begin() + 50);
+    rep(i, 50) { next_visit.insert(make_pair(original_route[i], i)); }
 
-    // ここではまだ具体的な実装はありませんが、
-    // 最終的にはroute, route_indices, ordersを適切に更新します
+    rep(i, 100) {
+        Point nowPoint       = new_route[i];
+        Route_index nowIndex = new_route_indices[i];
+    
+        if (nowIndex.is_restaurant && !visited_restaurant[nowIndex.index]) {
+            // レストランだったら、目的地をsetに
+            int dist_route_index = visit_destination_set[nowIndex.index]; // 目的地のrouteの番目
+            next_visit.insert(make_pair(input.destinations[nowIndex.index], dist_route_index));
+            visited_restaurant[nowIndex.index] = true;
+        }
+    
+        int current_dist = get_distance(new_route);
+        int best_dist = current_dist;
+        int best_index = -1;
+        Route_index best_route_index = nowIndex;
+        Point best_point = nowPoint;
+    
+        for (auto& nextPoint : next_visit) {
+            // nowPointからnextPointに移動する
+            swap(new_route[i + 1], new_route[nextPoint.second]);
+            swap(new_route_indices[i + 1], new_route_indices[nextPoint.second]);
+    
+            int new_dist = get_distance(new_route);
+    
+            if (new_dist < best_dist) {
+                best_dist = new_dist;
+                best_index = nextPoint.second;
+                best_point = new_route[i + 1];
+                best_route_index = new_route_indices[i + 1];
+            }
+    
+            // 元に戻す
+            swap(new_route[i + 1], new_route[nextPoint.second]);
+            swap(new_route_indices[i + 1], new_route_indices[nextPoint.second]);
+        }
+    
+        // 最も改善されたものがある場合だけ採用
+        if (best_index != -1) {
+            swap(new_route[i + 1], new_route[best_index]);
+            swap(new_route_indices[i + 1], new_route_indices[best_index]);
+            next_visit.erase(make_pair(best_point, best_index));
+        }
+    }
+    
 
-    // 修正されたルートでOutputを作成
-    return Output(orders, route, route_indices);
+    return Output(orders, new_route, new_route_indices);
 }
 
 int main() {
@@ -538,6 +594,6 @@ int main() {
     Output output_mixed = solve_mix_destination_and_restaurant(input, output_annealing);
 
     // 出力する
-    output_mixed.print();
+    output_annealing.print();
     return 0;
 }

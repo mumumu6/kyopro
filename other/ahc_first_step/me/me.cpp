@@ -517,7 +517,7 @@ Output solve_mix_destination_and_restaurant(const Input &input, const Output &ou
 
     // 新しいルートを構築
     vector<Point> new_route = original_route;
-    vector<Route_index> new_route_indices;
+    vector<Route_index> new_route_indices = original_route_indices; // 初期化を追加
 
     multiset<pair<Point, int>> next_visit; // つぎ行っていい点の座標とrouteの番目
 
@@ -539,15 +539,19 @@ Output solve_mix_destination_and_restaurant(const Input &input, const Output &ou
         for (auto nextPoint : next_visit) {
             // nowPointからnextPointに移動する
             swap(new_route[i + 1], new_route[nextPoint.second]);
+            swap(new_route_indices[i + 1], new_route_indices[nextPoint.second]); // route_indicesも同時に入れ替え
 
             int new_dist = get_distance(new_route);
 
             if (new_dist < current_dist) {
                 // 改善された場合
                 current_dist = new_dist;
-            }else {
+                next_visit.erase(next_visit.find(nextPoint));
+                break; // 改善されたらループを抜ける
+            } else {
                 // 改善されなかった場合
                 swap(new_route[i + 1], new_route[nextPoint.second]);
+                swap(new_route_indices[i + 1], new_route_indices[nextPoint.second]); // 元に戻す
             }
         }
     }
