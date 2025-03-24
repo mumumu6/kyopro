@@ -122,8 +122,8 @@ Output solve(const Input &input) {
     vector<Point> route;
 
     for (int i = 0; i < input.order_count; i++) {
-        if (input.office.dist(input.restaurants[i]) <= 450 &&
-            input.office.dist(input.destinations[i]) <= 450) {
+        if (input.office.dist(input.restaurants[i]) <= 400 &&
+            input.office.dist(input.destinations[i]) <= 400) {
             candidates.push_back(make_pair(i, true));
         }
     }
@@ -177,14 +177,17 @@ Output solve(const Input &input) {
             cerr << "注文数が上限に達しました: " << candidates.size() << " 残り候補, " << orders_count << " 注文" << endl;
 
             // レストラン型の候補を安全に削除するため、後ろから削除する
+           // レストラン型の候補を安全に削除するため、後ろから削除する
+            vector<pair<int, bool>> delivery_candidates;
             for (int i = candidates.size() - 1; i >= 0; --i) {
                 if (candidates[i].second) {
                     candidates.erase(candidates.begin() + i);
+                } else {
+                    delivery_candidates.push_back(candidates[i]);
                 }
             }
             cerr << "フィルタリング後: " << candidates.size() << " 残り候補" << endl;
 
-            break;
         }
     }
 
