@@ -3,27 +3,28 @@ using namespace std;
 #include <atcoder/all>
 using namespace atcoder;
 using mint = modint998244353;
-using ll = long long;
+using ll   = long long;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
-#define reps(i,a,b) for(ll i = (a); i < (b); i++)
-bool chmin(auto& a, auto b) { return a > b ? a = b, 1 : 0; }
-bool chmax(auto& a, auto b) { return a < b ? a = b, 1 : 0; }
-vector<ll> sin45 = { 0, 1, 1, 1, 0, -1, -1, -1 }, cos45 = { 1, 1, 0, -1, -1, -1, 0, 1 };
+#define reps(i, a, b) for (ll i = (a); i < (b); i++)
+bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
+bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
+vector<ll> sin45 = {0, 1, 1, 1, 0, -1, -1, -1}, cos45 = {1, 1, 0, -1, -1, -1, 0, 1};
 vector<ll> dx = {0, 1, 0, -1};
-vector<ll> dy = {1, 0,-1, 0};
+vector<ll> dy = {1, 0, -1, 0};
 #define ft first
 #define sd second
 #define all(x) std::begin(x), std::end(x)
-#define mp(a,b) make_pair(a,b)
-#define pii pair<int,int>
-#define pll pair<ll,ll>
+#define mp(a, b) make_pair(a, b)
+#define pii pair<int, int>
+#define pll pair<ll, ll>
 #define pb(x) push_back(x)
-#define so(z) sort(z.begin(),z.end())
-#define sor(z) sort(z.rbegin(),z.rend())
+#define so(z) sort(z.begin(), z.end())
+#define sor(z) sort(z.rbegin(), z.rend())
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
 
-
+ofstream outputfile("/home/mumumu/kyopro/other/ahc_first_step/cpp/tools/out/0097.txt");
+ifstream inputfile("/home/mumumu/kyopro/other/ahc_first_step/cpp/tools/in/0097.txt"); // 入力ファイル名
 
 struct Point {
     int x;
@@ -76,7 +77,7 @@ struct Input {
 
         for (int i = 0; i < order_count; ++i) {
             int a, b, c, d;
-            cin >> a >> b >> c >> d;
+            inputfile >> a >> b >> c >> d;
             restaurants.emplace_back(a, b);
             destinations.emplace_back(c, d);
         }
@@ -138,31 +139,31 @@ struct Output {
     /// @brief 解を出力する
     void print() {
         // 選択した注文の集合を出力する
-        cout << orders.size();
+        outputfile << orders.size();
 
         for (int i = 0; i < orders.size(); ++i) {
             // 0-indexed -> 1-indexedに変更
-            cout << " " << orders[i] + 1;
+            outputfile << " " << orders[i] + 1;
         }
 
-        cout << endl;
+        outputfile << endl;
 
         // 配達ルートを出力する
-        cout << route.size();
+        outputfile << route.size();
 
-        for (int i = 0; i < route.size(); ++i) { cout << " " << route[i].x << " " << route[i].y; }
+        for (int i = 0; i < route.size(); ++i) { outputfile << " " << route[i].x << " " << route[i].y; }
 
-        cout << endl;
+        outputfile << endl;
 
-        // インデックス情報が存在する場合は、デバッグ情報として出力
-        if (!route_indices.empty()) {
-            cerr << "Route indices information:" << endl;
-            for (int i = 0; i < route_indices.size(); ++i) {
-                cerr << "Point(" << route_indices[i].point.x << ", " << route_indices[i].point.y << ")";
-                cerr << " - Index: " << route_indices[i].index;
-                cerr << " - Is restaurant: " << (route_indices[i].is_restaurant ? "Yes" : "No") << endl;
-            }
-        }
+        // // インデックス情報が存在する場合は、デバッグ情報として出力
+        // if (!route_indices.empty()) {
+        //     cerr << "Route indices information:" << endl;
+        //     for (int i = 0; i < route_indices.size(); ++i) {
+        //         cerr << "Point(" << route_indices[i].point.x << ", " << route_indices[i].point.y <<
+        //         ")"; cerr << " - Index: " << route_indices[i].index; cerr << " - Is restaurant: " <<
+        //         (route_indices[i].is_restaurant ? "Yes" : "No") << endl;
+        //     }
+        // }
     }
 };
 
@@ -187,7 +188,7 @@ Output solve(const Input &input) {
 
     // 1. オフィスから距離400以下の注文だけを候補にする
     for (int i = 0; i < input.order_count; i++) {
-        if (input.office.dist(input.restaurants[i]) <= 380 &&
+        if (input.office.dist(input.restaurants[i]) <= 300 &&
             input.office.dist(input.destinations[i]) <= 380) {
             candidates.push_back(i);
         }
@@ -360,8 +361,8 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
     uniform_real_distribution<double> uniform_dist(0.0, 1.0);
 
     // 焼きなまし法のパラメータ
-    double start_temp = 10000.0; // 開始温度
-    double end_temp   = 10.0;    // 終了温度
+    double start_temp = 1000.0; // 開始温度
+    double end_temp   = 10.0;   // 終了温度
 
     // 焼きなまし法の開始時刻を取得
     auto start_time = chrono::system_clock::now();
@@ -395,20 +396,9 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
             int i = 51 + rand() % input.pickup_count;
             int j = 51 + rand() % input.pickup_count;
 
-            // i番目の訪問先を一時保存
-            Point tmp             = route[i];
-            Route_index tmp_index = route_indices[i];
-
             // i番目の要素を削除
-            route.erase(route.begin() + i);
-            route_indices.erase(route_indices.begin() + i);
-
-            // j番目に挿入（j>iの場合はj-1番目になることに注意）
-            int insert_pos = j;
-            if (i < j) insert_pos--;
-
-            route.insert(route.begin() + insert_pos, tmp);
-            route_indices.insert(route_indices.begin() + insert_pos, tmp_index);
+            swap(route[i], route[j]);
+            swap(route_indices[i], route_indices[j]);
 
             // 操作後の経路の距離を計算
             int new_dist = get_distance(route);
@@ -441,30 +431,16 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
                 }
             } else {
                 // 解を棄却して元に戻す
-                route.erase(route.begin() + insert_pos);
-                route_indices.erase(route_indices.begin() + insert_pos);
-                route.insert(route.begin() + i, tmp);
-                route_indices.insert(route_indices.begin() + i, tmp_index);
+                swap(route[i], route[j]);
+                swap(route_indices[i], route_indices[j]);
             }
         } else { // 25%の確率でレストランを入れ替え
             // レストラン（1～50番目）の入れ替え
             int i = 1 + rand() % input.pickup_count;
             int j = 1 + rand() % input.pickup_count;
 
-            // i番目の訪問先を一時保存
-            Point tmp             = route[i];
-            Route_index tmp_index = route_indices[i];
-
-            // i番目の要素を削除
-            route.erase(route.begin() + i);
-            route_indices.erase(route_indices.begin() + i);
-
-            // j番目に挿入（j>iの場合はj-1番目になることに注意）
-            int insert_pos = j;
-            if (i < j) insert_pos--;
-
-            route.insert(route.begin() + insert_pos, tmp);
-            route_indices.insert(route_indices.begin() + insert_pos, tmp_index);
+            swap(route[i], route[j]);
+            swap(route_indices[i], route_indices[j]);
 
             // 操作後の経路の距離を計算
             int new_dist = get_distance(route);
@@ -496,11 +472,8 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
                          << ", new best distance: " << best_dist << endl;
                 }
             } else {
-                // 解を棄却して元に戻す
-                route.erase(route.begin() + insert_pos);
-                route_indices.erase(route_indices.begin() + insert_pos);
-                route.insert(route.begin() + i, tmp);
-                route_indices.insert(route_indices.begin() + i, tmp_index);
+                swap(route[i], route[j]);
+                swap(route_indices[i], route_indices[j]);
             }
         }
 
@@ -518,72 +491,62 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
     return Output(orders, best_route, best_route_indices);
 }
 
-Output solve_mix_destination_and_restaurant(const Input &input, const Output &output_annealing) {
-    // 焼きなまし結果のルートをそのまま使用
+Output mix(const Input &input, const Output &output_annealing) {
     vector<int> orders                         = output_annealing.orders;
     vector<Point> original_route               = output_annealing.route;
     vector<Route_index> original_route_indices = output_annealing.route_indices;
     map<int, int> visit_restaurant_set         = output_annealing.visit_restaurant_set;
     map<int, int> visit_destination_set        = output_annealing.visit_destination_set;
-    vector<bool> visited_restaurant(50, false);
+    vector<bool> visited_restaurant(10003, false);
+    vector<bool> visited_destination(1003, false);
 
     // 新しいルートを構築
-    vector<Point> new_route = original_route;
-    vector<Route_index> new_route_indices = original_route_indices; // 初期化を追加
+    vector<Point> new_route;
+    vector<Route_index> new_route_indices; // 初期化を追加
 
-    multiset<pair<Point, int>> next_visit; // つぎ行っていい点の座標とrouteの番目
+    multiset<pair<Point, int>> next_visits; // 寄り道していい目的地の座標とindex
 
-    rep(i, 50) { next_visit.insert(make_pair(original_route[i], i)); }
+    Point current_position = input.office;
 
-    rep(i, 100) {
-        Point nowPoint       = new_route[i];
-        Route_index nowIndex = new_route_indices[i];
-    
-        if (nowIndex.is_restaurant && !visited_restaurant[nowIndex.index]) {
-            // レストランだったら、目的地をsetに
-            int dist_route_index = visit_destination_set[nowIndex.index]; // 目的地のrouteの番目
-            next_visit.insert(make_pair(input.destinations[nowIndex.index], dist_route_index));
-            visited_restaurant[nowIndex.index] = true;
+    rep(i, original_route.size()) { // 目的地に寄り道して距離が縮まないか確認していく
+        // routeから一つずつ取り出していくだけにする。既にみたものはskipする方針
+
+        if (!original_route_indices[i].is_restaurant &&
+            visited_destination[original_route_indices[i].index]) { // 目的地で既に行っていればスキップ
+            cout << "skiped : " << i << endl;
+            cout << original_route_indices[i].index << endl;
+            continue;
         }
-    
-        int current_dist = get_distance(new_route);
-        int best_dist = current_dist;
-        int best_index = -1;
-        Route_index best_route_index = nowIndex;
-        Point best_point = nowPoint;
-    
-        for (auto& nextPoint : next_visit) {
-            // nowPointからnextPointに移動する
-            swap(new_route[i + 1], new_route[nextPoint.second]);
-            swap(new_route_indices[i + 1], new_route_indices[nextPoint.second]);
-    
-            int new_dist = get_distance(new_route);
-    
-            if (new_dist < best_dist) {
-                best_dist = new_dist;
-                best_index = nextPoint.second;
-                best_point = new_route[i + 1];
-                best_route_index = new_route_indices[i + 1];
+
+        current_position = original_route[i];
+        new_route.push_back(current_position);
+
+        vector<pair<Point, int>> near_destination;
+
+        for (auto now_destination : next_visits) {
+            // 距離40以内に目的地があれば問答無用で追加する
+
+            if (now_destination.first.dist(current_position) <= 40) {
+                current_position = now_destination.first;
+
+                visited_destination[now_destination.second] = true;
+                near_destination.push_back(now_destination);
+                new_route.push_back( // ルートに追加
+                    now_destination
+                        .first); // こことりあえず入れているが候補のものの中できちんと順序を付けた方がいいかもしれない
             }
-    
-            // 元に戻す
-            swap(new_route[i + 1], new_route[nextPoint.second]);
-            swap(new_route_indices[i + 1], new_route_indices[nextPoint.second]);
         }
-    
-        // 最も改善されたものがある場合だけ採用
-        if (best_index != -1) {
-            swap(new_route[i + 1], new_route[best_index]);
-            swap(new_route_indices[i + 1], new_route_indices[best_index]);
-            next_visit.erase(make_pair(best_point, best_index));
+
+        for (auto delete_candidate : near_destination) { // 行く候補から削除
+            next_visits.erase(next_visits.find(delete_candidate));
         }
     }
-    
 
-    return Output(orders, new_route, new_route_indices);
+    return Output(orders, new_route, original_route_indices);
 }
 
 int main() {
+
     // 入力データを読み込む
     Input input = Input::read();
 
@@ -591,9 +554,9 @@ int main() {
     Output output           = solve(input);
     Output output_annealing = solve_simulated_annealing(input, output);
 
-    // Output output_mixed = solve_mix_destination_and_restaurant(input, output_annealing);
+    Output output_last = mix(input, output_annealing);
 
     // 出力する
-    output_annealing.print();
+    output_last.print();
     return 0;
 }
