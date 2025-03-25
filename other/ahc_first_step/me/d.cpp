@@ -363,7 +363,7 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
     uniform_real_distribution<double> uniform_dist(0.0, 1.0);
 
     // 焼きなまし法のパラメータ
-    double start_temp = 1000.0; // 開始温度
+    double start_temp = 10000.0; // 開始温度
     double end_temp   = 10.0;   // 終了温度
 
     // 焼きなまし法の開始時刻を取得
@@ -535,7 +535,7 @@ Output mix(const Input &input, const Output &output_annealing) {
             // 距離40以内に目的地があれば問答無用で追加する
             if ( visited_destination[original_route_indices[i].index])continue;
 
-            if (now_destination.first.dist(current_position) <= 10) {
+            if (now_destination.first.dist(current_position) <= 30) {
                 cerr << "寄り道を発見しました. 距離 : " << now_destination.first.dist(current_position)
                      << endl;
                 current_position = now_destination.first;
@@ -552,6 +552,8 @@ Output mix(const Input &input, const Output &output_annealing) {
             next_visits.erase(next_visits.find(delete_candidate));
         }
     }
+
+    new_route.push_back(input.office); // もどる
 
     cerr << "途中によることにしての total distance : " << get_distance(new_route) << endl;
     cerr << new_route.size() << endl;
