@@ -248,8 +248,8 @@ Output solve(const Input &input) {
         // デバッグしやすいよう、標準エラー出力にレストランを出力
         // 標準エラー出力はデバッグに有効なので、AHCでは積極的に活用していきましょう
         Point restaurant_pos = input.restaurants[nearest_restaurant];
-        cerr << i << "番目のレストラン: p_" << nearest_restaurant << " = (" << restaurant_pos.x << ", "
-             << restaurant_pos.y << ")" << endl;
+        // cerr << i << "番目のレストラン: p_" << nearest_restaurant << " = (" << restaurant_pos.x << ", "
+        //      << restaurant_pos.y << ")" << endl;
     }
 
     // 【ヒント】ここまで穴埋めできたら、正しく動くか一度実行してみましょう！
@@ -295,9 +295,9 @@ Output solve(const Input &input) {
         total_dist += min_dist;
 
         // デバッグしやすいよう、標準エラー出力に配達先を出力
-        Point destination_pos = input.destinations[nearest_destination];
-        cerr << i << "番目の配達先: q_" << nearest_destination << " = (" << destination_pos.x << ", "
-             << destination_pos.y << ")" << endl;
+        // Point destination_pos = input.destinations[nearest_destination];
+        // cerr << i << "番目の配達先: q_" << nearest_destination << " = (" << destination_pos.x << ", "
+        //      << destination_pos.y << ")" << endl;
     }
 
     // 削除対象のインデックスを特定
@@ -513,20 +513,19 @@ Output mix(const Input &input, const Output &output_annealing) {
 
         if (!original_route_indices[i].is_restaurant &&
             visited_destination[original_route_indices[i].index]) { // 目的地で既に行っていればスキップ
-            cout << "skiped : " << i << endl;
-            cout << original_route_indices[i].index << endl;
-            continue;
         }
 
         current_position = original_route[i];
         new_route.push_back(current_position);
+        next_visits.insert(make_pair(input.destinations[original_route_indices[i].index],
+                                     original_route_indices[i].index));
 
         vector<pair<Point, int>> near_destination;
 
         for (auto now_destination : next_visits) {
             // 距離40以内に目的地があれば問答無用で追加する
 
-            if (now_destination.first.dist(current_position) <= 40) {
+            if (now_destination.first.dist(current_position) <= 10) {
                 current_position = now_destination.first;
 
                 visited_destination[now_destination.second] = true;
@@ -541,6 +540,8 @@ Output mix(const Input &input, const Output &output_annealing) {
             next_visits.erase(next_visits.find(delete_candidate));
         }
     }
+
+    cerr << "途中によることにしての total distance : " << get_distance(new_route) <<  endl;
 
     return Output(orders, new_route, original_route_indices);
 }
