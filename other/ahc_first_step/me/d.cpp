@@ -525,7 +525,8 @@ Output mix(const Input &input, const Output &output_annealing) {
         for (auto now_destination : next_visits) {
             // 距離40以内に目的地があれば問答無用で追加する
 
-            if (now_destination.first.dist(current_position) <= 10) {
+            if (now_destination.first.dist(current_position) <= 50) {
+                cerr << "寄り道を発見しました : " << now_destination.first.dist(current_position) << endl;
                 current_position = now_destination.first;
 
                 visited_destination[now_destination.second] = true;
@@ -533,6 +534,7 @@ Output mix(const Input &input, const Output &output_annealing) {
                 new_route.push_back( // ルートに追加
                     now_destination
                         .first); // こことりあえず入れているが候補のものの中できちんと順序を付けた方がいいかもしれない
+
             }
         }
 
@@ -542,6 +544,7 @@ Output mix(const Input &input, const Output &output_annealing) {
     }
 
     cerr << "途中によることにしての total distance : " << get_distance(new_route) <<  endl;
+    cerr << new_route.size() << endl;
 
     return Output(orders, new_route, original_route_indices);
 }
