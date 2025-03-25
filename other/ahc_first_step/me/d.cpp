@@ -22,6 +22,7 @@ vector<ll> dy = {1, 0, -1, 0};
 #define sor(z) sort(z.rbegin(), z.rend())
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
+#define endl '\n'
 
 ofstream outputfile("/home/mumumu/kyopro/other/ahc_first_step/cpp/tools/out/0097.txt");
 ifstream inputfile("/home/mumumu/kyopro/other/ahc_first_step/cpp/tools/in/0097.txt"); // 入力ファイル名
@@ -248,7 +249,8 @@ Output solve(const Input &input) {
         // デバッグしやすいよう、標準エラー出力にレストランを出力
         // 標準エラー出力はデバッグに有効なので、AHCでは積極的に活用していきましょう
         Point restaurant_pos = input.restaurants[nearest_restaurant];
-        // cerr << i << "番目のレストラン: p_" << nearest_restaurant << " = (" << restaurant_pos.x << ", "
+        // cerr << i << "番目のレストラン: p_" << nearest_restaurant << " = (" << restaurant_pos.x << ",
+        // "
         //      << restaurant_pos.y << ")" << endl;
     }
 
@@ -510,23 +512,35 @@ Output mix(const Input &input, const Output &output_annealing) {
 
     rep(i, original_route.size()) { // 目的地に寄り道して距離が縮まないか確認していく
         // routeから一つずつ取り出していくだけにする。既にみたものはskipする方針
+        cerr << new_route.size() << endl;
 
         if (!original_route_indices[i].is_restaurant &&
             visited_destination[original_route_indices[i].index]) { // 目的地で既に行っていればスキップ
+            continue;
+        }
+
+        if (!original_route_indices[i].is_restaurant) {
+            auto d = next_visits.find(make_pair(original_route[i], original_route_indices[i].index));
+            cerr << "..." << endl;
+            next_visits.erase(d);
+            cerr << "..." << endl;
+
+        } else if (original_route_indices[i].index != -1) { // レストランだったら対応する目的地を追加
+            next_visits.insert(make_pair(input.destinations[original_route_indices[i].index],
+                                         original_route_indices[i].index));
         }
 
         current_position = original_route[i];
         new_route.push_back(current_position);
-        next_visits.insert(make_pair(input.destinations[original_route_indices[i].index],
-                                     original_route_indices[i].index));
 
         vector<pair<Point, int>> near_destination;
 
         for (auto now_destination : next_visits) {
             // 距離40以内に目的地があれば問答無用で追加する
 
-            if (now_destination.first.dist(current_position) <= 50) {
-                cerr << "寄り道を発見しました : " << now_destination.first.dist(current_position) << endl;
+            if (now_destination.first.dist(current_position) <= 10) {
+                cerr << "寄り道を発見しました. 距離 : " << now_destination.first.dist(current_position)
+                     << endl;
                 current_position = now_destination.first;
 
                 visited_destination[now_destination.second] = true;
@@ -534,7 +548,6 @@ Output mix(const Input &input, const Output &output_annealing) {
                 new_route.push_back( // ルートに追加
                     now_destination
                         .first); // こことりあえず入れているが候補のものの中できちんと順序を付けた方がいいかもしれない
-
             }
         }
 
@@ -543,7 +556,7 @@ Output mix(const Input &input, const Output &output_annealing) {
         }
     }
 
-    cerr << "途中によることにしての total distance : " << get_distance(new_route) <<  endl;
+    cerr << "途中によることにしての total distance : " << get_distance(new_route) << endl;
     cerr << new_route.size() << endl;
 
     return Output(orders, new_route, original_route_indices);
