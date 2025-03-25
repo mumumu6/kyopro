@@ -520,11 +520,7 @@ Output mix(const Input &input, const Output &output_annealing) {
         }
 
         if (!original_route_indices[i].is_restaurant) {
-            auto d = next_visits.find(make_pair(original_route[i], original_route_indices[i].index));
-            cerr << "..." << endl;
-            next_visits.erase(d);
-            cerr << "..." << endl;
-
+            visited_destination[original_route_indices[i].index] = true;
         } else if (original_route_indices[i].index != -1) { // レストランだったら対応する目的地を追加
             next_visits.insert(make_pair(input.destinations[original_route_indices[i].index],
                                          original_route_indices[i].index));
@@ -537,6 +533,7 @@ Output mix(const Input &input, const Output &output_annealing) {
 
         for (auto now_destination : next_visits) {
             // 距離40以内に目的地があれば問答無用で追加する
+            if ( visited_destination[original_route_indices[i].index])continue;
 
             if (now_destination.first.dist(current_position) <= 10) {
                 cerr << "寄り道を発見しました. 距離 : " << now_destination.first.dist(current_position)
