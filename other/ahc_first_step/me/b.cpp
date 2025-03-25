@@ -221,7 +221,7 @@ Output solve(const Input &input) {
 
     // 時間制限付き焼きなまし
     chrono::system_clock::time_point start    = chrono::system_clock::now();
-    chrono::system_clock::time_point end_time = start + chrono::milliseconds(1900); // 1.9秒
+    chrono::system_clock::time_point end_time = start + chrono::milliseconds(3900); // 1.9秒
 
     int iteration_count = 0;
     int improved_count  = 0; // 改善された回数
