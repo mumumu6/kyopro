@@ -519,7 +519,7 @@ Output mix(const Input &input, const Output &output_annealing) {
             continue;
         }
 
-        if (!original_route_indices[i].is_restaurant) {
+        if (!original_route_indices[i].is_restaurant && original_route_indices[i].index != -1) {
             visited_destination[original_route_indices[i].index] = true;
         } else if (original_route_indices[i].index != -1) { // レストランだったら対応する目的地を追加
             next_visits.insert(make_pair(input.destinations[original_route_indices[i].index],
@@ -552,8 +552,6 @@ Output mix(const Input &input, const Output &output_annealing) {
             next_visits.erase(next_visits.find(delete_candidate));
         }
     }
-
-    new_route.push_back(input.office); // もどる
 
     cerr << "途中によることにしての total distance : " << get_distance(new_route) << endl;
     cerr << new_route.size() << endl;
