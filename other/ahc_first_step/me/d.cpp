@@ -189,8 +189,8 @@ Output solve(const Input &input) {
 
     // 1. オフィスから距離400以下の注文だけを候補にする
     for (int i = 0; i < input.order_count; i++) {
-        if (input.office.dist(input.restaurants[i]) <= 300 &&
-            input.office.dist(input.destinations[i]) <= 380) {
+        if (input.office.dist(input.restaurants[i]) <= 400 &&
+            input.office.dist(input.destinations[i]) <= 400) {
             candidates.push_back(i);
         }
     }
@@ -512,7 +512,6 @@ Output mix(const Input &input, const Output &output_annealing) {
 
     rep(i, original_route.size()) { // 目的地に寄り道して距離が縮まないか確認していく
         // routeから一つずつ取り出していくだけにする。既にみたものはskipする方針
-        cerr << new_route.size() << endl;
 
         if (!original_route_indices[i].is_restaurant &&
             visited_destination[original_route_indices[i].index]) { // 目的地で既に行っていればスキップ
@@ -535,7 +534,7 @@ Output mix(const Input &input, const Output &output_annealing) {
             // 距離40以内に目的地があれば問答無用で追加する
             if ( visited_destination[original_route_indices[i].index])continue;
 
-            if (now_destination.first.dist(current_position) <= 30) {
+            if (now_destination.first.dist(current_position) <= 15) {
                 cerr << "寄り道を発見しました. 距離 : " << now_destination.first.dist(current_position)
                      << endl;
                 current_position = now_destination.first;
