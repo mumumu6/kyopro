@@ -189,8 +189,8 @@ Output solve(const Input &input) {
 
     // 1. オフィスから距離400以下の注文だけを候補にする
     for (int i = 0; i < input.order_count; i++) {
-        if (input.office.dist(input.restaurants[i]) <= 400 &&
-            input.office.dist(input.destinations[i]) <= 400) {
+        if (input.office.dist(input.restaurants[i]) <= 450 &&
+            input.office.dist(input.destinations[i]) <= 450) {
             candidates.push_back(i);
         }
     }
@@ -364,7 +364,7 @@ Output solve_simulated_annealing(const Input &input, const Output &output_greedy
 
     // 焼きなまし法のパラメータ
     double start_temp = 10000.0; // 開始温度
-    double end_temp   = 10.0;   // 終了温度
+    double end_temp   = 10.0;    // 終了温度
 
     // 焼きなまし法の開始時刻を取得
     auto start_time = chrono::system_clock::now();
@@ -513,7 +513,7 @@ Output mix(const Input &input, const Output &output_annealing) {
     rep(i, original_route.size()) { // 目的地に寄り道して距離が縮まないか確認していく
         // routeから一つずつ取り出していくだけにする。既にみたものはskipする方針
 
-        if (!original_route_indices[i].is_restaurant &&
+        if (!original_route_indices[i].is_restaurant && original_route_indices[i].index != -1 &&
             visited_destination[original_route_indices[i].index]) { // 目的地で既に行っていればスキップ
             continue;
         }
@@ -532,9 +532,9 @@ Output mix(const Input &input, const Output &output_annealing) {
 
         for (auto now_destination : next_visits) {
             // 距離40以内に目的地があれば問答無用で追加する
-            if ( visited_destination[original_route_indices[i].index])continue;
+            if (visited_destination[original_route_indices[i].index]) continue;
 
-            if (now_destination.first.dist(current_position) <= 15) {
+            if (now_destination.first.dist(current_position) <= 20) {
                 cerr << "寄り道を発見しました. 距離 : " << now_destination.first.dist(current_position)
                      << endl;
                 current_position = now_destination.first;
