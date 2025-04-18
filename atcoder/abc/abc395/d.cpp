@@ -31,45 +31,39 @@ int main() {
     ll n, q;
     cin >> n >> q;
 
-    vector<set<ll>> su(n);
-    rep(i, n) su[i].insert(i);
+    vec hato_hukuro(n);
+    rep(i, n) hato_hukuro[i] = i;
 
-    vec hato(n);
-    rep(i, n) hato[i] = i;
+    vec hukuro_label(n);
+    rep(i, n) hukuro_label[i] = i;
+
+    vec label_hukuro(n);
+    rep(i, n) label_hukuro[i] = i;
 
     rep(i, q) {
         ll t;
         cin >> t;
+        // cout << i << " " << hato_hukuro[7] << " " << label_hukuro[hato_hukuro[7]] << endl;
 
         if (t == 1) {
             ll a, b;
             cin >> a >> b;
-            a--;
-            b--;
+            a--, b--;
 
-            ll bef  = hato[a];
-            hato[a] = b;
-            su[bef].erase(a);
-            su[b].insert(a);
+            hato_hukuro[a] = label_hukuro[b];
         } else if (t == 2) {
             ll a, b;
             cin >> a >> b;
-            a--;
-            b--;
+            a--, b--;
 
-            set<ll> tmp = su[a];
-            su[a]       = su[b];
-            su[b]       = tmp;
-
-            for (auto x : su[a]) { hato[x] = a; }
-            for (auto x : su[b]) { hato[x] = b; }
-
-        } else {
+            swap(label_hukuro[a], label_hukuro[b]);
+            swap(hukuro_label[label_hukuro[a]], hukuro_label[label_hukuro[b]]);
+        } else if (t == 3) {
             ll a;
             cin >> a;
             a--;
 
-            cout << hato[a] + 1 << endl;
+            cout << hukuro_label[hato_hukuro[a]] + 1 << endl;
         }
     }
 }
