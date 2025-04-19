@@ -1,0 +1,51 @@
+[2025-04-07 16:13:52] Hash: 41633f | Input: "あなたは英語圏のCTFに" | Output: "与えられたフラグはCPC" | Cache: MISS
+[2025-04-07 16:14:06] Hash: 3238b6 | Input: "ブラックホールってど" | Output: "ブラックホールを観測" | Cache: MISS
+[2025-04-07 16:14:09] Hash: 772297 | Input: "量子コンピュータと従" | Output: "量子コンピュータと従" | Cache: MISS
+[2025-04-07 16:14:13] Hash: b7a594 | Input: "GPTとBERTの違いを教え\xe3\x81" | Output: "GPT（Generative Pre-trained T" | Cache: MISS
+[2025-04-07 16:14:16] Hash: 999612 | Input: "カフカの『変身』はな" | Output: "カフカの『変身』が評" | Cache: MISS
+[2025-04-07 16:14:20] Hash: 618e17 | Input: "日本の少子化対策で効" | Output: "いくつかの日本の少子" | Cache: MISS
+[2025-04-07 16:14:24] Hash: 49e39d | Input: "核融合発電っていつ実" | Output: "現時点では、核融合発" | Cache: MISS
+[2025-04-07 16:14:27] Hash: d2b47b | Input: "江戸時代の農民の生活" | Output: "江戸時代の農民の生活" | Cache: MISS
+[2025-04-07 16:14:30] Hash: 334619 | Input: "なぜ英語には冠詞（a, " | Output: "英語の冠詞は、名詞を" | Cache: MISS
+[2025-04-07 16:14:33] Hash: 8debe3 | Input: "縄文時代と弥生時代の" | Output: "縄文時代と弥生時代の" | Cache: MISS
+[2025-04-07 16:14:36] Hash: ac7cc7 | Input: "「三体問題」ってなに" | Output: "「三体問題」とは、古" | Cache: MISS
+[2025-04-07 16:14:39] Hash: 221f1e | Input: "SNSでバズる投稿ってど" | Output: "SNSでバズる投稿にはい" | Cache: MISS
+[2025-04-07 16:14:42] Hash: 58df76 | Input: "ゼロから新しいボード" | Output: "新しいボードゲームを" | Cache: MISS
+[2025-04-07 16:14:45] Hash: 0bc7ed | Input: "「毎日5分だけでも続\xe3\x81" | Output: "1. 5分間のストレッチ\xe3\x82" | Cache: MISS
+[2025-04-07 16:14:48] Hash: 10bee0 | Input: "未来の学校ってどうな" | Output: "未来の学校は、より柔" | Cache: MISS
+[2025-04-07 16:14:51] Hash: 46fd62 | Input: "面白い起業アイデアを" | Output: "1. 未来の食品技術を活" | Cache: MISS
+[2025-04-07 16:14:55] Hash: fd3b34 | Input: "子供でも理解できる相" | Output: "相対性理論は、アイン" | Cache: MISS
+[2025-04-07 16:14:58] Hash: ec617d | Input: "宇宙人に地球を説明す" | Output: "地球は、太陽系の3番\xe7\x9b" | Cache: MISS
+[2025-04-07 16:15:02] Hash: 8cf7fb | Input: "1つのリンゴからビジ\xe3\x83" | Output: "1. リンゴの生産：最初" | Cache: MISS
+[2025-04-07 16:15:04] Hash: fda723 | Input: "音楽なしで感情を表現" | Output: "はい、音楽なしで感情" | Cache: MISS
+[2025-04-07 16:15:07] Hash: 024e75 | Input: "「怒り」をテーマに短" | Output: "主人公は普段は穏やか" | Cache: MISS
+[2025-04-07 16:15:10] Hash: 58b843 | Input: "朝起きられない人向け" | Output: "1. 朝の習慣を整える：" | Cache: MISS
+[2025-04-07 16:15:13] Hash: dcee23 | Input: "会議でアイデアを出し" | Output: "1. ファシリテーターを" | Cache: MISS
+[2025-04-07 16:15:16] Hash: 31d7ea | Input: "自炊を習慣化するコツ" | Output: "自炊を習慣化するため" | Cache: MISS
+[2025-04-07 16:15:19] Hash: 5bc87e | Input: "TODOリストを挫折せず\xe3\x81" | Output: "1. 目標を具体的に設定" | Cache: MISS
+[2025-04-07 16:15:23] Hash: ababa6 | Input: "Gmailでメール整理を自\xe5" | Output: "Gmailでメール整理を自\xe5" | Cache: MISS
+[2025-04-07 16:15:28] Hash: 1c47ca | Input: "タス���管理をゲーム感" | Output: "1. タスク管理アプリを" | Cache: MISS
+[2025-04-07 16:15:30] Hash: 5bb7f8 | Input: "新人研修に使えるワー" | Output: "1. 自己紹介ゲーム\n2. \xe3\x83" | Cache: MISS
+[2025-04-07 16:15:33] Hash: e18936 | Input: "仕事のモチベーション" | Output: "仕事のモチベーション" | Cache: MISS
+[2025-04-07 16:15:35] Hash: c914a1 | Input: "「断れない依頼」をう" | Output: "申し訳ございませんが" | Cache: MISS
+[2025-04-07 16:15:37] Hash: 4dc233 | Input: "賢いクレジットカード" | Output: "1. 毎月の支出を計画し" | Cache: MISS
+[2025-04-07 16:15:40] Hash: 938589 | Input: "初対面で好印象を与え" | Output: "1. 笑顔を絶やさない：" | Cache: MISS
+[2025-04-07 16:15:43] Hash: f3031d | Input: "口下手でも仲良くなれ" | Output: "口下手でも仲良くなれ" | Cache: MISS
+[2025-04-07 16:15:46] Hash: 8a8f66 | Input: "人の話を「ちゃんと聞" | Output: "・相手の目をしっかり" | Cache: MISS
+[2025-04-07 16:15:49] Hash: 69a9cd | Input: "人間関係のストレスを" | Output: "1. コミュニケーション" | Cache: MISS
+[2025-04-07 16:15:52] Hash: ecce62 | Input: "上司との雑談が苦手な" | Output: "1. 事前に話題を用意す" | Cache: MISS
+[2025-04-07 16:16:02] Hash: 096437 | Input: "内向的な人がプレゼン" | Output: "内向的な人がプレゼン" | Cache: MISS
+[2025-04-07 16:16:05] Hash: 601f40 | Input: "褒めるのが苦手なんだ" | Output: "褒めるのが苦手という" | Cache: MISS
+[2025-04-07 16:16:08] Hash: 75ec9b | Input: "感情的になった相手へ" | Output: "感情的になった相手に" | Cache: MISS
+[2025-04-07 16:16:10] Hash: 8db4e5 | Input: "「ありがとう」がうま" | Output: "失礼ながら、感謝の気" | Cache: MISS
+[2025-04-07 16:16:12] Hash: d0159b | Input: "「やる気がない」と言" | Output: "「そう思われてしまう" | Cache: MISS
+[2025-04-07 16:16:15] Hash: e38bb0 | Input: "世界一奇妙な法律を教" | Output: "ネバダ州では、道路で" | Cache: MISS
+[2025-04-07 16:16:18] Hash: dbccd3 | Input: "ドラクエ風の自己紹介" | Output: "ようこそ！我こそは、" | Cache: MISS
+[2025-04-07 16:16:20] Hash: 9a87e7 | Input: "もしも猫が喋ったらど" | Output: "猫が喋ったとしたら、" | Cache: MISS
+[2025-04-07 16:16:23] Hash: 996610 | Input: "「焼きそばパン」が異" | Output: "1. 異世界の住民が日本" | Cache: MISS
+[2025-04-07 16:16:29] Hash: 917034 | Input: "おすすめのネットミー" | Output: "1. ダンスミーム：人気" | Cache: MISS
+[2025-04-07 16:16:32] Hash: ceaadc | Input: "世界の変な祭りを教え" | Output: "1. 靴を駆使したイベン" | Cache: MISS
+[2025-04-07 16:16:34] Hash: 5bda20 | Input: "「おばけが見えるメガ" | Output: "ある日、少年の太郎は" | Cache: MISS
+[2025-04-07 16:16:37] Hash: 84e85a | Input: "AIと人間が共演する映\xe7" | Output: "タイトル: \"Parallel Minds\"" | Cache: MISS
+[2025-04-07 16:16:40] Hash: 37809b | Input: "RPGの最強呪文名を10個\xe8" | Output: "1. インフィニティ・デ" | Cache: MISS
+[2025-04-07 16:16:44] Hash: 602087 | Input: "架空の国「ネコニア王" | Output: "ネコニア王国は、古代" | Cache: MISS
