@@ -1,0 +1,6 @@
+ktor:
+  application:
+    modules:
+      - space.cpctf.typstnote.ServerKt.module
+  deployment:
+    port: 8080

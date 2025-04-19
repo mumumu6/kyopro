@@ -1,0 +1,120 @@
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin: 1rem 2rem;
+  height: 3.5rem;
+
+  h1 {
+    position: absolute;
+    margin: 0;
+    width: calc(100% - 4rem);
+    text-align: center;
+    pointer-events: none;
+  }
+}
+
+.page-id {
+  font-family: var(--font-family-code), monospace;
+  font-weight: bolder;
+
+  input {
+    background-color: var(--color-background);
+    color: var(--color-text);
+  }
+}
+
+#request-publish {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.7em 2em;
+  font-weight: bolder;
+  background-color: var(--color-accent);
+  color: var(--color-background);
+  box-shadow: 0.2rem 0.2rem 0.5rem #0006;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--color-accent) 80%, var(--color-background) 20%);
+    box-shadow: 0.2rem 0.2rem 0.5rem #0003;
+  }
+
+  &:active,
+  &.requesting {
+    background-color: color-mix(in srgb, var(--color-accent) 70%, var(--color-background) 30%);
+    box-shadow: none;
+  }
+}
+
+main {
+  display: flex;
+  flex-direction: row;
+  margin: 1rem;
+  gap: 1rem;
+  height: calc(100vh - 10rem);
+  width: calc(100vw - 2rem);
+
+  > div {
+    flex: 1;
+    height: 100%;
+    background-color: var(--color-background);
+    color: var(--color-text);
+  }
+}
+
+#preview {
+  overflow-y: auto;
+}
+
+footer {
+  margin: 1rem;
+  padding: 0.2em 1em;
+  height: 2.5rem;
+  overflow-y: auto;
+  font-family: var(--font-family-code), monospace;
+  font-weight: bolder;
+  background-color: var(--color-background);
+  color: var(--color-primary);
+
+  &.error {
+    color: var(--color-error);
+  }
+}
+
+#modal {
+  z-index: 16;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  height: 100vh;
+  width: 100vw;
+  background-color: #0009;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+
+  &.show {
+    pointer-events: all;
+    opacity: 1;
+  }
+
+  p {
+    display: inline-block;
+    border-radius: 0.5em;
+    padding: 0.5em 1em;
+    font-size: 2em;
+    font-weight: bolder;
+    text-align: center;
+    background-color: var(--color-background);
+    color: var(--color-text);
+
+    &.accent {
+      color: var(--color-accent);
+    }
+
+    &.error {
+      color: var(--color-error);
+    }
+  }
+}

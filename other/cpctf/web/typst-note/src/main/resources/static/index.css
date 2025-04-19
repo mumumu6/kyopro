@@ -1,0 +1,47 @@
+.button {
+  border-radius: 0.5rem;
+  padding: 0.7em 2em;
+  font-weight: bolder;
+  background-color: var(--color-accent);
+  color: var(--color-background);
+  box-shadow: 0.2rem 0.2rem 0.5rem #0006;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--color-accent) 80%, var(--color-background) 20%);
+    box-shadow: 0.2rem 0.2rem 0.5rem #0003;
+  }
+}
+
+main {
+  margin: 8rem auto;
+  width: 60%;
+  font-size: larger;
+
+  > h1,
+  > p {
+    margin: 2rem;
+    text-align: center;
+  }
+
+  > nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  > section {
+    margin: 4rem 0;
+    border-radius: 1rem;
+    padding: 0.5em 2em;
+    background-color: var(--color-background);
+    color: var(--color-text);
+
+    > h2 {
+      border-bottom: 0.2em solid var(--color-accent);
+    }
+
+    > ul {
+      margin: 2em 0;
+    }
+  }
+}

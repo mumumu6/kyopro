@@ -1,0 +1,13 @@
+:root {
+  --font-family-code: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "Source Code Pro", "source-code-pro";
+  --color-primary: #29a;
+  --color-background: #fff;
+  --color-text: #000;
+  --color-accent: #23a;
+  --color-error: #f33;
+}
+
+body {
+  background-color: var(--color-primary);
+  color: var(--color-background);
+}

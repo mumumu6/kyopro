@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/sanitize.css" />
+    <link rel="stylesheet" href="https://unpkg.com/sanitize.css/typography.css" />
+    <link rel="stylesheet" href="https://unpkg.com/sanitize.css/forms.css" />
+    <link rel="stylesheet" href="main.css" />
+    <link rel="stylesheet" href="editor.css" />
+    <script type="module" src="editor.js" defer></script>
+    <title>Typst Note | Editor</title>
+  </head>
+  <body>
+    <header>
+      <h1>Typst Note Editor</h1>
+      <div class="page-id">
+        <label for="page-id-input">Page ID:</label>
+        <input
+          type="text"
+          id="page-id-input"
+          required
+          minlength="1"
+          maxlength="25"
+          placeholder="page-id"
+          size="25"
+          value="example"
+        />
+      </div>
+      <button id="request-publish">Request Publish to Admin</button>
+    </header>
+    <main>
+      <div id="editor"></div>
+      <div id="preview"></div>
+    </main>
+    <footer id="message"></footer>
+    <div id="modal"><p></p></div>
+  </body>
+</html>
