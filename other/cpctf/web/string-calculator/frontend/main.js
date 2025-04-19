@@ -30,7 +30,7 @@ const pushHistory = async (inputText) => {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: inputText,
-    });
+    }); 
     const resultText = await response.text();
     if (!response.ok) throw new Error(resultText || response.statusText);
 
