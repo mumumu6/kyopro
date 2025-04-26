@@ -38,18 +38,21 @@ int main() {
     pll now = v[0];
 
     rep(i, m - 1) {
-        ll dy = v[i + 1].ft - now.ft;
-        ll dx = v[i + 1].sd - now.sd;
+        ll x = v[i + 1].sd;
+        ll y = v[i + 1].ft;
+
+        ll dy = y - now.ft;
+        ll dx = x - now.sd;
 
         // cerr << "dx : " << dx << " dy : " << dy << endl;
 
-        if (abs(dx) >= 10) {
+        if (abs(dx) >= 10 || min(abs(x - n + 1), abs(x)) < abs(dx)) {
             if (dx > 0) {
                 cout << "S" << " " << "R" << endl;
-                dx = v[i + 1].sd - n + 1;
+                dx = x - n + 1;
             } else {
                 cout << "S" << " " << "L" << endl;
-                dx = v[i + 1].sd;
+                dx = x;
             }
         }
 
@@ -58,14 +61,14 @@ int main() {
             else cout << "M" << " " << "L" << endl;
         }
 
-        if (abs(dy) >= 10) {
+        if (abs(dy) >= 10 || min(abs(y - n + 1), abs(y)) < abs(dy)) {
 
             if (dy > 0) {
                 cout << "S" << " " << "D" << endl;
-                dy = v[i + 1].ft - n + 1;
+                dy = y - n + 1;
             } else {
                 cout << "S" << " " << "U" << endl;
-                dy = v[i + 1].ft - 0;
+                dy = y - 0;
             }
             // cerr << "v[i + 1].ft : " << v[i + 1].ft << " dy : " << dy << endl;
         }
