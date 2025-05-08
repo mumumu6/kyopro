@@ -28,31 +28,46 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n, x;
-    cin >> n >> x;
+    ll n, d;
+    cin >> n >> d;
 
-    vector<ll> s(n);
-    vector<ll> c(n);
-    vector<ll> p(n);
+    vec a(n);
 
-    rep(i, n) { cin >> s[i] >> c[i] >> p[i]; } // 期待値を計算
+    rep(i, n) cin >> a[i];
 
-    vector dp(1 << n, vector<double>(x + 1, 0.0));
+    sort(all(a));
 
-    rep(i, 1 << n) rep(now, x + 1) {
-        rep(j, n) {
-            if (!(i & (1 << j))) {
-                if (x - c[j] >= 0) {
-                    chmax(dp[i | (1 << j)][now - c[j]], (dp[i][now] + s[j]) * double(p[j]) / 100.0 +
-                                                            dp[i][now] * (1.0 - double(p[j]) / 100.0));
-                }
-            }
+    if (d == 0) {
+        set<ll> st;
+        rep(i, n) st.insert(a[i]);
+        cout << n - st.size() << endl;
+        return 0;
+    }
+
+    ll m = a[n - 1];
+
+    vector<ll> c(m + 1, 0);
+
+    rep(i, n) { c[a[i]]++; }
+
+    ll ans = 0;
+
+    rep(i, d) {
+        vector<ll> dp((m - i) / d + 1, 0);
+
+        if (i + d <= m) {
+            dp[1] = min(c[i + d], c[i]); // 使わない、使う
         }
+
+        reps(j, 1, (m - i) / d) {
+            dp[j + 1] = min(dp[j] + c[i + (j + 1) * d], dp[j - 1] + c[i + j * d]); // 使わない、使う
+            // cout << j << " " << dp[j] << " " << dp[j + 1] << e   ndl;
+        }
+
+        ans += dp[(m - i) / d];
+        // cout << i << " " << dp[(m - i) / d] << " " << (m - i) / d  << endl;
+        // cout << "----------" << endl;
     }
-    double ans = 0;
-    rep(i, 1 << n) {
-        rep(j, x + 1) { chmax(ans, dp[i][j]); }
-    }
+
     cout << ans << endl;
-    return 0;
 }

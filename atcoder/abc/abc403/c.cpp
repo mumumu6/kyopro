@@ -28,31 +28,42 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n, x;
-    cin >> n >> x;
+    ll n, m, q;
+    cin >> n >> m >> q;
 
-    vector<ll> s(n);
-    vector<ll> c(n);
-    vector<ll> p(n);
+    vector<set<ll>> s(n);
+    vector<bool> used(n, false);
 
-    rep(i, n) { cin >> s[i] >> c[i] >> p[i]; } // 期待値を計算
+    rep(i, q) {
+        ll t;
+        cin >> t;
 
-    vector dp(1 << n, vector<double>(x + 1, 0.0));
+        if (t == 1) {
+            ll x, y;
+            cin >> x >> y;
+            x--, y--;
 
-    rep(i, 1 << n) rep(now, x + 1) {
-        rep(j, n) {
-            if (!(i & (1 << j))) {
-                if (x - c[j] >= 0) {
-                    chmax(dp[i | (1 << j)][now - c[j]], (dp[i][now] + s[j]) * double(p[j]) / 100.0 +
-                                                            dp[i][now] * (1.0 - double(p[j]) / 100.0));
-                }
+            s[x].insert(y);
+        } else if (t == 2) {
+            ll x;
+            cin >> x;
+            x--;
+
+            used[x] = true;
+        } else {
+            ll x, y;
+            cin >> x >> y;
+            x--, y--;
+
+            if (used[x]) {
+                cout << "Yes" << endl;
+                continue;
+            } else if (s[x].count(y)) {
+                cout << "Yes" << endl;
+                continue;
+            } else {
+                cout << "No" << endl;
             }
         }
     }
-    double ans = 0;
-    rep(i, 1 << n) {
-        rep(j, x + 1) { chmax(ans, dp[i][j]); }
-    }
-    cout << ans << endl;
-    return 0;
 }
