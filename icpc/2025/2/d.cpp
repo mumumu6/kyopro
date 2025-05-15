@@ -22,6 +22,10 @@ vector<ll> dy = {1, 0, -1, 0};
 #define sor(z) sort(z.rbegin(), z.rend())
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
+#define Yes cout << "Yes" << el
+#define No cout << "No" << el
+#define debug(x) cerr << #x << " = " << x << el
+
 
 int main() {
     cin.tie(nullptr);
@@ -63,20 +67,20 @@ int main() {
 
         if (nowx >= i) les--;
         if (nowx + 1 == i) nowx++;
-        cerr << " i = " << i << " les = " << les << " nowx = " << nowx << " nowy = " << nowy
-             << " b[nowy] = " << b[nowy] << endl;
+        // cerr << " i = " << i << " les = " << les << " nowx = " << nowx << " nowy = " << nowy
+            //  << " b[nowy] = " << b[nowy] << endl;
 
         if (les == 0) continue;
         if (nowx + les <= b[nowy] - 1) {
             used = {nowx + les, nowy};
-            cerr << "used = " << used.first << " " << used.second << endl;
+            // cerr << "used = " << used.first << " " << used.second << endl;
         } else {
             ll over = nowx + les - b[nowy] + 1;
-            cerr << "over = " << over << " b[nowy] = " << b[nowy] << " nowy = " << nowy << endl;
+            // cerr << "over = " << over << " b[nowy] = " << b[nowy] << " nowy = " << nowy << endl;
 
-            if (over + i <= nowx && over + i <= b[nowy] - 1 ) {
+            if (over + i <= nowx && nowy <= a[0] && over + i <= b[nowy + 1] - 1 ) {
                 used = {over + i, nowy + 1};
-                cerr << "used = " << used.first << " " << used.second << endl;
+                // cerr << "used = " << used.first << " " << used.second << endl;
             } else {
                 cout << "No" << endl;
                 return 0;
