@@ -53,7 +53,7 @@ int main() {
 
         set<pll> s;
 
-        rep(i, 2 * n) { c[a[i]].pb(i); }
+        rep(i, 2 * n) { c[a[i] + 10].pb(i); }
 
         rep(i, 2*n - 1) {
             ll t1 = a[i];
