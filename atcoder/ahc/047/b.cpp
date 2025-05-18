@@ -118,6 +118,7 @@ int main() {
 
     while (t.size() < m) t.push_back('a');
 
+
     // ── 遷移行列を組み立てる ──
     vector<vector<int>> A(m, vector<int>(m, 0));
 

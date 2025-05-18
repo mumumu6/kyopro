@@ -1,68 +1,91 @@
 #include <bits/stdc++.h>
 using namespace std;
-int main() {
+#include <atcoder/all>
+using namespace atcoder;
+using ll = long long;
+
+#define rep(i,n) for(ll i=0;i<(n);++i)
+#define el '\n'
+
+int main(){
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    const int N = 36, M = 12; // 固定
-    int L;                    // 10^6 だが使わない
-    vector<string> S(N);
-    vector<int> P(N);
-    cin >> ws; // 先頭の N は読み捨て
-    int dummyN;
-    cin >> dummyN; // =36
-    int dummyM;
-    cin >> dummyM; // =12
-    cin >> L;
-    for (int i = 0; i < N; i++) cin >> S[i] >> P[i];
 
-    // ① トップ文字列
-    vector<int> ord(N);
-    iota(ord.begin(), ord.end(), 0);
-    sort(ord.begin(), ord.end(), [&](int a, int b) { return P[a] > P[b]; });
-    const string top = S[ord[0]];
-    const int D      = top.size();
+    /* ---- 入力 ---- */
+    ll N,M,L;                         // N=36, M=12, L=1e6
+    cin>>N>>M>>L;
+    vector<pair<ll,string>> v(N);     // {P,S}
+    rep(i,N) cin>>v[i].second>>v[i].first;
+    sort(v.begin(),v.end(),greater<>()); // 得点降順
 
-    // 文字割り当て
-    vector<char> C(M, 'a');
-    for (int i = 0; i < D; i++) C[i] = top[i];
-    string alph = "abcdef";
-    int pos     = D;
-    for (char ch : alph)
-        if (pos < M && top.find(ch) == string::npos) C[pos++] = ch;
+    /* ---- 1. 文字列 t は v[0] ＋ 穴埋め ---- */
+    string t=v[0].second;
+    set<char> used(t.begin(),t.end());
+    for(char c='a';c<='f'&&t.size()<M;++c)
+        if(!used.count(c)) t.push_back(c);
+    while(t.size()<M) t.push_back('a');
 
-    // 遷移行列
-    vector<vector<int>> A(M, vector<int>(M, 0));
-    // 主サイクル 70%
-    for (int i = 0; i < D; i++) A[i][(i + 1) % D] += 40;
-
-    // ② その他文字列用の入口
-    long long sumP = 0;
-    for (int k = 1; k < N; k++) sumP += P[ord[k]];
-    for (int k = 1; k < N; k++) {
-        int idx    = ord[k];
-        char first = S[idx][0], second = S[idx][1];
-        int s = -1, t = -1;
-        for (int i = 0; i < M; i++)
-            if (C[i] == first) s = i;
-        for (int i = 0; i < M; i++)
-            if (C[i] == second) t = i;
-        if (s < 0 || t < 0) continue; // 失敗したら捨て
-        int w = int((60.0 * P[idx]) / sumP + 0.5);
-        A[s][t] += w;
+    /* ---- 2. 各文字ごとに “最初の状態番号” ---- */
+    vector<int> pos(6,-1);            // 'a'→0 … 'f'→5
+    rep(i,M){
+        int c=t[i]-'a';
+        if(pos[c]==-1) pos[c]=i;
     }
 
-    // 残りを自ループ
-    for (int i = 0; i < M; i++) {
-        int sm = 0;
-        for (int j = 0; j < M; j++) sm += A[i][j];
-        if (sm < 100) A[i][i] += 100 - sm;
+    /* ---- 3. 遷移行列 ---- */
+    vector<vector<int>> A(M,vector<int>(M,0));
+
+    /* 3-1 主サイクル：40 % */
+    rep(i,M){
+        A[i][(i+1)%M]=40;             // 次の状態
+        A[i][i]      =60;             // 残りは自ループ
     }
 
-    // ---- 出力 ----
-    for (int i = 0; i < M; i++) {
-        cout << C[i];
-        for (int j = 0; j < M; j++) cout << ' ' << A[i][j];
-        cout << "\n";
+    /* ヘルパ：行を “必ず next へ 100 %” に書き換え */
+    auto force = [&](int from,int to){
+        fill(A[from].begin(),A[from].end(),0);
+        A[from][to]=100;
+    };
+
+    /* 3-2 2 位・3 位にブランチ */
+    for(int rk=1; rk<=2 && rk<N; ++rk){
+        const string &s=v[rk].second;
+        int d=s.size();
+        if(d<2) continue;
+
+        /* パス（状態列）を作る */
+        vector<int> path;
+        rep(i,d){
+            int p=pos[s[i]-'a'];
+            if(p==-1){ path.clear(); break; }
+            path.push_back(p);
+        }
+        if(path.empty()) continue;
+
+        /* (a) ヘッド 30 % を割り当てる */
+        int f=path[0], to=path[1];
+        int take=30;
+        // 自ループから移す
+        A[f][f]-=take;
+        A[f][to]+=take;
+
+        /* (b) ボディは 100 % で固定 */
+        for(int i=1;i<d-1;++i){
+            force(path[i], path[i+1]);
+        }
+    }
+
+    /* 3-3 行を 100 % に再調整（不足ぶんだけ自ループ） */
+    rep(i,M){
+        int sm=0; rep(j,M) sm+=A[i][j];
+        if(sm<100) A[i][i]+=100-sm;
+    }
+
+    /* ---- 4. 出力 ---- */
+    rep(i,M){
+        cout<<t[i];
+        rep(j,M) cout<<' '<<A[i][j];
+        cout<<el;
     }
     return 0;
 }
