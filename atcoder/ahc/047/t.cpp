@@ -101,7 +101,7 @@ int main() {
     ll n, m, l;
     cin >> n >> m >> l; // n = 36, m = 12,l = 1e6
 
-    vector<pair<ll, string>> v(n);
+    vector<pair<double, string>> v(n);
 
     string t = "";
 
@@ -109,27 +109,31 @@ int main() {
 
     sort(all(v), greater<pair<ll, string>>());
 
-    vector<vector<int>> A(m, vector<int>(m, 0));
+    vector<vector<double>> A(m, vector<double>(m, 1));
 
     rep(i, 12) t += 'a' + i / 2;
 
     rep(i, n) {
         const string &s = v[i].second;
-        ll score        = (v[i].first);
+        ll score        = pow(v[i].first / 1000, 1.4);
         rep(j, s.size() - 1) {
-            int from = (s[j] - 'a') * 2 + (i) % 2;
-            int to   = (s[j + 1] - 'a') * 2 + (i) % 2;
-            A[from][to] += score * sqrt(score) * sqrt(sqrt(score));
+            int from = (s[j] - 'a') * 2;
+            int to   = (s[j + 1] - 'a') * 2;
+
+            int r = i % 2;
+            // int q = (i + 1) % 2;
+            // A[from][to] += 50 - r;
+            if (i < 2) A[from + r][to + r] += score;
+            // A[from][to + 1] += 50 - r;
+            // A[from + 1][to + 1] += 50 - q;
+
+            if (i == 2) A[from + 1][to + 1] += score / (4 + i/ 2);
+            // if (i == 3) A[from][to] += 30;
         }
     }
 
-
-    rep(i, m) {
-        ll score = v[1].ft / 5;
-
-        if (i % 2 == 0) A[i][i + 1] += score;
-        else A[i][i - 1] += score ;
-    }
+    A[(v[0].sd.back() - 'a') * 2][(v[1].sd[0] - 'a') * 2 + 1] += 40;
+    A[(v[1].sd.back() - 'a') * 2 + 1][(v[0].sd[0] - 'a') * 2] += 40;
 
 
     // 正規化
@@ -138,17 +142,25 @@ int main() {
         rep(j, m) { sum += A[i][j]; }
         // debug(sum, i, A[i]);
 
-        rep(j, m) { A[i][j] /= (double)sum  / (double)100; }
+        rep(j, m) {
+            A[i][j] /= (double)sum / (double)100;
+            A[i][j] = int(A[i][j]);
+        }
 
         sum = 0;
         rep(j, m) sum += A[i][j];
         if (sum < 100) A[i][i] += 100 - sum;
     }
 
+
+    // -- ここまで初期解　-- 
+
+
+
     // ── 出力 ──
     rep(i, m) {
         cout << t[i];
-        rep(j, m) { cout << ' ' << A[i][j]; }
+        rep(j, m) { cout << ' ' << (int)A[i][j]; }
         cout << el;
     }
     return 0;
