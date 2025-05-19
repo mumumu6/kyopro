@@ -103,52 +103,67 @@ int main() {
 
     vector<pair<ll, string>> v(n);
 
-    string t = "";
+    string t;
 
     rep(i, n) { cin >> v[i].sd >> v[i].ft; }
 
     sort(all(v), greater<pair<ll, string>>());
 
+    t = v[0].sd;
+
+    set<char> st(all(t));
+    for (char ch = 'a'; ch <= 'f' && t.size() < m; ch++) {
+        if (!st.count(ch)) { t.push_back(ch); }
+    }
+
+    while (t.size() < m) t.push_back('a');
+
+    // pos配列を二次元配列に変更
+    vector<vector<int>> pos(6); // 各文字に対して複数のインデックスを保持
+
+    rep(i, m) { pos[t[i] - 'a'].push_back(i); }
+
+    // ── 遷移行列を組み立てる ──
     vector<vector<int>> A(m, vector<int>(m, 0));
 
-    rep(i, 12) t += 'a' + i / 2;
+    rep(i, m) A[i][(i + 1) % m] += 35;
 
-    rep(i, n) {
-        const string &s = v[i].second;
-        ll score        = (v[i].first);
-        rep(j, s.size() - 1) {
-            int from = (s[j] - 'a') * 2 + (i) % 2;
-            int to   = (s[j + 1] - 'a') * 2 + (i) % 2;
-            A[from][to] += score * sqrt(score) * sqrt(sqrt(score));
+    // ② 2 位・3 位の文字列をそれぞれ 30% で分岐
+    for (int rank = 1; rank <= 1 && rank < n; ++rank) {
+        const string &s = v[rank].sd; // ターゲット文字列
+        if (s.size() < 2) continue;   // 安全チェック
+
+        vec cnt(6, 0);
+        rep(si, s.size()) cnt[s[si] - 'a']++;
+
+        rep(si, s.size() - 1) {
+            int from = s[si] - 'a';
+            int to   = s[si + 1] - 'a';
+
+            // fromの文字に対応する全てのインデックスに対して遷移を設定
+            for (int from_idx : pos[from]) {
+                // toの文字に対応する全てのインデックスに対して遷移を設定
+                for (int to_idx : pos[to]) {
+                    if (cnt[from] > 0) {
+                        // 出現回数に応じて遷移確率を分配
+                        A[from_idx][to_idx] += 62 / (cnt[from] * pos[from].size());
+                    }
+                }
+            }
         }
     }
 
-
+    // ③ 各行を 100% に整える（不足分を自ループ）
     rep(i, m) {
-        ll score = v[1].ft / 5;
-
-        if (i % 2 == 0) A[i][i + 1] += score;
-        else A[i][i - 1] += score ;
-    }
-
-
-    // 正規化
-    rep(i, m) {
-        double sum = 1;
-        rep(j, m) { sum += A[i][j]; }
-        // debug(sum, i, A[i]);
-
-        rep(j, m) { A[i][j] /= (double)sum  / (double)100; }
-
-        sum = 0;
-        rep(j, m) sum += A[i][j];
-        if (sum < 100) A[i][i] += 100 - sum;
+        int sm = 0;
+        rep(j, m) sm += A[i][j];
+        if (sm < 100) A[i][i] += 100 - sm;
     }
 
     // ── 出力 ──
     rep(i, m) {
         cout << t[i];
-        rep(j, m) { cout << ' ' << A[i][j]; }
+        rep(j, m) cout << ' ' << A[i][j];
         cout << el;
     }
     return 0;

@@ -118,35 +118,44 @@ int main() {
 
     while (t.size() < m) t.push_back('a');
 
-    vec pos(6, -1);
+    // pos配列を二次元配列に変更
+    vector<vector<int>> pos(6); // 各文字に対して複数のインデックスを保持
 
-    rep(i, m) { pos[t[i] - 'a'] = i; }
+    rep(i, m) { pos[t[i] - 'a'].push_back(i); }
 
     // ── 遷移行列を組み立てる ──
     vector<vector<int>> A(m, vector<int>(m, 0));
 
-    rep(i, m) A[i][(i + 1) % m] += 30;
+    rep(i, m) A[i][(i + 1) % m] += 35;
 
-    // ② 2 位・3 位の文字列をそれぞれ 30% で分岐
+    // ② 2 位の文字列の遷移を設定
     for (int rank = 1; rank <= 1 && rank < n; ++rank) {
         const string &s = v[rank].sd; // ターゲット文字列
         if (s.size() < 2) continue;   // 安全チェック
-        int c0 = s[0] - 'a', c1 = s[1] - 'a';
-        if (pos[c0] == -1 || pos[c1] == -1) continue; // ないはずないが念のため
 
+        // 各文字の出現回数をカウント
         vec cnt(6, 0);
         rep(si, s.size()) cnt[s[si] - 'a']++;
 
-        // debug(cnt);
-
+        // 各文字の現在の出現回数をカウント
+        vec current_cnt(6, 0);
         rep(si, s.size() - 1) {
             int from = s[si] - 'a';
             int to   = s[si + 1] - 'a';
-            if (pos[from] != -1 && pos[to] != -1 && cnt[from] > 0) {
-                A[pos[from]][pos[to]] += 70 / cnt[from];
+            current_cnt[from]++;
 
-                // debug(s[si], s[si + 1], A[pos[from]][pos[to]]);
-                // debug(t[pos[from]], t[pos[to]], pos[from], pos[to]);
+            // fromの文字がtの中で複数回出現する場合
+            if (pos[from].size() > 1) {
+                // 現在の出現回数に応じて、tの中の対応する位置を選択
+                int from_idx = pos[from][min((ll)(current_cnt[from] - 1), (ll)(pos[from].size() - 1))];
+                int to_idx   = pos[to][0]; // 次の文字の最初の出現位置
+
+                if (cnt[from] > 0) { A[from_idx][to_idx] += 65 / cnt[from]; }
+            } else {
+                // 単一の出現位置の場合
+                if (pos[from].size() > 0 && pos[to].size() > 0 && cnt[from] > 0) {
+                    A[pos[from][0]][pos[to][0]] += 65 / cnt[from];
+                }
             }
         }
     }
