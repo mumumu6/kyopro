@@ -127,14 +127,13 @@ int main() {
             // A[from][to + 1] += 50 - r;
             // A[from + 1][to + 1] += 50 - q;
 
-            if (i == 2) A[from + 1][to + 1] += score / (4 + i/ 2);
+            if (i == 2) A[from + 1][to + 1] += score / (4 + i / 2);
             // if (i == 3) A[from][to] += 30;
         }
     }
 
     A[(v[0].sd.back() - 'a') * 2][(v[1].sd[0] - 'a') * 2 + 1] += 40;
     A[(v[1].sd.back() - 'a') * 2 + 1][(v[0].sd[0] - 'a') * 2] += 40;
-
 
     // 正規化
     rep(i, m) {
@@ -152,10 +151,31 @@ int main() {
         if (sum < 100) A[i][i] += 100 - sum;
     }
 
+    // -- ここまで初期解　--
 
-    // -- ここまで初期解　-- 
+    auto evalutation = [&](vector<vector<double>> &w) -> ll {
+        ll score = 0;
 
+        rep(i, n) {
+            string &s = v[i].sd;
 
+            ll tmp = 1;
+
+            ll siz = s.size();
+
+            rep(j, siz - 1) {
+                int from = (s[j] - 'a') * 2;
+                int to   = (s[j + 1] - 'a') * 2;
+                tmp *= (w[from][to] + w[from][to + 1] + w[from + 1][to] + w[from + 1][to + 1]) / 10;
+            }
+
+            score += tmp * v[i].ft;
+        }
+
+        return score;
+    };
+
+    
 
     // ── 出力 ──
     rep(i, m) {
