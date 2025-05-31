@@ -146,6 +146,8 @@ int main() {
 
         Paint new_color = Paint(0, 0, 0, 0);
 
+        ll qq = now_color.count / 6;
+        ll rr = now_color.count % 6;
         rep(c1, k) reps(c2, c1 + 1, k) reps(c3, c2 + 1, k) {
             Paint &color1 = own_color[c1];
             Paint &color2 = own_color[c2];
@@ -153,8 +155,6 @@ int main() {
 
             ll use_now_color = 0;
             rep(dis, 6) {
-                ll qq = now_color.count / 6;
-                ll rr = now_color.count % 6;
                 use_now_color += (dis < rr ? qq + 1 : qq);
 
                 rep(ca, 4) rep(cb, 4) rep(cc, 3) {
