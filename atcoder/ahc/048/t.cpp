@@ -142,10 +142,12 @@ int main() {
 
         Paint new_color = Paint(0, 0, 0, 0);
 
-        while(now_color.count >= 3) {
+        while(now_color.count >= 1) {
             cout << 3 << spa << 0 << spa << 0 << el;
             now_color.count--;
         }
+
+        now_color = Paint(0, 0, 0, 0);
 
         rep(c1, k) reps(c2, c1 + 1, k) {
             Paint &color1 = own_color[c1];

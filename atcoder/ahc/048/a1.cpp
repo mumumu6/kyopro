@@ -83,11 +83,11 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
     }
     ll id    = 0;
     auto out = [&](auto &&v) {
-        cerr << labels[id++] << " = " << v;
-        if (id < sizeof...(Ts)) cerr << ",";
+        cout << labels[id++] << " = " << v;
+        if (id < sizeof...(Ts)) cout << ",";
     };
     (out(std::forward<Ts>(xs)), ...);
-    cerr << '\n';
+    cout << '\n';
 }
 } // namespace dbg
 
@@ -109,6 +109,7 @@ int main() {
 
     vector<Paint> own_color(k, Paint());
     vector<Paint> target_color(h, Paint());
+    // 色を全部捨ててるので捨てるかすてないかを決める
 
     rep(i, k) cin >> own_color[i].red >> own_color[i].green >> own_color[i].blue;
     rep(i, h) cin >> target_color[i].red >> target_color[i].green >> target_color[i].blue;
@@ -138,61 +139,70 @@ int main() {
         ll usecount_b = 0;
         ll usecount_c = 0;
 
-        ll use_id1 = 0;
-        ll use_id2 = 1;
-        ll use_id3 = 1;
+        ll use_id1   = 0;
+        ll use_id2   = 1;
+        ll use_id3   = 1;
+        ll dis_count = 0;
 
         Paint new_color = Paint(0, 0, 0, 0);
-
-        // while (now_color.count >= 1) {
-        //     cout << 3 << spa << 0 << spa << 0 << el;
-        //     now_color.count--;
-        //     debug("now_color.count", now_color.count);
-        // }
 
         rep(c1, k) reps(c2, c1 + 1, k) reps(c3, c2 + 1, k) {
             Paint &color1 = own_color[c1];
             Paint &color2 = own_color[c2];
             Paint &color3 = own_color[c3];
 
-            rep(ca, 4) rep(cb, 4) rep(cc, 3) {
-                if (ca + cb + cc > c) continue;
-                if (ca + cb + cc + now_color.count < 1) continue;
-                ll sum = ca + cb + cc + now_color.count;
+            ll use_now_color = 0;
+            rep(dis, 6) {
+                ll qq = now_color.count / 6;
+                ll rr = now_color.count % 6;
+                use_now_color += (dis < rr ? qq + 1 : qq);
 
-                double r = (color1.red * ca + color2.red * cb + color3.red * cc +
-                            now_color.red * now_color.count) /
-                           sum;
-                double g = (color1.green * ca + color2.green * cb + color3.green * cc +
-                            now_color.green * now_color.count) /
-                           sum;
-                double b = (color1.blue * ca + color2.blue * cb + color3.blue * cc +
-                            now_color.blue * now_color.count) /
-                           sum;
+                rep(ca, 4) rep(cb, 4) rep(cc, 3) {
+                    if (ca + cb + cc > c) continue;
 
-                double n_error = sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
-                                 (ca + cb + cc) * 2 * d;
+                    if (ca + cb + cc + use_now_color < 1) continue;
 
-                if (chmin(error, n_error)) {
-                    usecount_a = ca;
-                    usecount_b = cb;
-                    usecount_c = cc;
+                    ll sum = ca + cb + cc + use_now_color;
 
-                    use_id1         = c1;
-                    use_id2         = c2;
-                    use_id3         = c3;
-                    new_color.red   = r;
-                    new_color.green = g;
-                    new_color.blue  = b;
-                    new_color.count = sum;
+                    double r = (color1.red * ca + color2.red * cb + color3.red * cc +
+                                now_color.red * use_now_color) /
+                               sum;
+                    double g = (color1.green * ca + color2.green * cb + color3.green * cc +
+                                now_color.green * use_now_color) /
+                               sum;
+                    double b = (color1.blue * ca + color2.blue * cb + color3.blue * cc +
+                                now_color.blue * use_now_color) /
+                               sum;
+
+                    double n_error =
+                        sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
+                        (ca + cb + cc + now_color.count - use_now_color) * d;
+
+                    if (chmin(error, n_error)) {
+                        usecount_a = ca;
+                        usecount_b = cb;
+                        usecount_c = cc;
+
+                        use_id1         = c1;
+                        use_id2         = c2;
+                        use_id3         = c3;
+                        new_color.red   = r;
+                        new_color.green = g;
+                        new_color.blue  = b;
+                        new_color.count = sum;
+                        dis_count       = now_color.count - use_now_color;
+                    }
                 }
             }
         }
+        now_color = new_color;
+
+        // debug(now_color.red, now_color.green, now_color.blue, now_color.count);
+        // debug(usecount_a, usecount_b, usecount_c, use_id1, use_id2, use_id3, dis_count);
+        rep(i, dis_count) { cout << 3 << spa << 0 << spa << 0 << el; }
         rep(i, usecount_a) cout << 1 << spa << 0 << spa << 0 << spa << use_id1 << el;
         rep(i, usecount_b) cout << 1 << spa << 0 << spa << 0 << spa << use_id2 << el;
         rep(i, usecount_c) cout << 1 << spa << 0 << spa << 0 << spa << use_id3 << el;
-
-        now_color = new_color;
 
         cout << 2 << spa << 0 << spa << 0 << el;
         now_color.count--;
