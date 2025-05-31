@@ -136,49 +136,59 @@ int main() {
 
         ll usecount_a = 0;
         ll usecount_b = 0;
+        ll usecount_c = 0;
 
         ll use_id1 = 0;
         ll use_id2 = 1;
+        ll use_id3 = 1;
 
         Paint new_color = Paint(0, 0, 0, 0);
 
-        while(now_color.count >= 3) {
+        while (now_color.count >= 1) {
             cout << 3 << spa << 0 << spa << 0 << el;
             now_color.count--;
         }
 
-        rep(c1, k) reps(c2, c1 + 1, k) {
+        rep(c1, k) reps(c2, c1 + 1, k) reps(c3, c2 + 1, k) {
             Paint &color1 = own_color[c1];
             Paint &color2 = own_color[c2];
+            Paint &color3 = own_color[c3];
 
-            rep(ca, 5) rep(cb, 5) {
-                if (ca + cb > c) continue;
+            rep(ca, 30) rep(cb, 30) rep(cc, 30) {
+                if (ca + cb + cc > c) continue;
+                if (ca + cb + cc + now_color.count < 1) continue;
+                ll sum = ca + cb + cc + now_color.count;
 
-                ll sum = ca + cb + now_color.count;
+                double r = (color1.red * ca + color2.red * cb + color3.red * cc +
+                            now_color.red * now_color.count) /
+                           sum;
+                double g = (color1.green * ca + color2.green * cb + color3.green * cc +
+                            now_color.green * now_color.count) /
+                           sum;
+                double b = (color1.blue * ca + color2.blue * cb + color3.blue * cc +
+                            now_color.blue * now_color.count) /
+                           sum;
 
-                double r = (color1.red * ca + color2.red * cb + now_color.red * now_color.count) / sum;
-                double g =
-                    (color1.green * ca + color2.green * cb + now_color.green * now_color.count) / sum;
-                double b =
-                    (color1.blue * ca + color2.blue * cb + now_color.blue * now_color.count) / sum;
-
-                double n_error = squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue);
+                double n_error = sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue))*10000 + (ca + cb + cc)*2*d;
 
                 if (chmin(error, n_error)) {
                     usecount_a = ca;
                     usecount_b = cb;
+                    usecount_c = cc;
 
-                    use_id1 = c1;
-                    use_id2 = c2;
-                    new_color.red = r;
+                    use_id1         = c1;
+                    use_id2         = c2;
+                    use_id3         = c3;
+                    new_color.red   = r;
                     new_color.green = g;
-                    new_color.blue = b;
+                    new_color.blue  = b;
                     new_color.count = sum;
                 }
             }
         }
         rep(i, usecount_a) cout << 1 << spa << 0 << spa << 0 << spa << use_id1 << el;
         rep(i, usecount_b) cout << 1 << spa << 0 << spa << 0 << spa << use_id2 << el;
+        rep(i, usecount_c) cout << 1 << spa << 0 << spa << 0 << spa << use_id3 << el;
 
         now_color = new_color;
 
