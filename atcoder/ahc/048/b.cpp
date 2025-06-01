@@ -124,7 +124,7 @@ int main() {
         cout << el;
     }
 
-    ll c = (t / h) / 2;
+    ll c = (t / h);
 
     Paint now_color(0, 0, 0, 0);
 
@@ -147,7 +147,7 @@ int main() {
         while (now_color.count >= 1) {
             cout << 3 << spa << 0 << spa << 0 << el;
             now_color.count--;
-            debug("now_color.count", now_color.count);
+            // debug("now_color.count", now_color.count);
         }
 
         rep(c1, k) reps(c2, c1 + 1, k) reps(c3, c2 + 1, k) {
@@ -155,7 +155,7 @@ int main() {
             Paint &color2 = own_color[c2];
             Paint &color3 = own_color[c3];
 
-            rep(ca, 4) rep(cb, 4) rep(cc, 3) {
+            rep(ca, 7) rep(cb, 7) rep(cc, 5) {
                 if (ca + cb + cc > c) continue;
                 if (ca + cb + cc + now_color.count < 1) continue;
                 ll sum = ca + cb + cc + now_color.count;
@@ -172,6 +172,7 @@ int main() {
 
                 double n_error = sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
                                  (ca + cb + cc) * 2 * d;
+
 
                 if (chmin(error, n_error)) {
                     usecount_a = ca;
