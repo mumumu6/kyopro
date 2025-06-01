@@ -120,8 +120,8 @@ int main() {
         rep(i, n - 1) cout << 0 << " ";
         cout << el;
     }
-    rep(ii, n) {
-        rep(i, n - 1) cout << 0 << " ";
+    rep(ii, n - 1) {
+        rep(i, n) cout << 0 << " ";
         cout << el;
     }
 
