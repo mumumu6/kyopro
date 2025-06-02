@@ -197,6 +197,8 @@ int main() {
         }
         now_color = new_color;
 
+        // debug(error);
+
         // debug(now_color.red, now_color.green, now_color.blue, now_color.count);
         // debug(usecount_a, usecount_b, usecount_c, use_id1, use_id2, use_id3, dis_count);
         rep(i, dis_count) { cout << 3 << spa << 0 << spa << 0 << el; }
