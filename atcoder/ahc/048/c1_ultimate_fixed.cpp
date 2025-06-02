@@ -303,7 +303,7 @@ int main() {
 
     rep(i, k) {
         double r, g, b;
-        cin >> r >> g, b;
+        cin >> r >> g >> b;
         own_color[i] = Paint(r, g, b);
     }
     rep(i, h) {
