@@ -142,7 +142,7 @@ int main() {
 
         Paint &tr = target_color[hi];
 
-        double error = 101010;
+        double error = 1010100;
 
         vector<pll> usecolor(3, {0, 0}); // 使う色の回数と絵具のidを持つ
 
@@ -157,14 +157,14 @@ int main() {
                 if (cb) cnt++;
                 if (cc) cnt++;
 
-                int sum = ca + cb + cc;
+                double sum = ca + cb + cc;
                 if (sum == 0) continue;
 
                 double r = (color1.red * ca + color2.red * cb + color3.red * cc) / sum;
                 double g = (color1.green * ca + color2.green * cb + color3.green * cc) / sum;
                 double b = (color1.blue * ca + color2.blue * cb + color3.blue * cc) / sum;
 
-                double n_error = sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000;
+                double n_error = sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 + cnt * d;
 
                 if (chmin(error, n_error)) {
                     usecolor[0].ft  = ca;
