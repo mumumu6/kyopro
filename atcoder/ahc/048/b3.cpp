@@ -100,6 +100,87 @@ struct Paint {
         : red(r), green(g), blue(b), count(c) {}
 };
 
+// 色間の距離の二乗を計算
+double dist2(const Paint &a, const Paint &b) {
+    double dr = a.red - b.red;
+    double dg = a.green - b.green;
+    double db = a.blue - b.blue;
+    return dr * dr + dg * dg + db * db;
+}
+
+// 表現力の高い色を選別する関数（RGB軸近似 + FPS）
+vector<int> pick_basis_colors(const vector<Paint> &col, int want = 10) {
+    const int k = (int)col.size();
+    vector<int> basis;
+    if (k <= want) {
+        basis.resize(k);
+        iota(basis.begin(), basis.end(), 0);
+        return basis;
+    }
+
+    // --- (1) 各軸への距離が最小となる色を取る ---
+    int r_idx = 0, g_idx = 0, b_idx = 0;
+    // R 軸への距離: G^2 + B^2
+    double best_r_dist2 = col[0].green * col[0].green + col[0].blue * col[0].blue;
+    // G 軸への距離: R^2 + B^2
+    double best_g_dist2 = col[0].red * col[0].red + col[0].blue * col[0].blue;
+    // B 軸への距離: R^2 + G^2
+    double best_b_dist2 = col[0].red * col[0].red + col[0].green * col[0].green;
+
+    for (int i = 1; i < k; ++i) {
+        double d_r = col[i].green * col[i].green + col[i].blue * col[i].blue;
+        if (d_r < best_r_dist2) {
+            best_r_dist2 = d_r;
+            r_idx        = i;
+        }
+        double d_g = col[i].red * col[i].red + col[i].blue * col[i].blue;
+        if (d_g < best_g_dist2) {
+            best_g_dist2 = d_g;
+            g_idx        = i;
+        }
+        double d_b = col[i].red * col[i].red + col[i].green * col[i].green;
+        if (d_b < best_b_dist2) {
+            best_b_dist2 = d_b;
+            b_idx        = i;
+        }
+    }
+
+    basis.push_back(r_idx);
+    if (g_idx != r_idx) basis.push_back(g_idx);
+    if (b_idx != r_idx && b_idx != g_idx) basis.push_back(b_idx);
+
+    // want <= 3 の場合はここで切って返す
+    if ((int)basis.size() >= want) {
+        basis.resize(want);
+        return basis;
+    }
+
+    // --- (2) 残りを FPS で埋める ---
+    vector<double> mind(k, 1e30);
+    for (int idx : basis) {
+        for (int i = 0; i < k; ++i) { 
+            mind[i] = min(mind[i], dist2(col[i], col[idx])); 
+        }
+    }
+    while ((int)basis.size() < want) {
+        int best_i   = -1;
+        double bestd = -1;
+        for (int i = 0; i < k; ++i) {
+            if (mind[i] > bestd) {
+                bestd  = mind[i];
+                best_i = i;
+            }
+        }
+        if (best_i == -1) break; // 安全装置
+        basis.push_back(best_i);
+        for (int i = 0; i < k; ++i) { 
+            mind[i] = min(mind[i], dist2(col[i], col[best_i])); 
+        }
+    }
+
+    return basis;
+}
+
 // 色の重み付き平均を計算する関数
 Paint calculate_weighted_color_average(const vector<Paint> &colors, const vector<double> &weights,
                                        double base_amount = 0.0, const Paint &base_color = Paint()) {
@@ -144,6 +225,22 @@ int main() {
     rep(i, k) cin >> own_color[i].red >> own_color[i].green >> own_color[i].blue;
     rep(i, h) cin >> target_color[i].red >> target_color[i].green >> target_color[i].blue;
 
+    // 表現力の高い色を選別（k=20 -> 10程度に削減）
+    int reduced_k = min((int)k, 12);
+    vector<int> selected_colors = pick_basis_colors(own_color, reduced_k);
+    
+    // 選ばれた色だけを新しい配列に詰め直す
+    vector<Paint> reduced_own_color(selected_colors.size());
+    for (int i = 0; i < selected_colors.size(); ++i) {
+        reduced_own_color[i] = own_color[selected_colors[i]];
+    }
+    
+    // 色のマッピング用（出力時に元のインデックスが必要）
+    vector<int> color_mapping = selected_colors;
+    
+    // 以降の処理では reduced_own_color と color_mapping を使用
+    int actual_k = reduced_own_color.size();
+
     auto squ = [](double x) { return x * x; };
 
     if (t > 19500 ) {
@@ -186,10 +283,10 @@ int main() {
             int rr                  = (int)round(now_color.count) % 3;
             double use_color_amount = 0;
 
-            rep(c1, k) reps(c2, c1 + 1, k) reps(c3, c2 + 1, k) {
-                Paint &color1 = own_color[c1];
-                Paint &color2 = own_color[c2];
-                Paint &color3 = own_color[c3];
+            rep(c1, actual_k) reps(c2, c1 + 1, actual_k) reps(c3, c2 + 1, actual_k) {
+                Paint &color1 = reduced_own_color[c1];
+                Paint &color2 = reduced_own_color[c2];
+                Paint &color3 = reduced_own_color[c3];
 
                 ll use_now_color = -(0 < rr ? qq + 1 : qq);
 
@@ -235,9 +332,9 @@ int main() {
                             usecolor[0].ft   = ca;
                             usecolor[1].ft   = cb;
                             usecolor[2].ft   = cc;
-                            usecolor[0].sd   = c1;
-                            usecolor[1].sd   = c2;
-                            usecolor[2].sd   = c3;
+                            usecolor[0].sd   = color_mapping[c1];
+                            usecolor[1].sd   = color_mapping[c2];
+                            usecolor[2].sd   = color_mapping[c3];
                             use_color_amount = now_color_amount;
                             dis_count        = (ll)round(now_color.count) - use_now_color;
 
@@ -396,10 +493,10 @@ int main() {
 
             ll qq = (ll)round(now_color.count) / 4;
             ll rr = (ll)round(now_color.count) % 4;
-            rep(c1, k) reps(c2, c1 + 1, k) reps(c3, c2 + 1, k) {
-                Paint &color1 = own_color[c1];
-                Paint &color2 = own_color[c2];
-                Paint &color3 = own_color[c3];
+            rep(c1, actual_k) reps(c2, c1 + 1, actual_k) reps(c3, c2 + 1, actual_k) {
+                Paint &color1 = reduced_own_color[c1];
+                Paint &color2 = reduced_own_color[c2];
+                Paint &color3 = reduced_own_color[c3];
 
                 ll use_now_color = -qq;
                 rep(dis, 4) {
@@ -431,9 +528,9 @@ int main() {
                             usecount_b = cb;
                             usecount_c = cc;
 
-                            use_id1         = c1;
-                            use_id2         = c2;
-                            use_id3         = c3;
+                            use_id1         = color_mapping[c1];
+                            use_id2         = color_mapping[c2];
+                            use_id3         = color_mapping[c3];
                             new_color.red   = r;
                             new_color.green = g;
                             new_color.blue  = b;
