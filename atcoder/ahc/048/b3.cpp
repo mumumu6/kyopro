@@ -223,12 +223,8 @@ int main() {
 
     // 表現力の高い色を選別（分岐によって色数を調整）
     int reduced_k_if = min((int)k, 6); // シンプルな計算用
-    int reduced_k_else;
-    if (d > 2000) {
-        reduced_k_else = min((int)k, 20);
-    } else {
-        reduced_k_else = min((int)k, 15);
-    } // シンプルな計算用
+    int reduced_k_else =  min((int)k, 12);
+ // シンプルな計算用
 
     auto squ = [](double x) { return x * x; };
 
@@ -297,27 +293,30 @@ int main() {
                     int k3;
 
                     if (k == 4) {
-                        k1 = 15;
-                        k2 = 15;
-                        k3 = 15;
+                        k1 = 14;
+                        k2 = 14;
+                        k3 = 14;
                     } else if (k == 5) {
-                        k1 = 12;
-                        k2 = 11;
-                        k3 = 11;
+                        k1 = 8;
+                        k2 = 8;
+                        k3 = 7;
                     } else if (k >= 6) {
-                        k1 = 11;
-                        k2 = 10;
-                        k3 = 10;
+                        k1 = 7;
+                        k2 = 7;
+                        k3 = 7;
                     }
 
                     rep(ca, k1) rep(cb, k2) rep(cc, k3) {
                         int cnt = (ca != 0) + (cb != 0) + (cc != 0);
 
+                        // 確実な枝刈り1: ペナルティだけでerrorを超える場合は確実に悪い
+                        if (cnt * d >= error) continue;
+
                         int maxc = max({ca, cb, cc});
 
                         double ra, rb, rc;
                         if (maxc != 0) {
-                            // 割り算を一回だけ
+                            // 高速化: 割り算を一回だけ（逆数の事前計算）
                             double inv_maxc = 1.0 / (double)maxc;
                             ra              = ca * inv_maxc;
                             rb              = cb * inv_maxc;
@@ -330,19 +329,20 @@ int main() {
                         double sum              = ra + rb + rc + now_color_amount;
                         if (sum == 0) continue;
 
+                        // 高速化: 除算を一回にまとめる（逆数の事前計算）
+                        double inv_sum = 1.0 / sum;
                         double r = (color1.red * ra + color2.red * rb + color3.red * rc +
-                                    now_color.red * now_color_amount) /
-                                   sum;
+                                    now_color.red * now_color_amount) * inv_sum;
                         double g = (color1.green * ra + color2.green * rb + color3.green * rc +
-                                    now_color.green * now_color_amount) /
-                                   sum;
+                                    now_color.green * now_color_amount) * inv_sum;
                         double b = (color1.blue * ra + color2.blue * rb + color3.blue * rc +
-                                    now_color.blue * now_color_amount) /
-                                   sum;
+                                    now_color.blue * now_color_amount) * inv_sum;
 
-                        double n_error =
-                            sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
-                            cnt * d;
+                        // 高速化: squ関数を展開して関数呼び出しオーバーヘッドを削減
+                        double dr = r - tr.red;
+                        double dg = g - tr.green;
+                        double db = b - tr.blue;
+                        double n_error = sqrt(dr*dr + dg*dg + db*db) * 10000 + cnt * d;
 
                         if (chmin(error, n_error)) {
                             usecolor[0].ft   = ca;
@@ -549,24 +549,16 @@ int main() {
                         int k2;
                         int k3;
 
-                        if (d <= 2000) {
+                        if (d <= 1000) {
                             if (k < 7) {
-                                k1 = 13;
-                                k2 = 13;
-                                k3 = 13;
-                            } else if (k < 11) {
                                 k1 = 7;
                                 k2 = 7;
                                 k3 = 7;
-                            } else if (k < 14) {
+                            } else if (k > 15) {
                                 k1 = 7;
-                                k2 = 7;
-                                k3 = 6;
-                            } else {
-                                k1 = 4;
-                                k2 = 4;
-                                k3 = 4;
-                            }
+                                k2 = 5;
+                                k3 = 3;
+                            } 
                         } else {
                             k1 = 3;
                             k2 = 3;
