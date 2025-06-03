@@ -176,7 +176,7 @@ int main() {
 
                     double n_error =
                         sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
-                        (ca + cb + cc + now_color.count - use_now_color) * d;
+                        (ca + cb + cc ) * d;
 
                     if (chmin(error, n_error)) {
                         usecount_a = ca;
