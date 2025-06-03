@@ -158,9 +158,7 @@ vector<int> pick_basis_colors(const vector<Paint> &col, int want = 10) {
     // --- (2) 残りを FPS で埋める ---
     vector<double> mind(k, 1e30);
     for (int idx : basis) {
-        for (int i = 0; i < k; ++i) { 
-            mind[i] = min(mind[i], dist2(col[i], col[idx])); 
-        }
+        for (int i = 0; i < k; ++i) { mind[i] = min(mind[i], dist2(col[i], col[idx])); }
     }
     while ((int)basis.size() < want) {
         int best_i   = -1;
@@ -173,9 +171,7 @@ vector<int> pick_basis_colors(const vector<Paint> &col, int want = 10) {
         }
         if (best_i == -1) break; // 安全装置
         basis.push_back(best_i);
-        for (int i = 0; i < k; ++i) { 
-            mind[i] = min(mind[i], dist2(col[i], col[best_i])); 
-        }
+        for (int i = 0; i < k; ++i) { mind[i] = min(mind[i], dist2(col[i], col[best_i])); }
     }
 
     return basis;
@@ -225,25 +221,27 @@ int main() {
     rep(i, k) cin >> own_color[i].red >> own_color[i].green >> own_color[i].blue;
     rep(i, h) cin >> target_color[i].red >> target_color[i].green >> target_color[i].blue;
 
-    // 表現力の高い色を選別（k=20 -> 10程度に削減）
-    int reduced_k = min((int)k, 12);
-    vector<int> selected_colors = pick_basis_colors(own_color, reduced_k);
-    
-    // 選ばれた色だけを新しい配列に詰め直す
-    vector<Paint> reduced_own_color(selected_colors.size());
-    for (int i = 0; i < selected_colors.size(); ++i) {
-        reduced_own_color[i] = own_color[selected_colors[i]];
-    }
-    
-    // 色のマッピング用（出力時に元のインデックスが必要）
-    vector<int> color_mapping = selected_colors;
-    
-    // 以降の処理では reduced_own_color と color_mapping を使用
-    int actual_k = reduced_own_color.size();
+    // 表現力の高い色を選別（分岐によって色数を調整）
+    int reduced_k_if = min((int)k, 6); // シンプルな計算用
+    int reduced_k_else;
+    if (d > 2000) {
+        reduced_k_else = min((int)k, 20);
+    } else {
+        reduced_k_else = min((int)k, 15);
+    } // シンプルな計算用
 
     auto squ = [](double x) { return x * x; };
 
-    if (t > 19500 ) {
+    if (t > 16500 && d < 1200) {
+        // 複雑な分岐用の色選別
+        vector<int> selected_colors = pick_basis_colors(own_color, reduced_k_if);
+        vector<Paint> reduced_own_color(selected_colors.size());
+        for (int i = 0; i < selected_colors.size(); ++i) {
+            reduced_own_color[i] = own_color[selected_colors[i]];
+        }
+        vector<int> color_mapping = selected_colors;
+        int actual_k              = reduced_own_color.size();
+
         rep(ii, n) {
             rep(i, n - 1) {
                 if ((i == 0 && ii > 1) || (ii == 1 && i == 1)) {
@@ -294,7 +292,25 @@ int main() {
 
                     use_now_color += (dis < rr ? qq + 1 : qq);
 
-                    rep(ca, 4) rep(cb, 4) rep(cc, 4) {
+                    int k1;
+                    int k2;
+                    int k3;
+
+                    if (k == 4) {
+                        k1 = 13;
+                        k2 = 12;
+                        k3 = 12;
+                    } else if (k == 5) {
+                        k1 = 9;
+                        k2 = 9;
+                        k3 = 9;
+                    } else if (k >= 6) {
+                        k1 = 8;
+                        k2 = 8;
+                        k3 = 7;
+                    }
+
+                    rep(ca, k1) rep(cb, k2) rep(cc, k3) {
                         int cnt = (ca != 0) + (cb != 0) + (cc != 0);
 
                         int maxc = max({ca, cb, cc});
@@ -382,14 +398,14 @@ int main() {
                 }
             }
 
-            if(usecolor[0].ft == 1){
-                if(usecolor[1].ft != 0){
+            if (usecolor[0].ft == 1) {
+                if (usecolor[1].ft != 0) {
                     cout << 4 << spa << 2 << spa << 0 << spa << 3 << spa << 0 << el;
                     cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
                     cout << 1 << spa << 0 << spa << 0 << spa << usecolor[1].sd << el;
-                } 
+                }
 
-                if(usecolor[2].ft != 0){
+                if (usecolor[2].ft != 0) {
                     cout << 4 << spa << 0 << spa << 2 << spa << 0 << spa << 3 << el;
                     cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
                     cout << 1 << spa << 0 << spa << 0 << spa << usecolor[2].sd << el;
@@ -433,8 +449,10 @@ int main() {
             // debug(mixed_color2.red, mixed_color2.green, mixed_color2.blue, mixed_color2.count);
             // debug(mixed.red, mixed.green, mixed.blue, mixed.count);
 
-            if (usecolor[1].ft != 0 && usecolor[0].ft != 1) cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
-            if (usecolor[2].ft != 0 && usecolor[0].ft != 1) cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
+            if (usecolor[1].ft != 0 && usecolor[0].ft != 1)
+                cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
+            if (usecolor[2].ft != 0 && usecolor[0].ft != 1)
+                cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
 
             if (usecolor[0].ft != 0) cout << 1 << spa << 0 << spa << 0 << spa << usecolor[0].sd << el;
 
@@ -461,6 +479,15 @@ int main() {
             // debug(dis_count);
         }
     } else {
+        // シンプル分岐用の色選別
+        vector<int> selected_colors = pick_basis_colors(own_color, reduced_k_else);
+        vector<Paint> reduced_own_color(selected_colors.size());
+        for (int i = 0; i < selected_colors.size(); ++i) {
+            reduced_own_color[i] = own_color[selected_colors[i]];
+        }
+        vector<int> color_mapping = selected_colors;
+        int actual_k              = reduced_own_color.size();
+
         rep(ii, n) {
             rep(i, n - 1) cout << 0 << " ";
             cout << el;
@@ -493,49 +520,94 @@ int main() {
 
             ll qq = (ll)round(now_color.count) / 4;
             ll rr = (ll)round(now_color.count) % 4;
-            rep(c1, actual_k) reps(c2, c1 + 1, actual_k) reps(c3, c2 + 1, actual_k) {
-                Paint &color1 = reduced_own_color[c1];
-                Paint &color2 = reduced_own_color[c2];
-                Paint &color3 = reduced_own_color[c3];
 
-                ll use_now_color = -qq;
-                rep(dis, 4) {
-                    use_now_color += (dis < rr ? qq + 1 : qq);
+            int actual_k2;
+            int actual_k1;
+            int actual_k3;
 
-                    rep(ca, 7) rep(cb, 5) rep(cc, 3) {
-                        if (ca + cb + cc > c) continue;
+            if (d > 1000) {
+                actual_k1 = 1;
+                actual_k2 = 2;
+                actual_k3 = actual_k;
+            } else {
+                actual_k2 = actual_k;
+                actual_k3 = actual_k;
+            }
 
-                        if (ca + cb + cc + use_now_color < 1) continue;
+            rep(c1, actual_k1) reps(c2, c1 + 1, actual_k2) {
+                int start_c3 = (d > 1000) ? 0 : c2 + 1;
+                reps(c3, start_c3, actual_k3) {
+                    Paint &color1 = reduced_own_color[c1];
+                    Paint &color2 = reduced_own_color[c2];
+                    Paint &color3 = reduced_own_color[c3];
 
-                        ll sum = ca + cb + cc + use_now_color;
+                    ll use_now_color = -qq;
+                    rep(dis, 4) {
+                        use_now_color += (dis < rr ? qq + 1 : qq);
 
-                        double r = (color1.red * ca + color2.red * cb + color3.red * cc +
-                                    now_color.red * use_now_color) /
-                                   sum;
-                        double g = (color1.green * ca + color2.green * cb + color3.green * cc +
-                                    now_color.green * use_now_color) /
-                                   sum;
-                        double b = (color1.blue * ca + color2.blue * cb + color3.blue * cc +
-                                    now_color.blue * use_now_color) /
-                                   sum;
+                        int k1;
+                        int k2;
+                        int k3;
 
-                        double n_error =
-                            sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
-                            (ca + cb + cc) * d;
+                        if (d <= 2000) {
+                            if (k < 7) {
+                                k1 = 9;
+                                k2 = 8;
+                                k3 = 8;
+                            } else if (k < 11) {
+                                k1 = 7;
+                                k2 = 7;
+                                k3 = 7;
+                            } else if (k < 14) {
+                                k1 = 7;
+                                k2 = 7;
+                                k3 = 6;
+                            } else {
+                                k1 = 4;
+                                k2 = 4;
+                                k3 = 4;
+                            }
+                        } else {
+                            k1 = 3;
+                            k2 = 3;
+                            k3 = 3;
+                        }
 
-                        if (chmin(error, n_error)) {
-                            usecount_a = ca;
-                            usecount_b = cb;
-                            usecount_c = cc;
+                        rep(ca, k1) rep(cb, k2) rep(cc, k3) {
+                            if (ca + cb + cc > c) continue;
 
-                            use_id1         = color_mapping[c1];
-                            use_id2         = color_mapping[c2];
-                            use_id3         = color_mapping[c3];
-                            new_color.red   = r;
-                            new_color.green = g;
-                            new_color.blue  = b;
-                            new_color.count = sum;
-                            dis_count       = now_color.count - use_now_color;
+                            if (ca + cb + cc + use_now_color < 1) continue;
+
+                            ll sum = ca + cb + cc + use_now_color;
+
+                            double r = (color1.red * ca + color2.red * cb + color3.red * cc +
+                                        now_color.red * use_now_color) /
+                                       sum;
+                            double g = (color1.green * ca + color2.green * cb + color3.green * cc +
+                                        now_color.green * use_now_color) /
+                                       sum;
+                            double b = (color1.blue * ca + color2.blue * cb + color3.blue * cc +
+                                        now_color.blue * use_now_color) /
+                                       sum;
+
+                            double n_error =
+                                sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
+                                (ca + cb + cc) * d;
+
+                            if (chmin(error, n_error)) {
+                                usecount_a = ca;
+                                usecount_b = cb;
+                                usecount_c = cc;
+
+                                use_id1         = color_mapping[c1];
+                                use_id2         = color_mapping[c2];
+                                use_id3         = color_mapping[c3];
+                                new_color.red   = r;
+                                new_color.green = g;
+                                new_color.blue  = b;
+                                new_color.count = sum;
+                                dis_count       = now_color.count - use_now_color;
+                            }
                         }
                     }
                 }

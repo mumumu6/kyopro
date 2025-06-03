@@ -334,8 +334,10 @@ int main() {
                  << el;
         }
 
-        if (usecolor[1].ft == 0 && usecolor[0].ft != 0) cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
-        if (usecolor[2].ft == 0 && usecolor[0].ft != 0) cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
+        if (usecolor[1].ft == 0 && usecolor[0].ft != 0)
+            cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
+        if (usecolor[2].ft == 0 && usecolor[0].ft != 0)
+            cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
         // debug(hi, error);
         // debug(usecolor);
         // debug(now_color.red, now_color.green, now_color.blue, now_color.count);
