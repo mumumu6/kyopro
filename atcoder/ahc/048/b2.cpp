@@ -152,7 +152,7 @@ int main() {
                 Paint &color2 = own_color[c2];
                 Paint &color3 = own_color[c3];
 
-                rep(ca, 9) rep(cb, 9) rep(cc, 8) {
+                rep(ca, 8) rep(cb, 8) rep(cc, 7) {
                     int cnt = 0;
                     if (ca) cnt++;
                     if (cb) cnt++;
