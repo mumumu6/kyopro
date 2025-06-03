@@ -116,7 +116,7 @@ int main() {
 
     auto squ = [](double x) { return x * x; };
 
-    if (t > 19500 && d < 500) {
+    if (t > 19500 && d < 400) {
         rep(ii, n) {
             rep(i, n - 1) {
                 if (i == 0) {

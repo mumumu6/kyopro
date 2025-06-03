@@ -297,17 +297,17 @@ int main() {
                     int k3;
 
                     if (k == 4) {
-                        k1 = 13;
-                        k2 = 12;
-                        k3 = 12;
+                        k1 = 15;
+                        k2 = 15;
+                        k3 = 15;
                     } else if (k == 5) {
-                        k1 = 9;
-                        k2 = 9;
-                        k3 = 9;
+                        k1 = 12;
+                        k2 = 11;
+                        k3 = 11;
                     } else if (k >= 6) {
-                        k1 = 8;
-                        k2 = 8;
-                        k3 = 7;
+                        k1 = 11;
+                        k2 = 10;
+                        k3 = 10;
                     }
 
                     rep(ca, k1) rep(cb, k2) rep(cc, k3) {
@@ -525,7 +525,7 @@ int main() {
             int actual_k1;
             int actual_k3;
 
-            if (d > 1000) {
+            if (d > 1500) {
                 actual_k1 = 1;
                 actual_k2 = 2;
                 actual_k3 = actual_k;
@@ -551,9 +551,9 @@ int main() {
 
                         if (d <= 2000) {
                             if (k < 7) {
-                                k1 = 9;
-                                k2 = 8;
-                                k3 = 8;
+                                k1 = 13;
+                                k2 = 13;
+                                k3 = 13;
                             } else if (k < 11) {
                                 k1 = 7;
                                 k2 = 7;
