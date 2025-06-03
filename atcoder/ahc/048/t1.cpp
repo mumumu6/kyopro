@@ -82,12 +82,12 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
         }
     }
     ll id    = 0;
-    // auto out = [&](auto &&v) {
-    //     cout << labels[id++] << " = " << v;
-    //     if (id < sizeof...(Ts)) cout << ", ";
-    // };
-    // (out(std::forward<Ts>(xs)), ...);
-    // cout << '\n';
+    auto out = [&](auto &&v) {
+        cout << labels[id++] << " = " << v;
+        if (id < sizeof...(Ts)) cout << ", ";
+    };
+    (out(std::forward<Ts>(xs)), ...);
+    cout << '\n';
 }
 } // namespace dbg
 
@@ -96,7 +96,8 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 struct Paint {
     double red, green, blue;
     double count = 1;
-    Paint(double r = 0, double g = 0, double b = 0, double c = 0) : red(r), green(g), blue(b), count(c) {}
+    Paint(double r = 0, double g = 0, double b = 0, double c = 0)
+        : red(r), green(g), blue(b), count(c) {}
 };
 
 // 色の重み付き平均を計算する関数
@@ -121,9 +122,7 @@ Paint calculate_weighted_color_average(const vector<Paint> &colors, const vector
         }
     }
 
-    if (total_weight == 0) {       
-        return Paint(0.0,0.0,0.0,0.0); 
-    }
+    if (total_weight == 0) { return Paint(0.0, 0.0, 0.0, 0.0); }
 
     // debug("total_weight:", total_weight);
     return Paint(red_sum / total_weight, green_sum / total_weight, blue_sum / total_weight,
@@ -182,8 +181,8 @@ int main() {
 
         Paint new_color = Paint(0, 0, 0, 0);
 
-        int qq                   = (int)round(now_color.count) / 3;
-        int rr                   = (int)round(now_color.count) % 3;
+        int qq                  = (int)round(now_color.count) / 3;
+        int rr                  = (int)round(now_color.count) % 3;
         double use_color_amount = 0;
 
         rep(c1, k) reps(c2, c1 + 1, k) reps(c3, c2 + 1, k) {
@@ -197,7 +196,7 @@ int main() {
 
                 use_now_color += (dis < rr ? qq + 1 : qq);
 
-                rep(ca, 7) rep(cb, 7) rep(cc, 7) {
+                rep(ca, 6) rep(cb, 5) rep(cc, 3) {
                     int cnt = (ca != 0) + (cb != 0) + (cc != 0);
 
                     int maxc = max({ca, cb, cc});
@@ -206,15 +205,15 @@ int main() {
                     if (maxc != 0) {
                         // 割り算を一回だけ
                         double inv_maxc = 1.0 / (double)maxc;
-                        ra = ca * inv_maxc;
-                        rb = cb * inv_maxc;
-                        rc = cc * inv_maxc;
+                        ra              = ca * inv_maxc;
+                        rb              = cb * inv_maxc;
+                        rc              = cc * inv_maxc;
                     } else {
                         ra = 0.0, rb = 0.0, rc = 0.0;
                     }
 
                     double now_color_amount = use_now_color * (4 + ca + cb + cc - maxc) / 40.0;
-                    double sum = ra + rb + rc + now_color_amount;
+                    double sum              = ra + rb + rc + now_color_amount;
                     if (sum == 0) continue;
 
                     double r = (color1.red * ra + color2.red * rb + color3.red * rc +
@@ -238,14 +237,14 @@ int main() {
                         usecolor[1].sd   = c2;
                         usecolor[2].sd   = c3;
                         use_color_amount = now_color_amount;
-                        dis_count        = now_color.count - use_now_color;
+                        dis_count        = (ll)round(now_color.count) - use_now_color;
 
-                        // debug(use_now_color,now_color_amount, ca, cb, cc);
-                        // debug(r,g,b,sum, n_error);
+                        // debug(use_now_color, now_color_amount, ca, cb, cc);
+                        // debug(r, g, b, sum, n_error);
                         // debug(color1.red, color2.red, color3.red, now_color.red);
-                        // debug(ra,rb,rc,sum , now_color_amount);
+                        // debug(ra, rb, rc, sum, now_color_amount);
 
-                        // debug(new_color.red, new_color.green, new_color.blue, new_color.count);
+                        // debug(now_color.red, now_color.green, now_color.blue, now_color.count);
                         // debug(use_now_color, cnt);
                     }
                 }
@@ -255,18 +254,20 @@ int main() {
         sor(usecolor);
         rep(i, dis_count) { cout << 3 << spa << 0 << spa << 0 << el; }
 
-        cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
-        cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
+        if (usecolor[0].ft != 0) {
+            cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
+            cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
+        }
 
         if (usecolor[1].ft != 0) {
             cout << 4 << spa << usecolor[0].ft + 1 << spa << 0 << spa << usecolor[0].ft + 2 << spa << 0
                  << el;
             cout << 1 << spa << 2 << spa << 0 << spa << usecolor[1].sd << el;
             if (usecolor[0].ft != usecolor[1].ft) {
-                cout << 4 << spa << usecolor[1].ft + 1 << spa << 0 << spa << usecolor[1].ft + 2 << spa << 0
-                     << el;
-                cout << 4 << spa << usecolor[0].ft + 1 << spa << 0 << spa << usecolor[0].ft + 2 << spa << 0
-                     << el;
+                cout << 4 << spa << usecolor[1].ft + 1 << spa << 0 << spa << usecolor[1].ft + 2 << spa
+                     << 0 << el;
+                cout << 4 << spa << usecolor[0].ft + 1 << spa << 0 << spa << usecolor[0].ft + 2 << spa
+                     << 0 << el;
             }
         }
 
@@ -275,10 +276,10 @@ int main() {
                  << el;
             cout << 1 << spa << 0 << spa << 2 << spa << usecolor[2].sd << el;
             if (usecolor[0].ft != usecolor[2].ft) {
-                cout << 4 << spa << 0 << spa << usecolor[2].ft + 1 << spa << 0 << spa << usecolor[2].ft + 2
-                     << el;
-                cout << 4 << spa << 0 << spa << usecolor[0].ft + 1 << spa << 0 << spa << usecolor[0].ft + 2
-                     << el;
+                cout << 4 << spa << 0 << spa << usecolor[2].ft + 1 << spa << 0 << spa
+                     << usecolor[2].ft + 2 << el;
+                cout << 4 << spa << 0 << spa << usecolor[0].ft + 1 << spa << 0 << spa
+                     << usecolor[0].ft + 2 << el;
             }
         }
 
@@ -309,9 +310,10 @@ int main() {
 
         Paint mixed = calculate_weighted_color_average(
             {mixed_color1, mixed_color2},
-            {(double)(mixed_color1.count - 1), (double)(mixed_color2.count)} );
+            {(double)(mixed_color1.count - 1), (double)(mixed_color2.count)});
 
-        now_color = mixed;
+        now_color       = mixed;
+        now_color.count = round(mixed.count);
 
         // debug(mixed_color1.red, mixed_color1.green, mixed_color1.blue, mixed_color1.count);
         // debug(mixed_color2.red, mixed_color2.green, mixed_color2.blue, mixed_color2.count);
@@ -320,10 +322,11 @@ int main() {
         if (usecolor[1].ft != 0) cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
         if (usecolor[2].ft != 0) cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
 
-        cout << 1 << spa << 0 << spa << 0 << spa << usecolor[0].sd << el;
+        if (usecolor[0].ft != 0) cout << 1 << spa << 0 << spa << 0 << spa << usecolor[0].sd << el;
+
         cout << 2 << spa << 0 << spa << 0 << el;
         if (usecolor[1].ft != 0)
-            cout << 4 << spa << usecolor[1].ft  + 1<< spa << 0 << spa << usecolor[1].ft + 2 << spa << 0
+            cout << 4 << spa << usecolor[1].ft + 1 << spa << 0 << spa << usecolor[1].ft + 2 << spa << 0
                  << el;
 
         if (usecolor[2].ft != 0) {
@@ -331,8 +334,8 @@ int main() {
                  << el;
         }
 
-        if (usecolor[1].ft == 0) cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
-        if (usecolor[2].ft == 0) cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
+        if (usecolor[1].ft == 0 && usecolor[0].ft != 0) cout << 4 << spa << 1 << spa << 0 << spa << 2 << spa << 0 << el;
+        if (usecolor[2].ft == 0 && usecolor[0].ft != 0) cout << 4 << spa << 0 << spa << 1 << spa << 0 << spa << 2 << el;
         // debug(hi, error);
         // debug(usecolor);
         // debug(now_color.red, now_color.green, now_color.blue, now_color.count);

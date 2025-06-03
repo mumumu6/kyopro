@@ -116,7 +116,7 @@ int main() {
 
     auto squ = [](double x) { return x * x; };
 
-    if (t > 19500 && d < 300) {
+    if (t > 19500 && d < 200) {
         rep(ii, n) {
             rep(i, n - 1) {
                 if (i == 0) {
@@ -214,8 +214,7 @@ int main() {
             }
 
             // vj
-
-            cout << 1 << spa << 0 << spa << 0 << spa << usecolor[0].sd << el;
+            if (usecolor[0].ft != 0) cout << 1 << spa << 0 << spa << 0 << spa << usecolor[0].sd << el;
 
             if (usecolor[1].ft != 0) cout << 4 << spa << 0 << spa << 0 << spa << 1 << spa << 0 << el;
             if (usecolor[2].ft != 0) cout << 4 << spa << 0 << spa << 0 << spa << 0 << spa << 1 << el;
@@ -276,7 +275,7 @@ int main() {
                 rep(dis, 4) {
                     use_now_color += (dis < rr ? qq + 1 : qq);
 
-                    rep(ca, 7) rep(cb, 5) rep(cc, 3) {
+                    rep(ca, 8) rep(cb, 5) rep(cc, 3) {
                         if (ca + cb + cc > c) continue;
 
                         if (ca + cb + cc + use_now_color < 1) continue;
@@ -295,7 +294,7 @@ int main() {
 
                         double n_error =
                             sqrt(squ(r - tr.red) + squ(g - tr.green) + squ(b - tr.blue)) * 10000 +
-                            (ca + cb + cc + now_color.count - use_now_color) * d;
+                            (ca + cb + cc) * d;
 
                         if (chmin(error, n_error)) {
                             usecount_a = ca;
