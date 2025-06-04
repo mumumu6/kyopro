@@ -116,7 +116,7 @@ int main() {
 
     auto squ = [](double x) { return x * x; };
 
-    if (t > 19500 && d < 650) {
+    if (t > 19500 && d < 350) {
         rep(ii, n) {
             rep(i, n - 1) {
                 if (i == 0) {
@@ -152,7 +152,7 @@ int main() {
                 Paint &color2 = own_color[c2];
                 Paint &color3 = own_color[c3];
 
-                rep(ca, 12) rep(cb,12) rep(cc, 12) {
+                rep(ca, 10) rep(cb, 10) rep(cc, 10) {
                     int cnt = 0;
                     if (ca) cnt++;
                     if (cb) cnt++;
@@ -172,7 +172,6 @@ int main() {
                         usecolor[0].ft  = ca;
                         usecolor[1].ft  = cb;
                         usecolor[2].ft  = cc;
-
                         usecolor[0].sd  = c1;
                         usecolor[1].sd  = c2;
                         usecolor[2].sd  = c3;

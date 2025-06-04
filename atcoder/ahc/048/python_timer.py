@@ -15,7 +15,7 @@ def main():
     print("=" * 40)
     
     # 実行ファイル確認・コンパイル
-    if not os.path.exists('./b3_exec'):
+    if not os.path.exists('./out/b3'):
         print("b3_execが見つかりません。コンパイルします...")
         result = subprocess.run(['g++', '-O2', '-std=c++20', '-o', 'b3_exec', 'b3.cpp'], 
                               capture_output=True, text=True)
@@ -52,7 +52,7 @@ def main():
             start_time = time.perf_counter()
             
             with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:
-                result = subprocess.run(['./b3_exec'], 
+                result = subprocess.run(['./out/a2'], 
                                       stdin=infile, 
                                       stdout=outfile, 
                                       stderr=subprocess.PIPE,

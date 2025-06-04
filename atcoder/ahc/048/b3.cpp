@@ -505,6 +505,9 @@ int main() {
 
             Paint &tr = target_color[hi];
 
+            cerr<< "hi: " << hi << ", target color: " << tr.red << ", " << tr.green
+                 << ", " << tr.blue << el;
+
             double error = 101010;
 
             ll usecount_a = 0;
@@ -533,7 +536,26 @@ int main() {
                 actual_k2 = actual_k;
                 actual_k3 = actual_k;
             }
+            int k1;
+            int k2;
+            int k3;
 
+            if (d <= 1000) {
+                if (k < 7) {
+                    k1 = 7;
+                    k2 = 7;
+                    k3 = 7;
+                } else {
+                    k1 = 7;
+                    k2 = 5;
+                    k3 = 3;
+                } 
+            } else {
+                k1 = 3;
+                k2 = 3;
+                k3 = 3;
+            }
+            
             rep(c1, actual_k1) reps(c2, c1 + 1, actual_k2) {
                 int start_c3 = (d > 1000) ? 0 : c2 + 1;
                 reps(c3, start_c3, actual_k3) {
@@ -545,25 +567,6 @@ int main() {
                     rep(dis, 4) {
                         use_now_color += (dis < rr ? qq + 1 : qq);
 
-                        int k1;
-                        int k2;
-                        int k3;
-
-                        if (d <= 1000) {
-                            if (k < 7) {
-                                k1 = 7;
-                                k2 = 7;
-                                k3 = 7;
-                            } else if (k > 15) {
-                                k1 = 7;
-                                k2 = 5;
-                                k3 = 3;
-                            } 
-                        } else {
-                            k1 = 3;
-                            k2 = 3;
-                            k3 = 3;
-                        }
 
                         rep(ca, k1) rep(cb, k2) rep(cc, k3) {
                             if (ca + cb + cc > c) continue;
