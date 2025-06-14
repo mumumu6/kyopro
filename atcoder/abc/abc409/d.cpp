@@ -107,21 +107,23 @@ int main() {
         cin >> n >> s;
 
         ll siz = s.size();
-        ll idx = -1;
+        ll idx = 0;
         ll cnt = 0;
 
         rep(i, siz - 1) {
             if (s[i] > s[i + 1]) {
                 cnt = 0;
-                char tmp = s[i];
-                while (cnt + i + 1 < siz && s[cnt + i + 1] <= tmp) {
-                    swap(s[i + cnt + 1], s[i + cnt]); // 交換
-                    cnt++;
-                }
+                while (cnt + i + 1 < siz &&  s[cnt + i + 1] <= s[i]) cnt++;
+                idx = i;
                 break;
             }
         }
 
-        cout << s << el;
+
+        string ans = s.substr(0, idx) + s.substr(idx + 1, cnt) + s[idx] ;
+
+        if(idx + cnt + 1 < n ) ans +=  s.substr(idx + cnt + 1);
+
+        cout << ans << el;
     }
 }
