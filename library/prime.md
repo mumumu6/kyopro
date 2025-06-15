@@ -43,7 +43,7 @@ long long pollard(long long N) {
 }
 
 vector<long long> factor(long long n) {
-    if (n == 1) return {};
+    if (n <= 1) return {}; // 1以下は素因数分解しない
     if (is_prime(n)) return {n};
     ll x = pollard(n);
     if (x == n) return {x};
@@ -53,7 +53,97 @@ vector<long long> factor(long long n) {
 }
 ```
 
+### ポラードローを用いた約数列挙
+
+$n=10^5$でループ回して全部について実行したら1.3sくらい
+
+```cpp
+vector<long long> get_divisors(long long n) {
+    auto prime_factors = factor(n);
+    
+    map<long long, int> pf_count;
+    for (auto p : prime_factors) {
+        pf_count[p]++;
+    }
+    
+    vector<long long> divisors = {1};
+    for (auto [prime, count] : pf_count) {
+        int old_size = divisors.size();
+        for (int i = 0; i < old_size; i++) {
+            long long power = prime;
+            for (int j = 1; j <= count; j++) {
+                divisors.push_back(divisors[i] * power);
+                power *= prime;
+            }
+        }
+    }
+    
+    sort(divisors.begin(), divisors.end());
+    return divisors;
+}
+```
+
 ## 線形篩
+
+素数判定と約数列挙ができる。
+spfは最小の約数を持つ
+
+```cpp
+struct LinearSieve {
+    vector<ll> primes, spf;
+
+    LinearSieve(ll n) : spf(n + 1) {
+        for (ll i = 2; i <= n; i++) {
+            if (spf[i] == 0) {
+                primes.push_back(i);
+                spf[i] = i;
+            }
+            for (ll p : primes) {
+                if (i * p > n || p > spf[i]) break;
+                spf[i * p] = p;
+            }
+        }
+    }
+
+    // 素因数分解
+    map<ll, ll> factorize(ll n) {
+        map<ll, ll> factors;
+        while (n > 1) {
+            factors[spf[n]]++;
+            n /= spf[n];
+        }
+        return factors;
+    }
+
+    // 約数列挙
+    vector<ll> divisors(ll n) {
+        auto factors   = factorize(n);
+        vector<ll> res = {1};
+
+        for (auto [p, cnt] : factors) {
+            ll sz = res.size();
+            for (ll i = 0; i < sz; i++) {
+                ll power = p;
+                for (ll j = 0; j < cnt; j++) {
+                    res.push_back(res[i] * power);
+                    power *= p;
+                }
+            }
+        }
+
+        sort(res.begin(), res.end());
+        return res;
+    }
+
+    // 約数の個数だけ欲しい場合
+    ll count_divisors(ll n) {
+        auto factors = factorize(n);
+        ll res       = 1;
+        for (auto [p, cnt] : factors) { res *= (cnt + 1); }
+        return res;
+    }
+};
+```
 
 ## ミラーラビン素数判定
 
