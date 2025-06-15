@@ -1,11 +1,30 @@
 #include <bits/stdc++.h>
 using namespace std;
 using ll     = long long;
+using i128   = __int128_t;
 const ll INF = 4e18;
-using i128 = __int128_t;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
 #define reps(i, a, b) for (ll i = (a); i < (b); i++)
-
+bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
+bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
+vector<ll> sin45 = {0, 1, 1, 1, 0, -1, -1, -1}, cos45 = {1, 1, 0, -1, -1, -1, 0, 1};
+vector<ll> dx = {0, 1, 0, -1};
+vector<ll> dy = {1, 0, -1, 0};
+#define ft first
+#define sd second
+#define all(x) std::begin(x), std::end(x)
+#define mp(a, b) make_pair(a, b)
+#define pii pair<int, int>
+#define pll pair<ll, ll>
+#define pb(x) push_back(x)
+#define so(z) sort(z.begin(), z.end())
+#define sor(z) sort(z.rbegin(), z.rend())
+#define vec vector<ll>
+#define vecc vector<vector<ll>>
+#define Yes cout << "Yes" << el
+#define No cout << "No" << el
+#define spa " "
+#define el '\n'
 
 long long modpow(long long a, long long n, long long mod) {
     long long res = 1;
@@ -19,38 +38,50 @@ long long modpow(long long a, long long n, long long mod) {
 }
 
 bool is_prime(ll n) {
-    if (n < 2) return false;
-    if (n == 2) return true; // 2と3は素数
-    if (n % 2 == 0) return false;
+    if (n < 2 or n % 6 % 4 != 1) return (n | 1) == 3;
 
     vector<ll> bases = {2, 325, 9375, 28178, 450775, 9780504, 1795265022};
 
-    ll d = n - 1, s = 0;
-    while ((d & 1) == 0) {
-        d >>= 1;
-        ++s;
-    }
+    ll s = __builtin_ctzll(n - 1), d = n >> s;
 
-    for (auto a : bases) {
+    for (ll a : bases) {
         if (a % n == 0) continue;
-        a %= n;
-        ll x = modpow(a, d, n);
-        if (x == 1 || x == n - 1) continue;
-        bool ok = true; // 合成数だったらok
-
-        reps(r, 1, s) {
-
-
-            x = (i128)(x)*x % n;
-            if (x == n - 1) {
-                ok = false;
-                break;
-            }
-        }
-        if (ok) return false; // 合成数
+        ll r = s;
+        ll x = modpow(a % n, d, n);
+        while (x != 1 and x != n - 1 and r--) x = ((i128)x * x) % n;
+        if (x != n - 1 && r != s) return 0;
     }
 
     return true;
+}
+
+long long pollard(long long N) {
+    if (N % 2 == 0) return 2;
+    if (is_prime(N)) return N;
+
+    long long step = 0;
+    auto f         = [&](long long x) -> long long { return (__int128_t(x) * x + step) % N; };
+    while (true) {
+        ++step;
+        long long x = step, y = f(x);
+        while (true) {
+            long long p = gcd(y - x + N, N);
+            if (p == 0 || p == N) break;
+            if (p != 1) return p;
+            x = f(x);
+            y = f(f(y));    
+        }
+    }
+}
+
+vector<long long> factor(long long n) {
+    if (n == 1) return {};
+    if (is_prime(n)) return {n};
+    ll x = pollard(n);
+    if (x == n) return {x};
+    auto l = factor(x), r = factor(n / x);
+    l.insert(l.end(), r.begin(), r.end());
+    return l;
 }
 
 int main() {
@@ -64,11 +95,13 @@ int main() {
     rep(qi, q) {
         ll n;
         cin >> n;
-
-        if (is_prime(n)) {
-            cout << "Yes" << "\n";
-        } else {
-            cout << "No" << "\n";
+        vec a = factor(n);
+        sort(all(a));
+        cout << a.size() << " ";
+        for (auto &x : a) {
+            if (x == 1) continue; // 1は素因数ではないのでスキップ
+            cout << x << " ";
         }
+        cout << el;
     }
 }
