@@ -101,6 +101,19 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
+// 素因数の数を調べる
+vector<ll> eratos(ll n) {
+    vector<ll> is_prime(n + 1, 0);
+    is_prime[0] = is_prime[1] = 0;
+    for (ll i = 2; i <= n; i++) {
+        if (is_prime[i] == 0) {
+            for (ll j = i; j <= n; j += i) { is_prime[j]++; }
+        }
+    }
+
+    return is_prime;
+}
+
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
@@ -109,16 +122,23 @@ int main() {
     ll q;
     cin >> q;
 
-    ll inf = 1010101;
+    ll inf = 2000000;
 
-    rep(x, inf){
-        
+    vector<ll> t = eratos(inf);
+
+    vector<ll> v;
+    rep(i, inf + 1) {
+        if (t[i] == 2) v.push_back(i * i);
     }
 
-    rep(qi, q){
+    // debug(v);
+
+    rep(qi, q) {
         ll a;
         cin >> a;
 
-
+        auto it = upper_bound(all(v), a);
+        cout << *prev(it) << el;
+        // cout << *it << el;
     }
 }
