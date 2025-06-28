@@ -179,3 +179,36 @@ bool is_prime(ll n) {
     return true;
 }
 ```
+
+## 区間篩
+
+```cpp
+vector<long long> segment_sieve(long long a, long long b) {
+    long long sqrt_b = (long long)ceil(sqrt(b));
+    vector<bool> is_prime_small(sqrt_b, true);
+    is_prime_small[0] = is_prime_small[1] = false;
+    for (long long i = 2; i < sqrt_b; ++i) {
+        if (!is_prime_small[i]) continue;
+        for (long long j = i * i; j < sqrt_b; j += i) {
+            is_prime_small[j] = false;
+        }
+    }
+
+    vector<bool> is_prime(b - a, true);
+    for (long long i = 2; i < sqrt_b; ++i) {
+        if (!is_prime_small[i]) continue;
+        long long k = max(i, (a + i - 1) / i);
+        for (long long j = k * i; j < b; j += i) {
+            is_prime[j - a] = false;
+        }
+    }
+
+    vector<long long> primes;
+    for (long long i = 0; i < b - a; ++i) {
+        if (is_prime[i] && i + a >= 2) {
+            primes.push_back(i + a);
+        }
+    }
+    return primes;
+}
+```
