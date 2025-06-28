@@ -69,13 +69,13 @@ long long pollard(long long N) {
             if (p == 0 || p == N) break;
             if (p != 1) return p;
             x = f(x);
-            y = f(f(y));    
+            y = f(f(y));
         }
     }
 }
 
 vector<long long> factor(long long n) {
-    if (n == 1) return {};
+    if (n <= 1) return {}; // 1以下は素因数分解しない
     if (is_prime(n)) return {n};
     ll x = pollard(n);
     if (x == n) return {x};
@@ -84,24 +84,39 @@ vector<long long> factor(long long n) {
     return l;
 }
 
+vector<long long> get_divisors(long long n) {
+    auto prime_factors = factor(n);
+
+    map<long long, int> pf_count;
+    for (auto p : prime_factors) { pf_count[p]++; }
+
+    vector<long long> divisors = {1};
+    for (auto [prime, count] : pf_count) {
+        int old_size = divisors.size();
+        for (int i = 0; i < old_size; i++) {
+            long long power = prime;
+            for (int j = 1; j <= count; j++) {
+                divisors.push_back(divisors[i] * power);
+                power *= prime;
+            }
+        }
+    }
+
+    sort(divisors.begin(), divisors.end());
+    return divisors;
+}
+
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll q;
-    cin >> q;
+    ll n = 101010;
 
-    rep(qi, q) {
-        ll n;
-        cin >> n;
-        vec a = factor(n);
-        sort(all(a));
-        cout << a.size() << " ";
-        for (auto &x : a) {
-            if (x == 1) continue; // 1は素因数ではないのでスキップ
-            cout << x << " ";
-        }
-        cout << el;
+    rep(i, n) {
+        auto divisors = get_divisors(i);
+        // cout << "Divisors of " << i << ": ";
+        // for (auto d : divisors) { cout << d << " "; }
+        // cout << el;
     }
 }
