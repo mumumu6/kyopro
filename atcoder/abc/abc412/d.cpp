@@ -132,11 +132,14 @@ int main() {
             if (i + 1 < n && g[i][i + 1] == 1) continue;
             if (i == n && g[i][0] == 0) tmp++;
             else { tmp++; }
+            ll sss;
         }
 
         chmin(ans, tmp);
 
     } while (next_permutation(p.begin(), p.end()));
+
+    if (ans == 4e18) ans = -1; // すべての辺が存在する場合は-1とする
 
     cout << ans << el;
     return 0;
