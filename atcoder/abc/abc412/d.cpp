@@ -127,19 +127,39 @@ int main() {
     ll ans = 4e18;
 
     do {
+        // サイクル一個
         ll tmp = 0;
         rep(i, n) {
-            if (i + 1 < n && g[i][i + 1] == 1) continue;
-            if (i == n && g[i][0] == 0) tmp++;
-            else { tmp++; }
-            ll sss;
+            ll u = p[i];
+            ll v = p[(i + 1) % n];
+
+            if (g[u][v] == 0) { tmp++; }
         }
 
-        chmin(ans, tmp);
+        chmin(ans, tmp + (m + tmp - n));
+
+        // サイクル二個
+
+        reps(d, 3, n - 2) {
+            tmp = 0;
+            rep(i, d) {
+                ll u = p[i];
+                ll v = p[(i + 1) % d];
+
+                if (g[u][v] == 0) { tmp++; }
+            }
+
+            rep(i, n - d) {
+                ll u = p[i + d];
+                ll v = p[(i + 1) % (n - d) + d];
+
+                if (g[u][v] == 0) { tmp++; }
+            }
+
+            chmin(ans, tmp + (m + tmp - n));
+        }
 
     } while (next_permutation(p.begin(), p.end()));
-
-    if (ans == 4e18) ans = -1; // すべての辺が存在する場合は-1とする
 
     cout << ans << el;
     return 0;
