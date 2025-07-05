@@ -157,6 +157,7 @@ int main() {
             }
         }
     }
+    
 
     cout << dist[n - 1] << el;
 }
