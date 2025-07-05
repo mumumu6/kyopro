@@ -81,94 +81,73 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
-struct LinearSieve {
-    vector<ll> primes, spf;
-
-    LinearSieve(ll n) : spf(n + 1) {
-        for (ll i = 2; i <= n; i++) {
-            if (spf[i] == 0) {
-                primes.push_back(i);
-                spf[i] = i;
-            }
-            for (ll p : primes) {
-                if (i * p > n || p > spf[i]) break;
-                spf[i * p] = p;
-            }
-        }
-    }
-
-    // 素因数分解
-    map<ll, ll> factorize(ll n) {
-        map<ll, ll> factors;
-        while (n > 1) {
-            factors[spf[n]]++;
-            n /= spf[n];
-        }
-        return factors;
-    }
-
-    // 約数列挙
-    vector<ll> divisors(ll n) {
-        auto factors   = factorize(n);
-        vector<ll> res = {1};
-
-        for (auto [p, cnt] : factors) {
-            ll sz = res.size();
-            for (ll i = 0; i < sz; i++) {
-                ll power = p;
-                for (ll j = 0; j < cnt; j++) {
-                    res.push_back(res[i] * power);
-                    power *= p;
-                }
-            }
-        }
-
-        sort(res.begin(), res.end());
-        return res;
-    }
-
-    // 約数の個数だけ欲しい場合
-    ll count_divisors(ll n) {
-        auto factors = factorize(n);
-        ll res       = 1;
-        for (auto [p, cnt] : factors) { res *= (cnt + 1); }
-        return res;
-    }
-};
-
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n, k;
-    cin >> n >> k;
+    ll t;
+    cin >> t;
 
-    vec a(n);
-    rep(i, n) cin >> a[i];
+    rep(ti, t) {
+        ll n;
+        cin >> n;
+        vector<ll> a;
+        vector<ll> b;
+        vector<ll> c;
+        set<ll> s;
 
-    LinearSieve sieve(2e6);
-    const vec &primes = sieve.primes;
+        rep(i, n) {
+            ll x;
 
-    vec cnt(2e6, 0);
-    vec ans(2e6, 0);
+            cin >> x;
+            if (x > 0) a.pb(x); // 0はない
+            else b.pb(x);
 
-    rep(i, n) cnt[a[i]]++;
+            c.pb(x); // 絶対値を考えるので両方に入れる
 
-    for (ll p : primes) {
-        rep(i, 2e6 / p) {
-            ll j = 2e6 / p - 1 - i;
-            cnt[j] += cnt[j * p];
+            s.insert(x);
         }
-    }
+        sort(all(c), [](ll x, ll y) { return abs(x) < abs(y); });
+        sort(all(a));
+        sort(all(b), greater<ll>());
 
-    rep(i, 2e6) {
-        if (cnt[i] >= k) { ans[i] = i; }
-    }
+        if (s.size() == 1) { // 比が1ならok
+            Yes;
+            // debug("all same");
+            continue;
+        }
 
-    for (ll p : primes) {
-        reps(i, 1, 2e6 / p) { chmax(ans[p * i], i); }
-    }
+        if(n == 2) {
+            Yes;
+            continue;
+        }
 
-    for (ll x : a) { cout << ans[x] << el; }
+        if (s.size() == 2 && a.size() > 0 && b.size() > 0) {
+            // 2つの数しかない場合
+            ll as = a.size();
+            ll bs = b.size();
+            if (a[0] == -b[0] && std::abs(as - bs) <= 1) { // 片方が負の数で片方が正の数
+                Yes;
+                continue;
+            } else {
+                No;
+                // debug(a[0], b[0], as, bs);
+                continue;
+            }
+        }
+
+        bool ok = true;
+
+        rep(i, n - 2) {
+            if (c[i] * c[i + 2] != c[i + 1] * c[i + 1]) {
+                ok = false;
+                break;
+            }
+        }
+
+        // debug(a, b, ok);
+        if (ok) Yes;
+        else No;
+    }
 }

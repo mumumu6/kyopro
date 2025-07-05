@@ -81,94 +81,98 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
-struct LinearSieve {
-    vector<ll> primes, spf;
-
-    LinearSieve(ll n) : spf(n + 1) {
-        for (ll i = 2; i <= n; i++) {
-            if (spf[i] == 0) {
-                primes.push_back(i);
-                spf[i] = i;
-            }
-            for (ll p : primes) {
-                if (i * p > n || p > spf[i]) break;
-                spf[i * p] = p;
-            }
-        }
-    }
-
-    // 素因数分解
-    map<ll, ll> factorize(ll n) {
-        map<ll, ll> factors;
-        while (n > 1) {
-            factors[spf[n]]++;
-            n /= spf[n];
-        }
-        return factors;
-    }
-
-    // 約数列挙
-    vector<ll> divisors(ll n) {
-        auto factors   = factorize(n);
-        vector<ll> res = {1};
-
-        for (auto [p, cnt] : factors) {
-            ll sz = res.size();
-            for (ll i = 0; i < sz; i++) {
-                ll power = p;
-                for (ll j = 0; j < cnt; j++) {
-                    res.push_back(res[i] * power);
-                    power *= p;
-                }
-            }
-        }
-
-        sort(res.begin(), res.end());
-        return res;
-    }
-
-    // 約数の個数だけ欲しい場合
-    ll count_divisors(ll n) {
-        auto factors = factorize(n);
-        ll res       = 1;
-        for (auto [p, cnt] : factors) { res *= (cnt + 1); }
-        return res;
-    }
-};
-
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n, k;
-    cin >> n >> k;
+    ll t;
+    cin >> t;
 
-    vec a(n);
-    rep(i, n) cin >> a[i];
+    rep(ti, t) {
+        ll n;
+        cin >> n;
+        vector<ll> a;
+        vector<ll> b;
+        set<ll> s;
 
-    LinearSieve sieve(2e6);
-    const vec &primes = sieve.primes;
+        rep(i, n) {
+            ll x;
 
-    vec cnt(2e6, 0);
-    vec ans(2e6, 0);
+            cin >> x;
+            if (x > 0) a.pb(x); // 0はない
+            else b.pb(x);
 
-    rep(i, n) cnt[a[i]]++;
-
-    for (ll p : primes) {
-        rep(i, 2e6 / p) {
-            ll j = 2e6 / p - 1 - i;
-            cnt[j] += cnt[j * p];
+            s.insert(x);
         }
-    }
+        sort(all(a));
+        sort(all(b), greater<ll>());
 
-    rep(i, 2e6) {
-        if (cnt[i] >= k) { ans[i] = i; }
-    }
+        if (s.size() == 1) { // 比が1ならok
+            Yes;
+            // debug("all same");
+            continue;
+        }
 
-    for (ll p : primes) {
-        reps(i, 1, 2e6 / p) { chmax(ans[p * i], i); }
-    }
+        bool ok = true;
+        // ll as   = a.size();
+        // ll bs   = b.size();
+        // if (bs > 0 && as > 0 && std::abs(as - bs) > 1) {
+        //     No;
+        //     continue;
+        // }
+        if (b.size() == 0) { // 正の数のみ
+            rep(i, n - 2) {
 
-    for (ll x : a) { cout << ans[x] << el; }
+                if (a[i] * a[i + 2] != a[i + 1] * a[i + 1]) {
+                    ok = false;
+                    // debug(a[i], a[i + 1], a[i + 2]);
+                    break;
+                }
+            }
+        } else {
+            vec c;
+            // a[0]
+
+            ll as = a.size();
+            ll bs = b.size();
+            if (std::abs(as - bs) > 1) {
+                No;
+                continue;
+            }
+
+            if(a.size() == 0){
+                No;
+                continue;
+            }
+
+            if (abs(a[0]) > abs(b[0])) { // aのほうが絶対値が小さい
+                swap(a, b);
+            }
+
+            if (a.size() < b.size() || a.size() - b.size() > 1) { // aのほうが小さい場合はbの最後を追加
+                No; // a開始なのにbのほうが数が大きかったらむり
+                continue;
+            }
+
+            rep(i, b.size()) {
+                c.pb(a[i]);
+                c.pb(b[i]);
+            }
+            if (a.size() > b.size()) c.pb(a.back()); // aのほうが大きい場合は最後にaを追加
+
+            rep(i, n - 2) {
+
+                if (c[i] * c[i + 2] != c[i + 1] * c[i + 1]) {
+                    ok = false;
+                    // debug(a[i], a[i + 1], a[i + 2]);
+                    break;
+                }
+            }
+        }   
+
+        // debug(a, b, ok);
+        if (ok) Yes;
+        else No;
+    }
 }

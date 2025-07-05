@@ -81,94 +81,24 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
-struct LinearSieve {
-    vector<ll> primes, spf;
-
-    LinearSieve(ll n) : spf(n + 1) {
-        for (ll i = 2; i <= n; i++) {
-            if (spf[i] == 0) {
-                primes.push_back(i);
-                spf[i] = i;
-            }
-            for (ll p : primes) {
-                if (i * p > n || p > spf[i]) break;
-                spf[i * p] = p;
-            }
-        }
-    }
-
-    // 素因数分解
-    map<ll, ll> factorize(ll n) {
-        map<ll, ll> factors;
-        while (n > 1) {
-            factors[spf[n]]++;
-            n /= spf[n];
-        }
-        return factors;
-    }
-
-    // 約数列挙
-    vector<ll> divisors(ll n) {
-        auto factors   = factorize(n);
-        vector<ll> res = {1};
-
-        for (auto [p, cnt] : factors) {
-            ll sz = res.size();
-            for (ll i = 0; i < sz; i++) {
-                ll power = p;
-                for (ll j = 0; j < cnt; j++) {
-                    res.push_back(res[i] * power);
-                    power *= p;
-                }
-            }
-        }
-
-        sort(res.begin(), res.end());
-        return res;
-    }
-
-    // 約数の個数だけ欲しい場合
-    ll count_divisors(ll n) {
-        auto factors = factorize(n);
-        ll res       = 1;
-        for (auto [p, cnt] : factors) { res *= (cnt + 1); }
-        return res;
-    }
-};
-
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n, k;
-    cin >> n >> k;
+    ll n;
+    cin >> n;
 
-    vec a(n);
-    rep(i, n) cin >> a[i];
+    vector<string> s(n);
+    rep(i, n) cin >> s[i];
 
-    LinearSieve sieve(2e6);
-    const vec &primes = sieve.primes;
+    set<string> st;
 
-    vec cnt(2e6, 0);
-    vec ans(2e6, 0);
-
-    rep(i, n) cnt[a[i]]++;
-
-    for (ll p : primes) {
-        rep(i, 2e6 / p) {
-            ll j = 2e6 / p - 1 - i;
-            cnt[j] += cnt[j * p];
-        }
+    rep(i, n) rep(j, n) {
+        if (i == j) continue;
+        string t = s[i] + s[j];
+        st.insert(t);
     }
 
-    rep(i, 2e6) {
-        if (cnt[i] >= k) { ans[i] = i; }
-    }
-
-    for (ll p : primes) {
-        reps(i, 1, 2e6 / p) { chmax(ans[p * i], i); }
-    }
-
-    for (ll x : a) { cout << ans[x] << el; }
+    cout << st.size() << el;
 }
