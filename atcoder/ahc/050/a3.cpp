@@ -6,25 +6,50 @@ const int DY[4] = {-1, 1, 0, 0}, DX[4] = {0, 0, -1, 1};
 
 mt19937 rng((unsigned)chrono::steady_clock::now().time_since_epoch().count());
 
-/* ---------- k-swap 近傍 ---------- */
-void k_swap(vector<int> &v, int FREE) {
-    int k = 3 + rng() % 3; // 3..10
-    vector<int> pos;
-    pos.reserve(k);
-    while ((int)pos.size() < k) {
-        int p    = rng() % FREE;
-        bool dup = false;
-        for (int q : pos)
-            if (q == p) {
-                dup = true;
-                break;
-            }
-        if (!dup) pos.push_back(p);
+
+/* ---------- 改良版近傍 ---------- */
+void neighbor(vector<int> &v, int FREE, double temp) {
+    // 温度が高いほど大きく壊す ―― 最大サイズを線形に縮める
+    int maxSpan = max(2, int(FREE * (0.20 * temp + 0.03))); // 3%〜23%
+
+    // 0: 挿入, 1: 連続反転, 2: k-cycle shuffle
+    int type = rng() % 3;
+
+    if (type == 0) { // -------- ① 挿入 (cut & paste)
+        int l = rng() % FREE;
+        int r = l + 1 + rng() % maxSpan; // [l, r) を切り取る
+        if (r > FREE) r = FREE;
+        int dst = rng() % FREE; // 挿入先
+
+        if (dst >= l && dst < r) return; // 動かないのでスキップ
+
+        vector<int> block(v.begin() + l, v.begin() + r);
+        v.erase(v.begin() + l, v.begin() + r);
+        if (dst > l) dst -= (r - l); // erase 後の補正
+        v.insert(v.begin() + dst, block.begin(), block.end());
+
+    } else if (type == 1) { // -------- ② 連続反転 (2-opt 的)
+        int l = rng() % FREE;
+        int r = l + rng() % maxSpan; // 長さ 1〜maxSpan
+        if (r >= FREE) r = FREE - 1;
+        if (l < r) std::reverse(v.begin() + l, v.begin() + r + 1);
+
+    } else {                                  // -------- ③ k-cycle shuffle (拡張 swap)
+        int k = 3 + rng() % min(10, maxSpan); // 3〜min(10,maxSpan) 点
+        vector<int> pos;
+        pos.reserve(k);
+        while ((int)pos.size() < k) {
+            int p = rng() % FREE;
+            if (std::find(pos.begin(), pos.end(), p) == pos.end()) pos.push_back(p);
+        }
+        vector<int> tmp(k);
+        for (int i = 0; i < k; ++i) tmp[i] = v[pos[i]];
+
+        // 任意シフト rotate → 巡回置換
+        int shift = 1 + rng() % (k - 1);
+        std::rotate(tmp.begin(), tmp.begin() + shift, tmp.end());
+        for (int i = 0; i < k; ++i) v[pos[i]] = tmp[i];
     }
-    vector<int> vals(k);
-    rep(i, k) vals[i] = v[pos[i]];
-    shuffle(vals.begin(), vals.end(), rng);
-    rep(i, k) v[pos[i]] = vals[i];
 }
 
 /* ---------- メイン ---------- */
@@ -230,7 +255,7 @@ int main() {
         double temp = 1e-3 + (1.0 - 1e-3) * (1.0 - prog); // 線形温度
 
         vector<int> cand = bestP;
-        k_swap(cand, FREE);
+        neighbor(cand, FREE, temp);
 
         double candScore = evaluate(cand);
         double delta     = candScore - bestScore;
