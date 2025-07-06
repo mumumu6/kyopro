@@ -99,7 +99,7 @@ int main() {
     rep(i, h) rep(j, w) {
         if (s[i][j] == '#') continue;
 
-        auto check = [&](auto check, ll x, ll y, set<ll> st) -> void {
+        auto check = [&](auto check, ll x, ll y, set<ll> &st) -> void {
             if (st.size() >= k + 1) {
                 ans++;
                 return;
@@ -117,7 +117,9 @@ int main() {
             }
         };
 
-        check(check, i, j, set<ll>{i * w + j});
+        
+        set<ll> s = {i * w + j};
+        check(check, i, j, s);
     }
 
     cout << ans << el;
