@@ -167,7 +167,7 @@ int main() {
     }
 
     for (ll p : primes) {
-        reps(i, 1, 2e6 / p) { chmax(ans[p * i], i); }
+        reps(i, 1, 2e6 / p) { chmax(ans[p * i], ans[i]); }
     }
 
     for (ll x : a) { cout << ans[x] << el; }
