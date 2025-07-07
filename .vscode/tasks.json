@@ -1,0 +1,57 @@
+{
+  "tasks": [
+    {
+      "label": "compile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "type": "shell",
+      "command": "g++",
+      "args": ["-std=c++23", "${file}", "-o", "${fileDirname}/out/${fileBasenameNoExtension}"],
+      "problemMatcher": ["$gcc"],
+      "detail": "コンパイルのみ"
+    },
+    {
+      "label": "run",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "type": "shell",
+      "command": "${fileDirname}/out/${fileBasenameNoExtension}",
+      "problemMatcher": [],
+      "detail": "実行のみ"
+    },
+    {
+      "label": "input.txtを読み込み実行",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "type": "shell",
+      "command": "bash",
+      
+      "args": [
+        "-c",
+        "${fileDirname}/out/${fileBasenameNoExtension} < ${fileDirname}/input.txt > ${fileDirname}/output.txt"
+      ],
+      "problemMatcher": [],
+      "detail": "input.txtから読み込み、output.txtに出力"
+    },
+    {
+      "label": "コンパイルしてinput.txtを読み込み実行",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "g++ -std=c++23 ${file} -o ${fileDirname}/out/${fileBasenameNoExtension} && ${fileDirname}/out/${fileBasenameNoExtension} < ${fileDirname}/input.txt > ${fileDirname}/output.txt"
+      ],
+    }
+  ],
+  "version": "2.0.0"
+}

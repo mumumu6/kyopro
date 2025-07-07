@@ -162,10 +162,9 @@ int main() {
         //     }
         // }
 
-        
         /* ---------- 変更後（乱択グリーディ） ---------- */
         static mt19937 rng((uint32_t)chrono::steady_clock::now().time_since_epoch().count());
-        vector<int> cand;
+        vector<pair<double,int>> cand;
         Real bestF         = 1e300;
         constexpr Real EPS = 1e-12; // 浮動小数誤差用
 
@@ -173,18 +172,17 @@ int main() {
             if (s[id / n][id % n] == '#') continue;
             Real f = v0[id] + v1[id] + v2[id];
 
-            if (f + EPS < bestF) { // もっと良い値を発見
-                bestF = f;
-                cand.clear();
-                cand.push_back(id);
-            } else if (fabs(f - bestF) < EPS) { // 同率首位を候補に追加
-                cand.push_back(id);
-            }
+            cand.push_back({f, id});
         }
-        
+
+        sort(cand.begin(),cand.end());
+        // candを前から10個だけにする
+        if (cand.size() > 5) {
+            cand.resize(5);
+        }
+
         /* 同率首位からランダムで 1 マス選ぶ */
-        
-        int best = cand[rng() % cand.size()];
+        int best = cand[rng() % cand.size()].second;
         int y = best / n, x = best % n;
         cout << y << " " << x << el;
 

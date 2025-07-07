@@ -34,7 +34,6 @@ atcoder/onlinejudge
 atcoder/other
 kentyonbon/
 kentyonbon
-.vscode
 *
 !*.*
 !*/
@@ -46,3 +45,5 @@ kentyonbon
 test
 onlinejudge
 out
+
+!.vscode/** 
