@@ -4,195 +4,194 @@ using ll = long long;
 #define rep(i, n) for (int i = 0; i < (n); ++i)
 #define el '\n'
 
-/*
-  Simulated Annealing solver for AtCoder AHC “Skating Rink”
-  - greedy initial sequence with 3‑step look‑ahead
-  - neighbourhood: swap / reverse / insert
-  - temperature‑schedule: geometric (α = 0.995)
-  Compile: g++ -std=c++20 -O2 -march=native main.cpp
-*/
+/* ----------------------------------------------------
+   方向ベクトルと id⇔(y,x) 変換ヘルパ
+---------------------------------------------------- */
+const int DY[4] = {-1, 1, 0, 0};
+const int DX[4] = {0, 0, -1, 1};
 
-const int DY[4] = {-1, 1, 0, 0}, DX[4] = {0, 0, -1, 1};
-std::mt19937 rng((unsigned)std::chrono::steady_clock::now().time_since_epoch().count());
-
-int n, m;
-std::vector<std::vector<char>> initial_s;
-
-inline int idx(int y, int x) { return y * n + x; }
-
-/* ---------------- reachable‑next table ---------------- */
-std::vector<std::vector<int>> build_nxt(const std::vector<std::vector<char>> &s) {
-    std::vector<std::vector<int>> nxt(4, std::vector<int>(n * n));
-    /* ↑ ↓ */
-    rep(x, n) {
-        int last = -1;
-        rep(y, n) {
-            int id = idx(y, x);
-            if (s[y][x] == '#') {
-                last = y;
-                continue;
-            }
-            nxt[0][id] = idx(last + 1, x);
-        }
-        last = n;
-        for (int y = n - 1; y >= 0; --y) {
-            int id = idx(y, x);
-            if (s[y][x] == '#') {
-                last = y;
-                continue;
-            }
-            nxt[1][id] = idx(last - 1, x);
-        }
-    }
-    /* ← → */
-    rep(y, n) {
-        int last = -1;
-        rep(x, n) {
-            int id = idx(y, x);
-            if (s[y][x] == '#') {
-                last = x;
-                continue;
-            }
-            nxt[2][id] = idx(y, last + 1);
-        }
-        last = n;
-        for (int x = n - 1; x >= 0; --x) {
-            int id = idx(y, x);
-            if (s[y][x] == '#') {
-                last = x;
-                continue;
-            }
-            nxt[3][id] = idx(y, last - 1);
-        }
-    }
-    return nxt;
-}
-
-/* ---------------- fast approximate evaluation ---------------- */
-double compute_score(const std::vector<std::pair<int, int>> &P) {
-    std::vector<std::vector<char>> s = initial_s;
-    std::vector<long long> q(n * n, 1), buf(n * n);
-    rep(i, n) rep(j, n) if (s[i][j] == '#') q[idx(i, j)] = 0;
-    auto nxt                                             = build_nxt(s);
-
-    double score = 0.0;
-    for (auto [y, x] : P) {
-        int id        = idx(y, x);
-        long long tot = std::accumulate(q.begin(), q.end(), 0LL);
-        if (!tot) break;
-        score += 1.0 - (double)q[id] / tot;
-
-        s[y][x] = '#';
-        q[id]   = 0;
-        nxt     = build_nxt(s);
-
-        std::fill(buf.begin(), buf.end(), 0LL);
-        rep(i, n * n) {
-            if (s[i / n][i % n] == '#') continue;
-            long long w = q[i];
-            if (!w) continue;
-            long long share = (w + 3) >> 2; // ⌈w/4⌉
-            rep(d, 4) buf[nxt[d][i]] += share;
-        }
-        q.swap(buf);
-    }
-    return score;
-}
-
-/* ---------------- simulated annealing ---------------- */
-std::vector<std::pair<int, int>> anneal(std::vector<std::pair<int, int>> P) {
-    double cur  = compute_score(P);
-    double best = cur;
-    auto bestP  = P;
-    double T = 100.0, Tmin = 1e-3, alpha = 0.995;
-    std::uniform_real_distribution<double> uni(0.0, 1.0);
-
-    for (int iter = 0; T > Tmin && iter < 100000; ++iter) {
-        if (iter % 100 == 0) T *= alpha;
-
-        std::vector<std::pair<int, int>> Q = P;
-        int a = rng() % Q.size(), b = rng() % Q.size();
-        if (a > b) std::swap(a, b);
-        int op = rng() % 3;
-        if (op == 0) std::swap(Q[a], Q[b]);                               // swap
-        else if (op == 1) std::reverse(Q.begin() + a, Q.begin() + b + 1); // reverse
-        else {
-            auto tmp = Q[a];
-            Q.erase(Q.begin() + a);
-            Q.insert(Q.begin() + b, tmp); // insert
-        }
-
-        double scr   = compute_score(Q);
-        double delta = scr - cur;
-        if (delta > 0 || std::exp(delta / T) > uni(rng)) {
-            P   = std::move(Q);
-            cur = scr;
-            if (cur > best) {
-                best  = cur;
-                bestP = P;
-            }
-        }
-    }
-    return bestP;
-}
-
-/* ---------------- main ---------------- */
 int main() {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    if (!(std::cin >> n >> m)) return 0;
-    initial_s.assign(n, std::vector<char>(n));
-    rep(i, n) rep(j, n) std::cin >> initial_s[i][j];
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-    /* greedy initial sequence with 3‑step look‑ahead */
-    std::vector<std::vector<char>> s = initial_s;
-    std::vector<long long> q(n * n, 1), buf(n * n);
-    rep(i, n) rep(j, n) if (s[i][j] == '#') q[idx(i, j)] = 0;
-    auto nxt                                             = build_nxt(s);
+    int n, m;
+    cin >> n >> m;
+    vector<vector<char>> s(n, vector<char>(n));
+    rep(i, n) rep(j, n) cin >> s[i][j];
 
-    int free_cnt = n * n - m;
-    std::vector<double> v[4];
-    rep(i, 4) v[i].assign(n * n, 0.0);
-    std::vector<std::pair<int, int>> P;
-    P.reserve(free_cnt);
+    auto idx = [&](int y, int x) { return y * n + x; };
 
-    rep(turn, free_cnt) {
-        rep(id, n * n) v[0][id] = (s[id / n][id % n] == '#') ? 0.0 : (double)q[id];
-        rep(step, 3) {
-            std::fill(v[step + 1].begin(), v[step + 1].end(), 0.0);
-            rep(id, n * n) {
-                double p = v[step][id];
-                if (!p) continue;
-                double share = p * 0.25;
-                rep(d, 4) v[step + 1][nxt[d][id]] += share;
+    /* ---------- 重み (double) と nxt[4] ----------- */
+    using Real = double;
+    vector<Real> q(n * n, 1.0), buf(n * n, 0.0); // ← double 化
+    rep(i, n) rep(j, n) if (s[i][j] == '#') q[idx(i, j)] = 0.0;
+
+    vector<int> nxt[4];
+    rep(d, 4) nxt[d].assign(n * n, 0);
+
+    auto build_nxt = [&]() {
+        /* 列 ↑↓ */
+        rep(x, n) {
+            int last = -1;
+            rep(y, n) {
+                int id = idx(y, x);
+                if (s[y][x] == '#') {
+                    last = y;
+                    continue;
+                }
+                nxt[0][id] = idx(last + 1, x);
+            }
+            last = n;
+            for (int y = n - 1; y >= 0; --y) {
+                int id = idx(y, x);
+                if (s[y][x] == '#') {
+                    last = y;
+                    continue;
+                }
+                nxt[1][id] = idx(last - 1, x);
             }
         }
-        int best     = -1;
-        double bestF = 1e300;
-        rep(id, n * n) if (s[id / n][id % n] != '#') {
-            double f = v[0][id] + v[1][id] + v[2][id] + v[3][id];
-            if (f < bestF) bestF = f, best = id;
+        /* 行 ←→ */
+        rep(y, n) {
+            int last = -1;
+            rep(x, n) {
+                int id = idx(y, x);
+                if (s[y][x] == '#') {
+                    last = x;
+                    continue;
+                }
+                nxt[2][id] = idx(y, last + 1);
+            }
+            last = n;
+            for (int x = n - 1; x >= 0; --x) {
+                int id = idx(y, x);
+                if (s[y][x] == '#') {
+                    last = x;
+                    continue;
+                }
+                nxt[3][id] = idx(y, last - 1);
+            }
         }
-        int y = best / n, x = best % n;
-        P.emplace_back(y, x);
+    };
+    build_nxt();
 
-        /* apply move */
-        s[y][x] = '#';
-        q[best] = 0;
-        nxt     = build_nxt(s);
-        std::fill(buf.begin(), buf.end(), 0LL);
-        rep(id, n * n) if (s[id / n][id % n] != '#') {
-            long long w = q[id];
-            if (!w) continue;
-            long long share = (w + 3) >> 2;
+    auto patch_nxt = [&](int y, int x) {
+        int last = -1;
+        rep(i, n) {
+            int id = idx(i, x);
+            if (s[i][x] == '#') {
+                last = i;
+                continue;
+            }
+            nxt[0][id] = idx(max(last + 1, 0), x);
+        }
+        last = n;
+        for (int i = n - 1; i >= 0; --i) {
+            int id = idx(i, x);
+            if (s[i][x] == '#') {
+                last = i;
+                continue;
+            }
+            nxt[1][id] = idx(min(last - 1, n - 1), x);
+        }
+        last = -1;
+        rep(j, n) {
+            int id = idx(y, j);
+            if (s[y][j] == '#') {
+                last = j;
+                continue;
+            }
+            nxt[2][id] = idx(y, max(last + 1, 0));
+        }
+        last = n;
+        for (int j = n - 1; j >= 0; --j) {
+            int id = idx(y, j);
+            if (s[y][j] == '#') {
+                last = j;
+                continue;
+            }
+            nxt[3][id] = idx(y, min(last - 1, n - 1));
+        }
+    };
+
+    /* ---------- 分布を1手進め (double) ---------- */
+    auto step_prob = [&]() {
+        fill(buf.begin(), buf.end(), 0.0);
+        rep(id, n * n) {
+            if (s[id / n][id % n] == '#') continue;
+            Real w = q[id];
+            if (w == 0.0) continue;
+            Real share = w * 0.25; // ← 丸めをやめてそのまま1/4
             rep(d, 4) buf[nxt[d][id]] += share;
         }
         q.swap(buf);
+    };
+
+    /* ---------- k=2 手 look-ahead で列 P を構築 ---------- */
+    int remain = n * n - m;
+    vector<Real> v0(n * n), v1(n * n), v2(n * n);
+    rep(turn, remain) {
+        /* --- 0,1,2 手先の確率分布を作る --- */
+        rep(id, n * n) v0[id] = (s[id / n][id % n] == '#') ? 0.0 : q[id];
+
+        fill(v1.begin(), v1.end(), 0.0);
+        rep(id, n * n) {
+            Real p = v0[id];
+            if (p == 0.0) continue;
+            Real share = p * 0.25;
+            rep(d, 4) v1[nxt[d][id]] += share;
+        }
+
+        fill(v2.begin(), v2.end(), 0.0);
+        rep(id, n * n) {
+            Real p = v1[id];
+            if (p == 0.0) continue;
+            Real share = p * 0.25;
+            rep(d, 4) v2[nxt[d][id]] += share;
+        }
+
+        /* --- F(i)=v0+v1+v2 が最小のマス best --- */
+        // int best   = -1;
+        // Real bestF = 1e300;
+        // rep(id, n * n) {
+        //     if (s[id / n][id % n] == '#') continue;
+        //     Real f = v0[id] + v1[id] + v2[id];
+        //     if (f < bestF) {
+        //         bestF = f;
+        //         best  = id;
+        //     }
+        // }
+
+        
+        /* ---------- 変更後（乱択グリーディ） ---------- */
+        static mt19937 rng((uint32_t)chrono::steady_clock::now().time_since_epoch().count());
+        vector<int> cand;
+        Real bestF         = 1e300;
+        constexpr Real EPS = 1e-12; // 浮動小数誤差用
+
+        rep(id, n * n) {
+            if (s[id / n][id % n] == '#') continue;
+            Real f = v0[id] + v1[id] + v2[id];
+
+            if (f + EPS < bestF) { // もっと良い値を発見
+                bestF = f;
+                cand.clear();
+                cand.push_back(id);
+            } else if (fabs(f - bestF) < EPS) { // 同率首位を候補に追加
+                cand.push_back(id);
+            }
+        }
+        
+        /* 同率首位からランダムで 1 マス選ぶ */
+        
+        int best = cand[rng() % cand.size()];
+        int y = best / n, x = best % n;
+        cout << y << " " << x << el;
+
+        /* --- 岩を置き & 更新 --- */
+        s[y][x] = '#';
+        q[best] = 0.0;
+        patch_nxt(y, x);
+        step_prob();
     }
-
-    /* hill‑climb with simulated annealing */
-    P = anneal(std::move(P));
-
-    for (auto [y, x] : P) std::cout << y << ' ' << x << el;
-    return 0;
 }
