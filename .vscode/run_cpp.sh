@@ -7,8 +7,8 @@ set -euo pipefail
 
 
 SRC="$1"
-DIR="$(dirname \"$SRC\")"
-BASE="$(basename \"$SRC\")"
+DIR="$(dirname "$SRC")"
+BASE="$(basename "$SRC")"
 NAME="${BASE%.*}"
 OUT_DIR="$DIR/out"
 mkdir -p "$OUT_DIR"
@@ -45,7 +45,7 @@ OBJ="/dev/shm/${NAME}.o"
 echo "[run_cpp.sh] Compiling $SRC ..."
 ccache g++ -std=gnu++23 -O0 -march=native -pipe -I "$PCH_DIR" -include pch.hpp -c "$SRC" -o "$OBJ"
 
-g++ -fuse-ld=mold "$OBJ"  -o "$OUT_DIR/$NAME"
+g++ -fuse-ld=mold "$OBJ" "$HOME/kyopro/lib/libacl.a"  -o "$OUT_DIR/$NAME"
 
 # 実行
 "$OUT_DIR/$NAME" 
