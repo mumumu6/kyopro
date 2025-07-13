@@ -43,7 +43,7 @@ fi
 OBJ="/dev/shm/${NAME}.o"
 
 echo "[run_cpp.sh] Compiling $SRC ..."
-ccache g++ -std=gnu++23 -O0 -march=native -pipe -I "$PCH_DIR" -include pch.hpp -c "$SRC" -o "$OBJ"
+ccache g++ -H -std=gnu++23 -O0 -march=native -pipe -I "$PCH_DIR" -include pch.hpp -c "$SRC" -o "$OBJ"
 
 g++ -fuse-ld=mold "$OBJ" "$HOME/kyopro/lib/libacl.a"  -o "$OUT_DIR/$NAME"
 
