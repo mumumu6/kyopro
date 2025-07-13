@@ -106,11 +106,16 @@
   "C_Cpp.errorSquiggles": "enabled",
   "C_Cpp.intelliSenseEngine": "default",
   "C_Cpp.autocomplete": "default",
-  
+
   "clangd.arguments": [
     "--background-index=false", // バックグラウンドで全ファイルを自動インデックスしない
     "--header-insertion=never", // 自動補完時にヘッダを挿入しない（軽くなる）
     "--completion-style=detailed", // 補完の情報は詳細（好みでsimpleでも）
     "--pch-storage=memory" // PCH（プリコンパイル済みヘッダ）をメモリに保持して高速化
   ],
+  "code-runner.executorMap": {
+    // "cpp": "cd $dir && mkdir -p $dir/out && ccache g++ -std=gnu++23 -O2 -march=native -pipe -I  ~/kyopro/pch -include pch.hpp   $fileName -o $dir/out/$fileNameWithoutExt && $dir/out/$fileNameWithoutExt",
+    // "cpp": "cd $dir && mkdir -p $dir/out && ccache g++ -std=gnu++23 -O0 -march=native -pipe   -I ~/kyopro/pch -include pch.hpp   -c $fileName -o /dev/shm/$fileNameWithoutExt.o && g++ -fuse-ld=mold /dev/shm/$fileNameWithoutExt.o   ~/kyopro/lib/libacl.a   -o $dir/out/$fileNameWithoutExt && $dir/out/$fileNameWithoutExt"
+    "cpp": "bash $workspaceRoot/.vscode/run_cpp.sh $fileName"
+  }
 }

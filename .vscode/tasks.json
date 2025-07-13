@@ -8,7 +8,19 @@
       },
       "type": "shell",
       "command": "g++",
-      "args": ["-std=c++23", "${file}", "-o", "${fileDirname}/out/${fileBasenameNoExtension}"],
+      "args": [
+        "-I",
+        "${workspaceFolder}/pch_overlay",
+        "-std=gnu++23",
+        "-include",
+        "${workspaceFolder}/pch.hpp",
+        "-O2",
+        "-pipe",
+        "${file}",
+        "-o",
+        "${fileDirname}/out/${fileBasenameNoExtension}"
+      ],
+      //    g++ -std=c++23 -x c++-header pch.hpp -o pch.hpp.gch をヘッダを変えたら実行する
       "problemMatcher": ["$gcc"],
       "detail": "コンパイルのみ"
     },
@@ -31,7 +43,7 @@
       },
       "type": "shell",
       "command": "bash",
-      
+
       "args": [
         "-c",
         "${fileDirname}/out/${fileBasenameNoExtension} < ${fileDirname}/input.txt > ${fileDirname}/output.txt"
@@ -50,7 +62,18 @@
       "args": [
         "-c",
         "g++ -std=c++23 ${file} -o ${fileDirname}/out/${fileBasenameNoExtension} && ${fileDirname}/out/${fileBasenameNoExtension} < ${fileDirname}/input.txt > ${fileDirname}/output.txt"
+      ]
+    },
+    {
+      "label": "fast-run",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "g++ -I ${workspaceFolder}/pch_overlay -std=gnu++23 -include ${workspaceFolder}/pch.hpp -O0 -march=native -pipe ${file} -o ${fileDirname}/out/${fileBasenameNoExtension} && ${fileDirname}/out/${fileBasenameNoExtension}"
       ],
+      "problemMatcher": ["$gcc"],
+      "detail": "O0 で高速ビルド＆実行"
     }
   ],
   "version": "2.0.0"
