@@ -88,5 +88,21 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    cout << "okokok" << el;
+    ll n, m;
+    cin >> n >> m;
+
+    vec x(n);
+    rep(i, n) cin >> x[i];
+    sort(all(x));
+
+    vec d;
+    rep(i, n - 1) { d.pb(x[i + 1] - x[i]); }
+
+    sort(all(d));
+
+    ll ans = 0;
+
+    rep(i, n - m) { ans += d[i]; }
+
+    cout << ans << el;
 }
