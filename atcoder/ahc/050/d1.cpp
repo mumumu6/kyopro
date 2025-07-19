@@ -279,7 +279,7 @@ int main() {
         vector<int> cand = best_ord;
         neighbor(cand, FREE, temp);
 
-        double candScore = evaluate_exact(n,s,cand);
+        double candScore = evaluate_exact(n, s, cand);
         double delta     = candScore - best_sc;
         if (delta > 0 || exp(delta / temp) > uni(rng)) {
             best_ord.swap(cand);
