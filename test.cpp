@@ -94,7 +94,9 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    cout << "Asss" << endl;
-    cout << "aaA" << endl;
-    cout << "" << endl;
+    cout << "Accssss" << endl;
+    // cout << aaaaA" << endl;
+    cout << "saｘ" << endl;
+    cout << "kｘ" << endl;
+    cout << "ｘ" << endl;
 }

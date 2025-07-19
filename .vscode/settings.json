@@ -116,6 +116,6 @@
   "code-runner.executorMap": {
     // "cpp": "cd $dir && mkdir -p $dir/out && ccache g++ -std=gnu++23 -O2 -march=native -pipe -I  ~/kyopro/pch -include pch.hpp   $fileName -o $dir/out/$fileNameWithoutExt && $dir/out/$fileNameWithoutExt",
     // "cpp": "cd $dir && mkdir -p $dir/out && ccache g++ -std=gnu++23 -O0 -march=native -pipe   -I ~/kyopro/pch -include pch.hpp   -c $fileName -o /dev/shm/$fileNameWithoutExt.o && g++ -fuse-ld=mold /dev/shm/$fileNameWithoutExt.o   ~/kyopro/lib/libacl.a   -o $dir/out/$fileNameWithoutExt && $dir/out/$fileNameWithoutExt"
-    "cpp": "bash $workspaceRoot/.vscode/run_cpp.sh $fileName"
+    "cpp": "cd $dir && bash $workspaceRoot/.vscode/run_cpp.sh $fileName"
   }
 }

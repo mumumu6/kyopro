@@ -29,13 +29,14 @@ PCH_FILE="$PCH_DIR/pch.hpp.gch"
 
 # ヘッダが存在しなければコピー（更新されたら毎回コピーし直す）
 if [ ! -f "$PCH_HEADER" ] || [ "$SRC_PCH_HEADER" -nt "$PCH_HEADER" ]; then
+  echo "[run_cpp.sh] Copying precompiled header..."
   cp "$SRC_PCH_HEADER" "$PCH_HEADER"
 fi
 
 # PCH が無い、もしくはヘッダが更新されていたら再生成
 if [ ! -f "$PCH_FILE" ] || [ "$PCH_HEADER" -nt "$PCH_FILE" ]; then
   echo "[run_cpp.sh] Generating precompiled header..."
-  ccache g++ -std=gnu++23 -O0 -march=native -pipe -I "$PCH_DIR" \
+  ccache g++ -std=gnu++2b -O0 -g  -march=native -pipe -I "$PCH_DIR" \
          -x c++-header "$PCH_HEADER" -o "$PCH_FILE"
 fi
 
@@ -43,7 +44,7 @@ fi
 OBJ="/dev/shm/${NAME}.o"
 
 echo "[run_cpp.sh] Compiling $SRC ..."
-ccache g++ -H -std=gnu++23 -O0 -march=native -pipe -I "$PCH_DIR" -include pch.hpp -c "$SRC" -o "$OBJ"
+ccache g++  -std=gnu++2b -O0 -g  -march=native -pipe -I "$PCH_DIR" -include pch.hpp -c "$SRC" -o "$OBJ"
 
 g++ -fuse-ld=mold "$OBJ" "$HOME/kyopro/lib/libacl.a"  -o "$OUT_DIR/$NAME"
 
