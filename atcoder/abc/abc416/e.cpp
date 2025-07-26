@@ -138,6 +138,7 @@ int main() {
         cin >> tt;
 
         if (tt == 1) {
+            
             ll x, y, t;
             cin >> x >> y >> t;
             x--;
