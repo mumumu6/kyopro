@@ -18,7 +18,7 @@ long long modpow(long long a, long long n, long long mod) {
 ## pow
 
 ```cpp
-long long pow(long long a, long long n, long long mod) {
+long long pow(long long a, long long n) {
     long long res = 1;
     while (n > 0) {
         if (n & 1) res = res * a;
