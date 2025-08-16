@@ -100,7 +100,10 @@
     "expected": "cpp",
     "spanstream": "cpp",
     "stdfloat": "cpp",
-    "internal_math": "cpp"
+    "*.cpp": "cpp",
+    "internal_math": "cpp",
+    "generator": "cpp",
+    "text_encoding": "cpp"
   },
   "clangd.path": "clangd",
   "C_Cpp.errorSquiggles": "enabled",
