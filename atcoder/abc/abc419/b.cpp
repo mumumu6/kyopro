@@ -101,5 +101,22 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
+    ll q;
+    cin >> q;
+    priority_queue<ll, vector<ll>, greater<ll>> que;
 
+    rep(qi,q){
+        ll t;
+        cin >> t;
+
+        if(t == 1){
+            ll x;
+            cin >> x;
+            que.push(x);
+        }else if(t == 2){
+            ll p = que.top();
+            que.pop();
+            cout << p << el;
+        }
+    }
 }

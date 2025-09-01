@@ -101,5 +101,16 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
+    string s;
+    cin >> s;
 
+    if(s=="red"){
+        cout << "SSS" << el;
+    }else if(s=="blue"){
+        cout << "FFF" << el;
+    }else if(s=="green"){
+        cout << "MMM" << el;
+    }else{
+        cout << "Unknown" << el;
+    }
 }

@@ -101,35 +101,5 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n,m;
-    cin >> n >> m;
-
-    string s;
-    string t;
-    cin >> s >> t;
-
-    vec p(n + 1, 0);
-    rep(i,m){
-        ll l,r;
-        cin >> l >> r;
-        l--; r--;
-        p[l]++;
-        p[r + 1]--;
-    }
-
-    rep(i,n){
-        p[i + 1] += p[i];
-    }
-
-    string ans = s;
-
-    rep(i,n){
-        if(p[i] % 2 == 0) {
-            continue;
-        }else if  (p[i] % 2 == 1) {
-            ans[i] = t[i];
-        } 
-    }
-
-    cout << ans << el;
+    
 }

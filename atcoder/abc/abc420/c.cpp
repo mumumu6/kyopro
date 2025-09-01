@@ -101,35 +101,65 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n,m;
-    cin >> n >> m;
+    ll n,q;
+    cin >> n >> q;
 
-    string s;
-    string t;
-    cin >> s >> t;
+    vec a(n), b(n);
+    rep(i,n) cin >> a[i];
+    rep(i,n) cin >> b[i];
 
-    vec p(n + 1, 0);
-    rep(i,m){
-        ll l,r;
-        cin >> l >> r;
-        l--; r--;
-        p[l]++;
-        p[r + 1]--;
+    vec minab(n);
+    ll sum = 0;
+    rep(i,n) {
+        minab[i] = min(a[i], b[i]);
+        sum += minab[i];
     }
 
-    rep(i,n){
-        p[i + 1] += p[i];
+    rep(qi,q){
+        char c;
+        ll x,v;
+        cin >> c >> x >> v;
+        x--;
+        ll ans = sum;
+
+        if (c == 'A'){
+            if (a[x] == minab[x] && v <= a[x]){
+                cout << ans - a[x] + v << el;
+                sum = ans - a[x] + v;
+            }else if (a[x] == minab[x] && a[x] <= v && v < b[x]){
+                cout << ans -a[x]  + v << el;
+                sum = ans - a[x] + v;
+            }else if (a[x] == minab[x] && b[x] <= v){
+                cout << ans - a[x] + b[x] << el;
+                sum = ans - a[x] + b[x];
+            }else if (a[x] != minab[x] && v < b[x]){
+                cout << ans  - b[x] + v << el;
+                sum = ans - b[x] + v;
+            }else {
+                cout << ans << el;
+            }
+
+            a[x] = v;
+            minab[x] = min(a[x], b[x]);
+        }else if (c == 'B'){
+            if (b[x] == minab[x] && v <= b[x]){
+                cout << ans - b[x] + v << el;
+                sum = ans - b[x] + v;
+            }else if (b[x] == minab[x] && b[x] <= v && v < a[x]){
+                cout << ans - b[x] + v << el;
+                sum = ans - b[x] + v;
+            }else if (b[x] == minab[x] && a[x] <= v){
+                cout << ans - b[x] + a[x] << el;
+                sum = ans - b[x] + a[x];
+            }else if (b[x] != minab[x] && v < a[x]){
+                cout << ans - a[x] + v << el;
+                sum = ans - a[x] + v;
+            }else {
+                cout << ans << el;
+            }
+
+            b[x] = v;
+            minab[x] = min(a[x], b[x]);
+        }
     }
-
-    string ans = s;
-
-    rep(i,n){
-        if(p[i] % 2 == 0) {
-            continue;
-        }else if  (p[i] % 2 == 1) {
-            ans[i] = t[i];
-        } 
-    }
-
-    cout << ans << el;
 }

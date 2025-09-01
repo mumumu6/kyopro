@@ -101,5 +101,25 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
+    ll n;
+    cin >> n;
 
+    ll maxx = -1;
+    ll maxy = -1;
+    ll minx = INF;
+    ll miny = INF;
+
+    vector<pll> p(n);
+
+    rep(i,n){
+        cin >> p[i].ft >> p[i].sd;
+        chmax(maxx, p[i].ft);
+        chmax(maxy, p[i].sd);
+        chmin(minx, p[i].ft);
+        chmin(miny, p[i].sd);
+    }
+
+    ll ans = max(maxx - minx, maxy - miny);
+
+    cout << (ans+ 1) / 2 << el;
 }

@@ -1,20 +1,20 @@
 #include <bits/stdc++.h>
 using namespace std;
-//#include <atcoder/all>
-//using namespace atcoder;
-//using mint = modint998244353;
-using ll = long long;
-using i128 = __int128_t;
+#include <atcoder/all>
+using namespace atcoder;
+using mint   = modint998244353;
+using ll     = long long;
+using i128   = __int128_t;
 const ll INF = 4e18;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
-#define reps(i,a,b) for(ll i = (a); i < (b); i++)
+#define reps(i, a, b) for (ll i = (a); i < (b); i++)
 #define rrep(i, n) for (ll i = (n) - 1; i >= 0; i--)
-#define rreps(i,a,b) for(ll i = (b) - 1; i >= (a); i--)
-bool chmin(auto& a, auto b) { return a > b ? a = b, 1 : 0; }
-bool chmax(auto& a, auto b) { return a < b ? a = b, 1 : 0; }
-vector<ll> sin45 = { 0, 1, 1, 1, 0, -1, -1, -1 }, cos45 = { 1, 1, 0, -1, -1, -1, 0, 1 };
+#define rreps(i, a, b) for (ll i = (b) - 1; i >= (a); i--)
+bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
+bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
+vector<ll> sin45 = {0, 1, 1, 1, 0, -1, -1, -1}, cos45 = {1, 1, 0, -1, -1, -1, 0, 1};
 vector<ll> dx = {0, 1, 0, -1};
-vector<ll> dy = {1, 0,-1, 0};
+vector<ll> dy = {1, 0, -1, 0};
 int popcnt(ll x) { return __builtin_popcountll(x); }
 int popcnt_mod_2(ll x) { return __builtin_parityll(x); }
 int topbit(ll x) { return x == 0 ? -1 : 63 - __builtin_clzll(x); }
@@ -22,26 +22,26 @@ int lowbit(ll x) { return x == 0 ? -1 : __builtin_ctzll(x); }
 #define ft first
 #define sd second
 #define all(x) std::begin(x), std::end(x)
-#define pii pair<int,int>
-#define pll pair<ll,ll>
+#define pii pair<int, int>
+#define pll pair<ll, ll>
 #define pb(x) push_back(x)
-#define so(z) sort(z.begin(),z.end())
-#define sor(z) sort(z.rbegin(),z.rend())
+#define so(z) sort(z.begin(), z.end())
+#define sor(z) sort(z.rbegin(), z.rend())
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
 #define Yes cout << "Yes" << el
 #define No cout << "No" << el
 #define spa " "
-#define el '\n' 
+#define el '\n'
 
 // ----------------- オーバーロード -----------------
 template <class T, class U> ostream &operator<<(ostream &os, const pair<T, U> &p) {
     return os << '(' << p.first << ", " << p.second << ')';
 }
 
-//template <int MOD> ostream &operator<<(std::ostream &os, const atcoder::static_modint<MOD> &m) {
-//   return os << m.val();
-//}
+template <int MOD> ostream &operator<<(std::ostream &os, const atcoder::static_modint<MOD> &m) {
+    return os << m.val();
+}
 
 template <class T> ostream &operator<<(ostream &os, const vector<T> &v) {
     os << '[';
@@ -52,18 +52,18 @@ template <class T> ostream &operator<<(ostream &os, const vector<T> &v) {
     return os << ']';
 }
 template <class T> ostream &operator<<(ostream &os, const set<T> &s) {
-os << '{';
-for (auto it = s.begin(); it != s.end(); ++it) {
-    if (it != s.begin()) os << ", ";
-    os << *it;
-}
-return os << '}';
+    os << '{';
+    for (auto it = s.begin(); it != s.end(); ++it) {
+        if (it != s.begin()) os << ", ";
+        os << *it;
+    }
+    return os << '}';
 }
 
 template <class K, class V, class Comp, class Alloc>
 ostream &operator<<(ostream &os, const map<K, V, Comp, Alloc> &m) {
     os << '{';
-    for(auto &[k, v] : m) {
+    for (auto &[k, v] : m) {
         if (k != m.begin()->first) os << ", ";
         os << k << ": " << v;
     }
@@ -84,8 +84,8 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
             pos           = i + 1;
         }
     }
-    ll id = 0;
-    auto out  = [&](auto &&v) {
+    ll id    = 0;
+    auto out = [&](auto &&v) {
         cerr << labels[id++] << " = " << v;
         if (id < sizeof...(Ts)) cerr << ", ";
     };
@@ -101,35 +101,59 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    ll n,m;
-    cin >> n >> m;
+    ll n, q;
+    cin >> n >> q;
 
-    string s;
-    string t;
-    cin >> s >> t;
+    dsu uf(n);
 
-    vec p(n + 1, 0);
-    rep(i,m){
-        ll l,r;
-        cin >> l >> r;
-        l--; r--;
-        p[l]++;
-        p[r + 1]--;
+    map<ll, set<ll>> mp;
+
+    rep(qi, q) {
+        ll t;
+        cin >> t;
+
+        if (t == 1) {
+            ll u, v;
+            cin >> u >> v;
+            u--;
+            v--;
+            if (uf.same(u, v)) continue;
+
+            ll leader_u = uf.leader(u);
+            ll leader_v = uf.leader(v);
+
+            ll new_leader = uf.merge(u, v);
+
+            if (leader_u != new_leader) swap(leader_u, leader_v); // uが新しいリーダー
+            if (mp[leader_u].size() < mp[leader_v].size())
+                swap(mp[leader_u], mp[leader_v]); // uの方が大きい
+
+            for (auto x : mp[leader_v]) { mp[new_leader].insert(x); }
+
+        } else if (t == 2) {
+            ll v;
+            cin >> v;
+            v--;
+
+            ll leader_v = uf.leader(v);
+
+            if (mp[leader_v].count(v)) {
+                mp[leader_v].erase(v);
+            } else {
+                mp[leader_v].insert(v);
+            }
+        } else if (t == 3) {
+            ll v;
+            cin >> v;
+            v--;
+
+            ll leader_v = uf.leader(v);
+
+            if (mp[leader_v].size() > 0) {
+                cout << "Yes" << el;
+            } else {
+                cout << "No" << el;
+            }
+        }
     }
-
-    rep(i,n){
-        p[i + 1] += p[i];
-    }
-
-    string ans = s;
-
-    rep(i,n){
-        if(p[i] % 2 == 0) {
-            continue;
-        }else if  (p[i] % 2 == 1) {
-            ans[i] = t[i];
-        } 
-    }
-
-    cout << ans << el;
 }
