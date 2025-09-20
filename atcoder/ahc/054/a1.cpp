@@ -247,6 +247,78 @@ static void clean_used(vector<vector<int>> &used, const vector<string> &base, pa
             if (used[y][x] && !seen[y][x]) used[y][x] = 0;
 }
 
+static bool path_exists_used(const vector<string> &base, const vector<vector<int>> &used,
+                             pair<int, int> S, pair<int, int> G) {
+    int h = base.size();
+    int w = base.empty() ? 0 : base[0].size();
+    auto [sx, sy] = S;
+    auto [gx, gy] = G;
+    if (!inside(sx, sy, w, h) || !inside(gx, gy, w, h)) return false;
+    if (base[sy][sx] == 'T' || base[gy][gx] == 'T') return false;
+    if (!used[sy][sx] || !used[gy][gx]) return false;
+
+    vector<vector<char>> vis(h, vector<char>(w, 0));
+    queue<pair<int, int>> q;
+    vis[sy][sx] = 1;
+    q.push({sx, sy});
+    while (!q.empty()) {
+        auto [x, y] = q.front();
+        q.pop();
+        if (x == gx && y == gy) return true;
+        for (int d = 0; d < 4; ++d) {
+            int nx = x + DX[d], ny = y + DY[d];
+            if (!inside(nx, ny, w, h)) continue;
+            if (base[ny][nx] == 'T') continue;
+            if (!used[ny][nx]) continue;
+            if (vis[ny][nx]) continue;
+            vis[ny][nx] = 1;
+            q.push({nx, ny});
+        }
+    }
+    return false;
+}
+
+static vector<pair<int, int>> shortest_path_base(const vector<string> &base, pair<int, int> S,
+                                                 pair<int, int> G) {
+    int h = base.size();
+    int w = base.empty() ? 0 : base[0].size();
+    auto [sx, sy] = S;
+    auto [gx, gy] = G;
+    if (!inside(sx, sy, w, h) || !inside(gx, gy, w, h)) return {};
+    if (base[sy][sx] == 'T' || base[gy][gx] == 'T') return {};
+
+    vector<vector<int>> dist(h, vector<int>(w, -1));
+    vector<vector<pair<int, int>>> par(h, vector<pair<int, int>>(w, {-1, -1}));
+    queue<pair<int, int>> q;
+    dist[sy][sx] = 0;
+    q.push({sx, sy});
+    while (!q.empty()) {
+        auto [x, y] = q.front();
+        q.pop();
+        if (x == gx && y == gy) break;
+        for (int d = 0; d < 4; ++d) {
+            int nx = x + DX[d], ny = y + DY[d];
+            if (!inside(nx, ny, w, h)) continue;
+            if (base[ny][nx] == 'T') continue;
+            if (dist[ny][nx] != -1) continue;
+            dist[ny][nx] = dist[y][x] + 1;
+            par[ny][nx]  = {x, y};
+            q.push({nx, ny});
+        }
+    }
+    if (dist[gy][gx] == -1) return {};
+
+    vector<pair<int, int>> path;
+    int x = gx, y = gy;
+    while (!(x == sx && y == sy)) {
+        path.push_back({x, y});
+        tie(x, y) = par[y][x];
+    }
+    path.push_back({sx, sy});
+    reverse(path.begin(), path.end());
+    return path;
+}
+
 vector<vector<int>> generate_maze_from_base_with_SG(const vector<string> &base, int trials = -1,
                                                     long long seed = -1, bool printBest = false) {
     int h = base.size();
@@ -441,6 +513,24 @@ vector<vector<int>> generate_maze_from_base_with_SG(const vector<string> &base, 
 
     clean_used(bestUsed, base, S);
 
+    if (!path_exists_used(base, bestUsed, S, G)) {
+        auto path = shortest_path_base(base, S, G);
+        if (!path.empty()) {
+            for (auto [x, y] : path) bestUsed[y][x] = 1;
+            bestUsed[S.second][S.first] = 1;
+            bestUsed[G.second][G.first] = 1;
+            clean_used(bestUsed, base, S);
+        }
+    }
+
+    if (!path_exists_used(base, bestUsed, S, G)) {
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x)
+                if (base[y][x] != 'T') bestUsed[y][x] = 1;
+        bestUsed[S.second][S.first] = 1;
+        bestUsed[G.second][G.first] = 1;
+    }
+
     if (printBest) {
         EvalHelper EH{base, bestUsed, w, h, S, G};
         EH.evaluate(true);
@@ -486,6 +576,7 @@ int main() {
             if (base[y][x] == 'T') continue;
             if (!used[y][x]) blocks.emplace_back(y, x);
         }
+        
 
     cout << blocks.size();
     for (auto [y, x] : blocks) cout << ' ' << y << ' ' << x;

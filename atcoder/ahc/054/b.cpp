@@ -99,32 +99,29 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 static inline bool inside(int x, int y, int w, int h) { return 0 <= x && x < w && 0 <= y && y < h; }
 
 // S→G が到達可能か（S/G は常に通路扱い）
-bool path_exists_SG(const vector<vector<char>> &b, int si, int sj, int ti, int tj) {
+bool path_exists_SG(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
     int h = b.size(), w = b[0].size();
+    auto inside = [&](int x, int y) { return 0 <= x && x < w && 0 <= y && y < h; };
+    if (!inside(sx, sy) || !inside(gx, gy)) return false;
+    if (b[sy][sx] == 'T' || b[gy][gx] == 'T') return false; // S/G は '.' 前提
+
+    static const int DX[4] = {0, 1, 0, -1}, DY[4] = {1, 0, -1, 0};
     vector<vector<char>> vis(h, vector<char>(w, 0));
     queue<pair<int, int>> q;
+    vis[sy][sx] = 1;
+    q.push({sx, sy});
 
-    auto ok = [&](int x, int y) {
-        if (!inside(x, y, w, h)) return false;
-        if ((x == si && y == sj) || (x == ti && y == tj)) return true;
-        return b[y][x] != 'T';
-    };
-
-    if (!ok(si, sj) || !ok(ti, tj)) return false;
-    vis[sj][si] = 1;
-    q.push({si, sj});
     while (!q.empty()) {
         auto [x, y] = q.front();
         q.pop();
-        if (x == ti && y == tj) return true;
-        rep(d, 4) {
-            int nx = x + dx[d], ny = dy[d];
-            if (inside(nx, ny, w, h) && !vis[ny][nx] && ok(nx, ny)) {
-                vis[ny][nx] = 1;
-                q.push({nx, ny});
-            }
+        if (x == gx && y == gy) return true;
+        for (int d = 0; d < 4; ++d) {
+            int nx = x + DX[d], ny = y + DY[d];
+            if (!inside(nx, ny) || vis[ny][nx]) continue;
+            if (b[ny][nx] == 'T') continue;
+            vis[ny][nx] = 1;
+            q.push({nx, ny});
         }
-        cerr << "q size=" << q.size() << el;
     }
     return false;
 }
@@ -214,7 +211,7 @@ int main() {
 
     int N;
     int ti, tj;
-    cin >> N >> ti >> tj;
+    cin >> N >> tj >> ti;
     int sj = 0, si = N / 2; // 入口
 
     vector<vector<char>> b(N, vector<char>(N));
@@ -232,7 +229,7 @@ int main() {
     cerr << "reach (tj,ti)=" << ok_xy << "  reach (ti,tj)=" << ok_yx << "\n";
 
     // 壁伸ばし法
-    wall_extend(b, /*S*/ si, sj, /*G*/ tj, ti, /*iters*/ 8000, /*seed*/ 114514ULL);
+    wall_extend(b, /*S*/ si, sj, /*G*/ ti, tj, /*iters*/ 8000, /*seed*/ 114514ULL);
 
     rep(i, N) {
         rep(j, N) cout << b[i][j];

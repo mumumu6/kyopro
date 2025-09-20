@@ -206,7 +206,6 @@ void wall_extend(vector<vector<char>> &b, int si, int sj, int ti, int tj, int it
 }
 // ---- 追記ここまで ----
 
-
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
@@ -221,20 +220,23 @@ int main() {
     rep(i, N) rep(j, N) cin >> b[i][j];
 
     // 壁伸ばし法
-    wall_extend(b, /*S*/ si, sj, /*G*/ tj, ti, /*iters*/ 80000, /*seed*/ 114514ULL);
+    wall_extend(b, /*S*/ si, sj, /*G*/ ti, tj, /*iters*/ 8000, /*seed*/ 114514ULL);
 
     rep(i, N) {
         rep(j, N) cout << b[i][j];
         cout << '\n';
     }
+    cout.flush();
 
-    while(true){
-        ll x,y; cin >> x >> y;
-        if(x == ti && y == tj) break;
+    while (true) {
+        ll x, y;
+        cin >> x >> y;
+        if (x == ti && y == tj) break;
 
-        ll n; cin >> n;
+        ll n;
+        cin >> n;
         vec xs(n), ys(n);
-        rep(i,n) cin >> xs[i] >> ys[i];
+        rep(i, n) cin >> xs[i] >> ys[i];
         cout << 0 << endl;
     }
 }
