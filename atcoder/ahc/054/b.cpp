@@ -128,12 +128,12 @@ bool path_exists_SG(const vector<vector<char>> &b, int sx, int sy, int gx, int g
 
 // 1回の「壁伸ばし」トライ：seed (sx,sy) からランダム方向に“既存壁に当たるまで”壁化候補を集め、
 // S→G が切れないなら確定、切れるならロールバック。
-bool try_wall_extend(vector<vector<char>> &b, int sx, int sy, int si, int sj, int ti, int tj,
+bool try_wall_extend(vector<vector<char>> &b, int from_x, int from_y, int sx, int sy, int gx, int gy,
                      mt19937_64 &rng) {
     int h = b.size(), w = b[0].size();
-    if (!inside(sx, sy, w, h)) return false;
-    if ((sx == si && sy == sj) || (sx == ti && sy == tj)) return false;
-    if (b[sy][sx] == 'T') return false; // すでに壁なら不可
+    if (!inside(from_x, from_y, w, h)) return false;
+    if ((from_x == gx && from_y == gy) || (from_x == gx && from_y == gy)) return false;
+    if (b[from_y][from_x] == 'T') return false; // すでに壁なら不可
 
     array<int, 4> ord{0, 1, 2, 3};
     shuffle(ord.begin(), ord.end(), rng);
@@ -141,12 +141,12 @@ bool try_wall_extend(vector<vector<char>> &b, int sx, int sy, int si, int sj, in
     rep(k, 4) {
         int d = ord[k];
         vector<pair<int, int>> mods;
-        int x = sx, y = sy;
+        int x = from_x, y = from_y;
         while (true) {
             int nx = x + (int)dx[d];
             int ny = y + (int)dy[d];
             if (!inside(nx, ny, w, h)) break;                            // 枠に到達→そこまでOK
-            if ((nx == si && ny == sj) || (nx == ti && ny == tj)) break; // S/G直前までOK
+            if ((nx == gx && ny == gy) || (nx == gx && ny == gy)) break; // S/G直前までOK
             if (b[ny][nx] == 'T') break;                                 // 既存壁に到達→そこまでOK
             mods.emplace_back(nx, ny);                                   // 通路→壁候補
             x = nx;
@@ -158,7 +158,7 @@ bool try_wall_extend(vector<vector<char>> &b, int sx, int sy, int si, int sj, in
         for (int i = 0; i < (int)mods.size(); ++i) {
             auto [ux, uy] = mods[i];
             b[uy][ux]     = 'T'; // まず置いてみる
-            if (!path_exists_SG(b, si, sj, ti, tj)) {
+            if (!path_exists_SG(b, sx, sy, gx, gy)) {
                 b[uy][ux] = '.'; // ここで切れた → 戻して打ち止め
                 break;
             }
@@ -170,13 +170,13 @@ bool try_wall_extend(vector<vector<char>> &b, int sx, int sy, int si, int sj, in
 }
 
 // 壁伸ばし本体：iters 回ランダムに試す
-void wall_extend(vector<vector<char>> &b, int si, int sj, int ti, int tj, int iters = 6000,
+void wall_extend(vector<vector<char>> &b, int sx, int sy, int gx, int gy, int iters = 6000,
                  uint64_t seed = 123456789ULL) {
     int h = b.size(), w = b[0].size();
     mt19937_64 rng(seed);
 
     // 念のため初期状態で S→G が通れることを確認
-    if (!path_exists_SG(b, si, sj, ti, tj)) {
+    if (!path_exists_SG(b, sx, sy, gx, gy)) {
         cerr << "Warning: initial S->G path does not exist!" << el;
         return;
     }
@@ -184,14 +184,14 @@ void wall_extend(vector<vector<char>> &b, int si, int sj, int ti, int tj, int it
     uniform_int_distribution<int> dxrand(0, w - 1), dyrand(0, h - 1);
 
     rep(it, iters) {
-        int sx = dxrand(rng);
-        int sy = dyrand(rng);
+        int from_x = dxrand(rng);
+        int from_y = dyrand(rng);
         // 通路から始める（既存壁からでも書けるが、通路起点のほうが“埋める”効果が高い）
         if (b[sy][sx] == 'T') continue;
         // 少しだけ「壁の近傍」を優先すると伸びやすい
         bool nearWall = false;
         rep(d, 4) {
-            int nx = sx + dx[d], ny = sy + dy[d];
+            int nx = from_x + dx[d], ny = from_y + dy[d];
             if (inside(nx, ny, w, h) && b[ny][nx] == 'T') {
                 nearWall = true;
                 break;
@@ -199,7 +199,7 @@ void wall_extend(vector<vector<char>> &b, int si, int sj, int ti, int tj, int it
         }
         if (!nearWall) continue;
 
-        (void)try_wall_extend(b, sx, sy, si, sj, ti, tj, rng);
+        (void)try_wall_extend(b, from_x, from_y, sx, sy, gx ,gy, rng);
     }
 }
 // ---- 追記ここまで ----
@@ -210,41 +210,41 @@ int main() {
     cout << fixed << setprecision(20);
 
     int N;
-    int ti, tj;
-    cin >> N >> tj >> ti;
-    int sj = 0, si = N / 2; // 入口
+    int gx, gy;
+    cin >> N >> gx >> gy;
+    int sx = 0, sy = N / 2; // 入口
 
     vector<vector<char>> b(N, vector<char>(N));
     rep(i, N) rep(j, N) cin >> b[i][j];
+    vector<vector<char>> origin = b;
+    
+      // 壁伸ばし法
+    wall_extend(b, /*S*/ sx, sy, /*G*/ gx, gy, /*iters*/ 1000, /*seed*/ 114514ULL);
+    vector<pll> ans;
 
-    int gx = tj, gy = ti; // (i,j)=(ti,tj) → (x,y)=(tj,ti)
-
-    // 盤面を読んだ直後にデバッグ
-    cerr << "S=(" << si << "," << sj << ") char=" << b[sj][si] << "  G=(" << gx << "," << gy
-         << ") char=" << b[gy][gx] << '\n';
-
-    bool ok_xy = path_exists_SG(b, si, sj, gx, gy); // (tj,ti)
-    bool ok_yx = path_exists_SG(b, si, sj, ti, tj); // (ti,tj) ←故意に逆
-
-    cerr << "reach (tj,ti)=" << ok_xy << "  reach (ti,tj)=" << ok_yx << "\n";
-
-    // 壁伸ばし法
-    wall_extend(b, /*S*/ si, sj, /*G*/ ti, tj, /*iters*/ 8000, /*seed*/ 114514ULL);
-
-    rep(i, N) {
-        rep(j, N) cout << b[i][j];
-        cout << '\n';
+    rep(i, N) rep(j, N) {
+        if (b[i][j] != origin[i][j]) ans.emplace_back(i, j);
     }
+
+    bool first = true;
 
     while (true) {
         ll x, y;
         cin >> x >> y;
-        if (x == ti && y == tj) break;
+        if (x == gx && y == gy) break;
 
         ll n;
         cin >> n;
         vec xs(n), ys(n);
         rep(i, n) cin >> xs[i] >> ys[i];
-        cout << 0 << endl;
+
+        if (first) {
+            first = false;
+            cout << ans.size();
+            for (auto [y, x] : ans) cout << ' ' << x << ' ' << y;
+            cout << endl;
+        } else {
+            cout << 0 << endl;
+        }
     }
 }
