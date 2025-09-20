@@ -183,6 +183,86 @@ int shortest_path_len(const vector<vector<char>> &b, int sx, int sy, int gx, int
     }
     return INF;
 }
+// from_x,from_y から方向 dir に向かって、確率的に曲がりながら拡張する“候補経路”を作る。
+// b は読み取り専用。S/G には入らない。途中で同じマスを二度踏まない（ループ抑制）。
+// パラメータ:
+//   p0         : 基本の曲がり確率
+//   pinc       : 直進が続くほど曲がりやすくする加算（直進長に比例）
+//   pmax       : 曲がり確率の上限
+//   min_straight: この歩数以上までは曲がり確率を抑える（=直線を優先）
+vector<pair<int, int>> make_bent_run(const vector<vector<char>> &b, int from_x, int from_y, int dir,
+                                     int sx, int sy, int gx, int gy, mt19937_64 &rng, double p0 = 0.12,
+                                     double pinc = 0.05, double pmax = 0.60, int min_straight = 2,
+                                     int max_steps = 100000000) {
+    int h = (int)b.size(), w = (int)b[0].size();
+    auto inside2 = [&](int x, int y) { return 0 <= x && x < w && 0 <= y && y < h; };
+
+    vector<pair<int, int>> mods;
+    vector<vector<char>> seen(w, vector<char>(h, 0)); // その場限りの再訪防止
+
+    int x = from_x, y = from_y;
+    int straight = 0;
+    uniform_real_distribution<double> urand(0.0, 1.0);
+
+    auto can_step = [&](int dd) -> bool {
+        int nx = x + (int)dx[dd], ny = y + (int)dy[dd];
+        if (!inside2(nx, ny)) return false;
+        // S/G は踏まない
+        if ((nx == sx && ny == sy) || (nx == gx && ny == gy)) return false;
+        if (b[nx][ny] == 'T') return false;
+        if (seen[nx][ny]) return false;
+        return true;
+    };
+
+    while ((int)mods.size() < max_steps) {
+        int forward = dir;
+        int left    = (dir + 3) & 3;
+        int right   = (dir + 1) & 3;
+
+        bool okF = can_step(forward);
+        bool okL = can_step(left);
+        bool okR = can_step(right);
+
+        if (!okF && !okL && !okR) break;
+
+        bool turn = false;
+        // 直進が続くほど曲がりやすくする
+        double p = p0;
+        if (straight >= min_straight) p = min(pmax, p0 + pinc * (straight - min_straight + 1));
+
+        if (!okF) {
+            turn = true; // 前が塞がってたら必ず曲がる（曲がれなければbreak）
+        } else {
+            if (urand(rng) < p) turn = true;
+        }
+
+        if (turn) {
+            // 左右のどちらか（両方可ならランダム）
+            vector<int> choices;
+            if (okL) choices.push_back(left);
+            if (okR) choices.push_back(right);
+            if (!choices.empty()) {
+                dir = choices[rng() % choices.size()];
+            } else {
+                // 曲がれない → 前へ（前もダメなら抜ける）
+                if (!okF) break;
+            }
+        }
+        // 前進（dir は forward のままか、左右に変わっている）
+        int nx = x + (int)dx[dir], ny = y + (int)dy[dir];
+        if (!inside2(nx, ny) || b[nx][ny] == 'T' || (nx == sx && ny == sy) || (nx == gx && ny == gy))
+            break;
+
+        mods.emplace_back(nx, ny);
+        seen[nx][ny] = 1;
+        // 直進カウンタ更新
+        if (dir == forward) ++straight;
+        else straight = 1;
+        x = nx;
+        y = ny;
+    }
+    return mods;
+}
 
 // 1回の「壁伸ばし」トライ：seed (sx,sy) からランダム方向に“既存壁に当たるまで”壁化候補を集め、
 // S→G が切れないなら確定、切れるならロールバック。
@@ -206,18 +286,10 @@ bool try_wall_extend(vector<vector<char>> &b, int from_x, int from_y, int sx, in
     };
 
     rep(k, 4) {
-        int d = ord[k];
-        vector<pair<int, int>> mods;
-        int x = from_x, y = from_y;
-        while (true) {
-            int nx = x + (int)dx[d], ny = y + (int)dy[d];
-            if (!inside(nx, ny, w, h)) break;
-            if ((nx == sx && ny == sy) || (nx == gx && ny == gy)) break;
-            if (b[nx][ny] == 'T') break;
-            mods.emplace_back(nx, ny);
-            x = nx;
-            y = ny;
-        }
+        int d     = ord[k];
+        auto mods = make_bent_run(b, from_x, from_y, d, sx, sy, gx, gy, rng,
+                                  /* p0 */ 0.12, /* pinc */ 0.05, /* pmax */ 0.60,
+                                  /* min_straight */ 2);
         if (mods.empty()) continue;
 
         int committed = 0;
@@ -277,6 +349,73 @@ void wall_extend(vector<vector<char>> &b, int sx, int sy, int gx, int gy, int it
 }
 // ---- 追記ここまで ----
 
+// ゴール周囲の開口を 1 本に絞る。ただし「壁際に近い」&「S から遠ざかる向き」を優先して残す。
+// b は b[x][y] でアクセス（あなたのコード準拠）。S/G は '.' 前提。
+// 重み w_edge: 壁際バイアス（壁に近いほど高得点）、w_away: S から遠ざかる向きバイアス。
+void narrow_goal_biased_toward_wall_away_from_start(
+    vector<vector<char>>& b,
+    int sx, int sy,   // Start
+    int gx, int gy,   // Goal
+    double w_edge = 1.0,
+    double w_away = 2.5
+){
+    const int N = (int)b.size();
+    auto inside2 = [&](int x,int y){ return 0<=x && x<N && 0<=y && y<N; };
+    auto dist_edge = [&](int x,int y){
+        // 盤面の外周までのマンハッタン距離のうち最小（= 壁際ほど小さい）
+        return min( min(x, N-1-x), min(y, N-1-y) );
+    };
+
+    // ゴール周囲の開口候補を集め、スコア化
+    struct Cand { int x,y,dir; double score; int edge; int dot; };
+    vector<Cand> cand;
+    for(int d=0; d<4; ++d){
+        int nx = gx + (int)dx[d], ny = gy + (int)dy[d];
+        if(!inside2(nx,ny)) continue;
+        if(b[nx][ny] != '.') continue;
+
+        // 壁際バイアス：距離が小さいほど良い → (N - dist_edge) を加点に
+        int e = dist_edge(nx,ny);
+        double edge_score = (double)(N - e);
+
+        // スタート逆向きバイアス：u = ゴール→候補 の単位ベクトル, v = ゴール→スタート
+        int ux = nx - gx, uy = ny - gy;              // ∈ {(-1,0),(1,0),(0,-1),(0,1)}
+        int vx = sx - gx, vy = sy - gy;
+        int dot = ux*vx + uy*vy;                     // 大→S寄り, 小(負)→Sから遠ざかる
+        double away_score = (double)(-dot);          // 反対向きほどプラス
+
+        double sc = w_edge*edge_score + w_away*away_score;
+        cand.push_back({nx,ny,d,sc,e,dot});
+    }
+
+    // 開口が 0 or 1 なら何もしない
+    if((int)cand.size() <= 1) return;
+
+    // スコア最大を「残す」候補に
+    sort(cand.begin(), cand.end(), [&](const Cand& a, const Cand& b){
+        if (a.score != b.score) return a.score > b.score;
+        // タイブレーク：より壁際を優先 → edge が小さい方
+        if (a.edge != b.edge) return a.edge < b.edge;
+        // さらに S から遠い（dot がより負）を優先
+        if (a.dot != b.dot) return a.dot < b.dot;
+        return a.dir < b.dir;
+    });
+    auto keep = cand.front(); // これを入口として残す
+
+    // 「残さない」方向を、S→G到達可能性を壊さない範囲で塞いでいく
+    for(size_t i=1;i<cand.size();++i){
+        int nx = cand[i].x, ny = cand[i].y;
+        char old = b[nx][ny];
+        b[nx][ny] = 'T';
+        // S→G が切れるなら戻す（必要なら all_open_connected も併用可）
+        if(!path_exists_to_G(b, sx, sy, gx, gy)){
+            b[nx][ny] = old;
+        }
+    }
+}
+
+
+
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
@@ -292,25 +431,8 @@ int main() {
     vector<vector<char>> origin = b;
 
     // ゴールをかこう
-    ll cnt = 0;
-    rep(i, 4) {
-        int nx = gx + dx[i], ny = gy + dy[i];
-        if (inside(nx, ny, N, N) && b[nx][ny] == '.') { cnt++; }
-    }
-    if (cnt >= 2) {
-        rep(i, 4) {
-            int nx = gx + dx[i], ny = gy + dy[i];
-            if (inside(nx, ny, N, N) && b[nx][ny] == '.') {
-                b[nx][ny] = 'T';
-                if (!path_exists_to_G(b, sx, sy, gx, gy)) {
-                    b[nx][ny] = '.';
-                } else {
-                    cnt--;
-                    if (cnt == 1) break;
-                }
-            }
-        }
-    }
+    narrow_goal_biased_toward_wall_away_from_start(b, sx, sy, gx, gy, /*w_edge=*/1.0, /*w_away=*/2.5);
+
 
     // 壁伸ばし法
     wall_extend(b, /*S*/ sx, sy, /*G*/ gx, gy, /*iters*/ 3000, /*seed*/ 114514ULL);
