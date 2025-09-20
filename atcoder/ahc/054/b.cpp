@@ -313,7 +313,7 @@ int main() {
     }
 
     // 壁伸ばし法
-    wall_extend(b, /*S*/ sx, sy, /*G*/ gx, gy, /*iters*/ 1000, /*seed*/ 114514ULL);
+    wall_extend(b, /*S*/ sx, sy, /*G*/ gx, gy, /*iters*/ 3000, /*seed*/ 114514ULL);
     vector<pll> ans;
 
     rep(i, N) rep(j, N) {
