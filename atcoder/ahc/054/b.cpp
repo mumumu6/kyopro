@@ -103,12 +103,11 @@ bool path_exists_SG(const vector<vector<char>> &b, int sx, int sy, int gx, int g
     int h = b.size(), w = b[0].size();
     auto inside = [&](int x, int y) { return 0 <= x && x < w && 0 <= y && y < h; };
     if (!inside(sx, sy) || !inside(gx, gy)) return false;
-    if (b[sy][sx] == 'T' || b[gy][gx] == 'T') return false; // S/G は '.' 前提
+    if (b[sx][sy] == 'T' || b[gx][gy] == 'T') return false; // S/G は '.' 前提
 
-    static const int DX[4] = {0, 1, 0, -1}, DY[4] = {1, 0, -1, 0};
     vector<vector<char>> vis(h, vector<char>(w, 0));
     queue<pair<int, int>> q;
-    vis[sy][sx] = 1;
+    vis[sx][sy] = 1;
     q.push({sx, sy});
 
     while (!q.empty()) {
@@ -116,10 +115,10 @@ bool path_exists_SG(const vector<vector<char>> &b, int sx, int sy, int gx, int g
         q.pop();
         if (x == gx && y == gy) return true;
         for (int d = 0; d < 4; ++d) {
-            int nx = x + DX[d], ny = y + DY[d];
-            if (!inside(nx, ny) || vis[ny][nx]) continue;
-            if (b[ny][nx] == 'T') continue;
-            vis[ny][nx] = 1;
+            int nx = x + dx[d], ny = y + dy[d];
+            if (!inside(nx, ny) || vis[nx][ny]) continue;
+            if (b[nx][ny] == 'T') continue;
+            vis[nx][ny] = 1;
             q.push({nx, ny});
         }
     }
@@ -147,7 +146,7 @@ bool try_wall_extend(vector<vector<char>> &b, int from_x, int from_y, int sx, in
             int ny = y + (int)dy[d];
             if (!inside(nx, ny, w, h)) break;                            // 枠に到達→そこまでOK
             if ((nx == gx && ny == gy) || (nx == gx && ny == gy)) break; // S/G直前までOK
-            if (b[ny][nx] == 'T') break;                                 // 既存壁に到達→そこまでOK
+            if (b[nx][ny] == 'T') break;                                 // 既存壁に到達→そこまでOK
             mods.emplace_back(nx, ny);                                   // 通路→壁候補
             x = nx;
             y = ny; // 1歩進める
@@ -157,9 +156,9 @@ bool try_wall_extend(vector<vector<char>> &b, int from_x, int from_y, int sx, in
         int committed = 0;
         for (int i = 0; i < (int)mods.size(); ++i) {
             auto [ux, uy] = mods[i];
-            b[uy][ux]     = 'T'; // まず置いてみる
+            b[ux][uy]     = 'T'; // まず置いてみる
             if (!path_exists_SG(b, sx, sy, gx, gy)) {
-                b[uy][ux] = '.'; // ここで切れた → 戻して打ち止め
+                b[ux][uy] = '.'; // ここで切れた → 戻して打ち止め
                 break;
             }
             committed++; // セーフ → 確定
@@ -187,19 +186,19 @@ void wall_extend(vector<vector<char>> &b, int sx, int sy, int gx, int gy, int it
         int from_x = dxrand(rng);
         int from_y = dyrand(rng);
         // 通路から始める（既存壁からでも書けるが、通路起点のほうが“埋める”効果が高い）
-        if (b[sy][sx] == 'T') continue;
+        if (b[sx][sy] == 'T') continue;
         // 少しだけ「壁の近傍」を優先すると伸びやすい
         bool nearWall = false;
         rep(d, 4) {
             int nx = from_x + dx[d], ny = from_y + dy[d];
-            if (inside(nx, ny, w, h) && b[ny][nx] == 'T') {
+            if (inside(nx, ny, w, h) && b[nx][ny] == 'T') {
                 nearWall = true;
                 break;
             }
         }
         if (!nearWall) continue;
 
-        (void)try_wall_extend(b, from_x, from_y, sx, sy, gx ,gy, rng);
+        (void)try_wall_extend(b, from_x, from_y, sx, sy, gx, gy, rng);
     }
 }
 // ---- 追記ここまで ----
@@ -217,15 +216,18 @@ int main() {
     vector<vector<char>> b(N, vector<char>(N));
     rep(i, N) rep(j, N) cin >> b[i][j];
     vector<vector<char>> origin = b;
-    
-      // 壁伸ばし法
+
+    // 壁伸ばし法
     wall_extend(b, /*S*/ sx, sy, /*G*/ gx, gy, /*iters*/ 1000, /*seed*/ 114514ULL);
     vector<pll> ans;
 
     rep(i, N) rep(j, N) {
         if (b[i][j] != origin[i][j]) ans.emplace_back(i, j);
     }
-
+    // rep(i, N) {
+    //     rep(j, N) { cerr << b[i][j]; }
+    //     cerr << endl;
+    // }
     bool first = true;
 
     while (true) {
@@ -241,7 +243,7 @@ int main() {
         if (first) {
             first = false;
             cout << ans.size();
-            for (auto [y, x] : ans) cout << ' ' << x << ' ' << y;
+            for (auto [x, y] : ans) cout << ' ' << x << ' ' << y;
             cout << endl;
         } else {
             cout << 0 << endl;
