@@ -124,6 +124,7 @@ bool path_exists_SG(const vector<vector<char>> &b, int si, int sj, int ti, int t
                 q.push({nx, ny});
             }
         }
+        cerr << "q size=" << q.size() << el;
     }
     return false;
 }
@@ -206,7 +207,6 @@ void wall_extend(vector<vector<char>> &b, int si, int sj, int ti, int tj, int it
 }
 // ---- 追記ここまで ----
 
-
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
@@ -220,21 +220,34 @@ int main() {
     vector<vector<char>> b(N, vector<char>(N));
     rep(i, N) rep(j, N) cin >> b[i][j];
 
+    int gx = tj, gy = ti; // (i,j)=(ti,tj) → (x,y)=(tj,ti)
+
+    // 盤面を読んだ直後にデバッグ
+    cerr << "S=(" << si << "," << sj << ") char=" << b[sj][si] << "  G=(" << gx << "," << gy
+         << ") char=" << b[gy][gx] << '\n';
+
+    bool ok_xy = path_exists_SG(b, si, sj, gx, gy); // (tj,ti)
+    bool ok_yx = path_exists_SG(b, si, sj, ti, tj); // (ti,tj) ←故意に逆
+
+    cerr << "reach (tj,ti)=" << ok_xy << "  reach (ti,tj)=" << ok_yx << "\n";
+
     // 壁伸ばし法
-    wall_extend(b, /*S*/ si, sj, /*G*/ tj, ti, /*iters*/ 80000, /*seed*/ 114514ULL);
+    wall_extend(b, /*S*/ si, sj, /*G*/ tj, ti, /*iters*/ 8000, /*seed*/ 114514ULL);
 
     rep(i, N) {
         rep(j, N) cout << b[i][j];
         cout << '\n';
     }
 
-    while(true){
-        ll x,y; cin >> x >> y;
-        if(x == ti && y == tj) break;
+    while (true) {
+        ll x, y;
+        cin >> x >> y;
+        if (x == ti && y == tj) break;
 
-        ll n; cin >> n;
+        ll n;
+        cin >> n;
         vec xs(n), ys(n);
-        rep(i,n) cin >> xs[i] >> ys[i];
+        rep(i, n) cin >> xs[i] >> ys[i];
         cout << 0 << endl;
     }
 }
