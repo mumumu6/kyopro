@@ -132,72 +132,88 @@ bool all_open(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
 }
 
 // ゴールの周辺に壁を置いて見えにくくする処理
+// ゴールの周辺に壁を置いて見えにくくする処理
 void obscure_goal(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
                   vector<pair<int, int>> &placed_out) {
-    int N = b.size();
+    const int N = (int)b.size();
 
     vector<pair<int, int>> touched;
+    auto insideN = [&](int x, int y) { return inside(x, y, N, N); };
 
-    // (x,y) に壁を置く（置けるなら）
     auto placeWall = [&](int x, int y) {
-        if (!inside(x, y, N, N)) return;
+        if (!insideN(x, y)) return;
         if ((x == sx && y == sy) || (x == gx && y == gy)) return;
         if (b[x][y] == '.') {
             b[x][y] = 'T';
             touched.emplace_back(x, y);
         }
     };
-
     auto rollback = [&]() {
         for (auto &p : touched) b[p.first][p.second] = '.';
         touched.clear();
     };
 
     auto dist_edge = [&](int x, int y) { return min(min(x, N - 1 - x), min(y, N - 1 - y)); };
+    // 角までのマンハッタン距離（最小）
+    auto dist_corner = [&](int x, int y) {
+        int a = x + y;                     // (0,0)
+        int b = x + (N - 1 - y);           // (0,N-1)
+        int c = (N - 1 - x) + y;           // (N-1,0)
+        int d = (N - 1 - x) + (N - 1 - y); // (N-1,N-1)
+        return min(min(a, b), min(c, d));
+    };
 
     struct Cand {
         double score;
         vector<pair<int, int>> walls;
     };
-    Cand best{
-        -1e100,
-        {},
-    };
+    Cand best{-1e100, {}};
 
-    rep(d, 4) { // 空きますの位置
-        int nx = gx + dx[d], ny = gy + dy[d];
-        if (!inside(nx, ny, N, N) || b[nx][ny] == 'T') continue; // 範囲外 or 壁
+    for (int d = 0; d < 4; ++d) {
+        int ex = gx + dx[d], ey = gy + dy[d]; // 入口セル（Gのとなり）
+        if (!insideN(ex, ey) || b[ex][ey] == 'T') continue;
 
-        rep(i, 2) { // 壁をうめる方向
-            int nnx = nx + dy[d] * (i == 0 ? 1 : -1);
-            int nny = ny - dx[d] * (i == 0 ? 1 : -1);
+        for (int i = 0; i < 2; ++i) {           // ブロックする側（=反対側に曲がる）
+            int side_sign = (i == 0 ? +1 : -1); // +1: 左を塞ぐ → 右へ曲がる, -1: 右を塞ぐ → 左へ
 
-            touched.clear();
-            rep(dd, 4) {
-                if (dd == d) continue;
-                int wx = gx + dx[dd], wy = gy + dy[dd];
-                placeWall(wx, wy);
-            }
+            for (int delay : {0, 1, 2}) { // ★ 直進0/1/2マスの案を全部試す
+                touched.clear();
 
-            placeWall(nx + dx[d], ny + dy[d]); // 奥
-            placeWall(nnx, nny);               // 横
+                // (1) Gの3面を壁化（入口方向 d 以外）
+                for (int dd = 0; dd < 4; ++dd)
+                    if (dd != d) placeWall(gx + dx[dd], gy + dy[dd]);
 
-            if (!all_open(b, sx, sy, gx, gy)) {
+                // (2) 直進封じ：入口から delay+1 マス先を塞ぐ
+                placeWall(ex + (delay + 1) * dx[d], ey + (delay + 1) * dy[d]);
+
+                // (3) 曲がり位置の反対側を塞いでT字禁止（= もう片側へ曲がらせる）
+                int px = ex + delay * dx[d], py = ey + delay * dy[d];         // 曲がるセル
+                int bx = px + side_sign * dy[d], by = py - side_sign * dx[d]; // 塞ぐ側
+                placeWall(bx, by);
+
+                if (!all_open(b, sx, sy, gx, gy)) {
+                    rollback();
+                    continue;
+                }
+
+                // 実際に“開いている”曲がり先（塞いだ側と反対側）
+                int tx = px - side_sign * dy[d], ty = py + side_sign * dx[d];
+
+                // ---- 評価：角に近づくことを最優先、壁寄りも加点、直進は軽く加点 ----
+                double score = 0.0;
+                score += 8.0 * (N - dist_corner(tx, ty)); // ★角に近いほど高評価
+                score += 4.0 * (N - dist_edge(tx, ty));   // 壁帯に寄るほど加点
+
+                if (score > best.score) {
+                    best.score = score;
+                    best.walls = touched;
+                }
                 rollback();
-                continue;
             }
-
-            int score = -dist_edge(nnx, nny);
-
-            if (score > best.score) {
-                best.score = score;
-                best.walls = touched;
-            }
-
-            rollback();
         }
     }
 
+    // ベスト案を反映
     for (auto &[x, y] : best.walls) {
         if (b[x][y] == '.') b[x][y] = 'T';
         placed_out.emplace_back(x, y);
