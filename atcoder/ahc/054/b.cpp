@@ -352,69 +352,144 @@ void wall_extend(vector<vector<char>> &b, int sx, int sy, int gx, int gy, int it
 // ゴール周囲の開口を 1 本に絞る。ただし「壁際に近い」&「S から遠ざかる向き」を優先して残す。
 // b は b[x][y] でアクセス（あなたのコード準拠）。S/G は '.' 前提。
 // 重み w_edge: 壁際バイアス（壁に近いほど高得点）、w_away: S から遠ざかる向きバイアス。
-void narrow_goal_biased_toward_wall_away_from_start(
-    vector<vector<char>>& b,
-    int sx, int sy,   // Start
-    int gx, int gy,   // Goal
-    double w_edge = 1.0,
-    double w_away = 2.5
-){
-    const int N = (int)b.size();
-    auto inside2 = [&](int x,int y){ return 0<=x && x<N && 0<=y && y<N; };
-    auto dist_edge = [&](int x,int y){
-        // 盤面の外周までのマンハッタン距離のうち最小（= 壁際ほど小さい）
-        return min( min(x, N-1-x), min(y, N-1-y) );
+void narrow_goal_biased_toward_wall_away_from_start(vector<vector<char>> &b, int sx, int sy, // Start
+                                                    int gx, int gy,                          // Goal
+                                                    double w_edge = 1.0, double w_away = 2.5) {
+    const int N    = (int)b.size();
+    auto inside2   = [&](int x, int y) { return 0 <= x && x < N && 0 <= y && y < N; };
+    auto dist_edge = [&](int x, int y) { return min(min(x, N - 1 - x), min(y, N - 1 - y)); };
+
+    struct Cand {
+        int x, y, dir;
+        double score;
+        int edge;
+        int dot;
+        bool cornerable;
     };
-
-    // ゴール周囲の開口候補を集め、スコア化
-    struct Cand { int x,y,dir; double score; int edge; int dot; };
     vector<Cand> cand;
-    for(int d=0; d<4; ++d){
-        int nx = gx + (int)dx[d], ny = gy + (int)dy[d];
-        if(!inside2(nx,ny)) continue;
-        if(b[nx][ny] != '.') continue;
 
-        // 壁際バイアス：距離が小さいほど良い → (N - dist_edge) を加点に
-        int e = dist_edge(nx,ny);
+    for (int d = 0; d < 4; ++d) {
+        int ex = gx + (int)dx[d], ey = gy + (int)dy[d]; // entrance (Gの隣)
+        if (!inside2(ex, ey)) continue;
+        if (b[ex][ey] != '.') continue;
+
+        int e             = dist_edge(ex, ey);
         double edge_score = (double)(N - e);
 
-        // スタート逆向きバイアス：u = ゴール→候補 の単位ベクトル, v = ゴール→スタート
-        int ux = nx - gx, uy = ny - gy;              // ∈ {(-1,0),(1,0),(0,-1),(0,1)}
-        int vx = sx - gx, vy = sy - gy;
-        int dot = ux*vx + uy*vy;                     // 大→S寄り, 小(負)→Sから遠ざかる
-        double away_score = (double)(-dot);          // 反対向きほどプラス
+        int ux = ex - gx, uy = ey - gy; // G→入口
+        int vx = sx - gx, vy = sy - gy; // G→S
+        int dot           = ux * vx + uy * vy;
+        double away_score = (double)(-dot);
 
-        double sc = w_edge*edge_score + w_away*away_score;
-        cand.push_back({nx,ny,d,sc,e,dot});
+        // 入口の左右どちらかが既に'.'なら角を作れる見込み
+        int left  = (d + 3) & 3;
+        int right = (d + 1) & 3;
+        int lx = ex + (int)dx[left], ly = ey + (int)dy[left];
+        int rx = ex + (int)dx[right], ry = ey + (int)dy[right];
+        bool hasLeftOpen  = inside2(lx, ly) && b[lx][ly] == '.';
+        bool hasRightOpen = inside2(rx, ry) && b[rx][ry] == '.';
+        bool cornerable   = hasLeftOpen || hasRightOpen;
+
+        double sc = w_edge * edge_score + w_away * away_score;
+        cand.push_back({ex, ey, d, sc, e, dot, cornerable});
     }
 
-    // 開口が 0 or 1 なら何もしない
-    if((int)cand.size() <= 1) return;
+    if ((int)cand.size() <= 1) return; // 0 or 1 開口なら何もしない
 
-    // スコア最大を「残す」候補に
-    sort(cand.begin(), cand.end(), [&](const Cand& a, const Cand& b){
+    // 角を作れる候補を優先しつつ高スコア順
+    sort(cand.begin(), cand.end(), [&](const Cand &a, const Cand &b) {
+        if (a.cornerable != b.cornerable) return a.cornerable > b.cornerable;
         if (a.score != b.score) return a.score > b.score;
-        // タイブレーク：より壁際を優先 → edge が小さい方
         if (a.edge != b.edge) return a.edge < b.edge;
-        // さらに S から遠い（dot がより負）を優先
         if (a.dot != b.dot) return a.dot < b.dot;
         return a.dir < b.dir;
     });
-    auto keep = cand.front(); // これを入口として残す
 
-    // 「残さない」方向を、S→G到達可能性を壊さない範囲で塞いでいく
-    for(size_t i=1;i<cand.size();++i){
-        int nx = cand[i].x, ny = cand[i].y;
-        char old = b[nx][ny];
-        b[nx][ny] = 'T';
-        // S→G が切れるなら戻す（必要なら all_open_connected も併用可）
-        if(!path_exists_to_G(b, sx, sy, gx, gy)){
-            b[nx][ny] = old;
+    // 変更の一時適用＆ロールバック
+    vector<pair<int, int>> touched;
+    auto placeWall = [&](int x, int y) {
+        if (!inside2(x, y)) return;
+        if ((x == sx && y == sy) || (x == gx && y == gy)) return; // S/Gは触らない
+        if (b[x][y] == '.') {
+            b[x][y] = 'T';
+            touched.emplace_back(x, y);
+        }
+    };
+    auto rollback = [&]() {
+        for (auto &p : touched) b[p.first][p.second] = '.';
+        touched.clear();
+    };
+
+    // ===== T字を許さない“L字のみ”の強制 =====
+    for (const auto &k : cand) {
+        int d  = k.dir;         // G→入口 方向
+        int ex = k.x, ey = k.y; // entrance
+
+        // 入口の左右どちらかを開け、他方と直進は閉じる（入口側のT字禁止）
+        array<int, 2> sides = {(d + 3) & 3, (d + 1) & 3}; // 左/右
+        auto away_key       = [&](int sdir) {
+            int sxv = sx - ex, syv = sy - ey; // 入口→S
+            int dvx = (int)dx[sdir], dvy = (int)dy[sdir];
+            return sxv * dvx + syv * dvy; // 小さい(負)ほどSから遠ざかる
+        };
+        // Sから遠ざかる曲がりを優先
+        if (away_key(sides[0]) > away_key(sides[1])) swap(sides[0], sides[1]);
+
+        for (int sidx = 0; sidx < 2; ++sidx) {
+            int sdir = sides[sidx]; // これが“曲がる”方向（入口から見て左 or 右）
+            int ox = ex + (int)dx[sdir], oy = ey + (int)dy[sdir]; // 曲がり角セル
+            if (!inside2(ox, oy) || b[ox][oy] != '.') continue;   // 掘らない方針
+
+            touched.clear();
+
+            // (1) Gの他3方向を壁化（3面壁）
+            for (int dd = 0; dd < 4; ++dd) {
+                if (dd == d) continue; // d=入口側は残す
+                int nx = gx + (int)dx[dd], ny = gy + (int)dy[dd];
+                placeWall(nx, ny);
+            }
+
+            // (2) 入口の直進（Gからさらに離れる方向）を壁化 → 入口で必ず曲がる
+            int fx = ex + (int)dx[d], fy = ey + (int)dy[d];
+            placeWall(fx, fy);
+
+            // (3) 入口の反対側（もう一方の横）を壁化 → 入口でT字禁止
+            int tdir = sides[1 - sidx];
+            int tx = ex + (int)dx[tdir], ty = ey + (int)dy[tdir];
+            placeWall(tx, ty);
+
+            // (4) 曲がり角セルの側方を**両方**壁化 → 曲がり角でT字禁止
+            //     角セル(ox,oy)の開放は ex(=後方) と pre(=前方sdir) のみになる
+            int l2 = (sdir + 3) & 3;
+            int r2 = (sdir + 1) & 3;
+            int cx = ox + (int)dx[l2], cy = oy + (int)dy[l2];
+            placeWall(cx, cy);
+            cx = ox + (int)dx[r2];
+            cy = oy + (int)dy[r2];
+            placeWall(cx, cy);
+
+            // 到達性チェック
+            if (path_exists_to_G(b, sx, sy, gx, gy)) {
+                return; // 成功
+            }
+            rollback(); // ダメなら他サイドを試す
+        }
+        // この入口方向では作れなかった → 次の候補へ
+    }
+
+    // ===== フォールバック：入口一本化のみ（従来） =====
+    {
+        auto keep = cand.front();
+        for (size_t i = 1; i < cand.size(); ++i) {
+            int nx = cand[i].x, ny = cand[i].y;
+            if ((nx == sx && ny == sy) || (nx == gx && ny == gy)) continue;
+            char old = b[nx][ny];
+            if (old != '.') continue;
+            b[nx][ny] = 'T';
+            if (!path_exists_to_G(b, sx, sy, gx, gy)) { b[nx][ny] = old; }
         }
     }
 }
-
-
 
 int main() {
     cin.tie(nullptr);
@@ -432,7 +507,6 @@ int main() {
 
     // ゴールをかこう
     narrow_goal_biased_toward_wall_away_from_start(b, sx, sy, gx, gy, /*w_edge=*/1.0, /*w_away=*/2.5);
-
 
     // 壁伸ばし法
     wall_extend(b, /*S*/ sx, sy, /*G*/ gx, gy, /*iters*/ 3000, /*seed*/ 114514ULL);
