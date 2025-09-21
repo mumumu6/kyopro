@@ -1116,7 +1116,7 @@ int main() {
     vector<vector<char>> origin = b;
 
     vector<pair<int, int>> pinned;
-    bool ok = narrow_goal_biased_toward_wall_away_from_start(b, sx, sy, gx, gy, &pinned, /*w_edge=*/1.0,
+    narrow_goal_biased_toward_wall_away_from_start(b, sx, sy, gx, gy, &pinned, /*w_edge=*/1.0,
                                                              /*w_away=*/2.5);
     auto origin_hard = origin; // コピー
     for (auto [x, y] : pinned) origin_hard[x][y] = 'T';
@@ -1125,7 +1125,7 @@ int main() {
     carve_long_path_tree_SA_with_branches(b, origin_hard, sx, sy, gx, gy, 6000, 0.20, 114514ULL, 0.65,
                                           4);
     prune(b, /*S*/ sx, sy, /*G*/ gx, gy, /*orig=*/origin_hard,
-          /*passes=*/2, /*seed=*/20250921ULL);
+          /*passes=*/1, /*seed=*/20250921ULL);
     vector<pll> ans;
 
     rep(i, N) rep(j, N) {
