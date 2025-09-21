@@ -148,6 +148,22 @@ void obscure_goal(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
         }
     };
 
+    auto rollback = [&]() {
+        for (auto &p : touched) b[p.first][p.second] = '.';
+        touched.clear();
+    };
+
+    auto dist_edge = [&](int x, int y) { return min(min(x, N - 1 - x), min(y, N - 1 - y)); };
+
+    struct Cand {
+        double score;
+        vector<pair<int, int>> walls;
+    };
+    Cand best{
+        -1e100,
+        {},
+    };
+
     rep(d, 4) { // 空きますの位置
         int nx = gx + dx[d], ny = gy + dy[d];
         if (!inside(nx, ny, N, N) || b[nx][ny] == 'T') continue; // 範囲外 or 壁
@@ -166,15 +182,25 @@ void obscure_goal(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
             placeWall(nx + dx[d], ny + dy[d]); // 奥
             placeWall(nnx, nny);               // 横
 
-            if (all_open(b, sx, sy, gx, gy)) {
-                for (auto &[x, y] : touched) placed_out.emplace_back(x, y);
-
-                return; // 確定
+            if (!all_open(b, sx, sy, gx, gy)) {
+                rollback();
+                continue;
             }
 
-            for (auto &[x, y] : touched) b[x][y] = '.'; // ロールバック
-            touched.clear();
+            int score = -dist_edge(nnx, nny);
+
+            if (score > best.score) {
+                best.score = score;
+                best.walls = touched;
+            }
+
+            rollback();
         }
+    }
+
+    for (auto &[x, y] : best.walls) {
+        if (b[x][y] == '.') b[x][y] = 'T';
+        placed_out.emplace_back(x, y);
     }
 }
 
