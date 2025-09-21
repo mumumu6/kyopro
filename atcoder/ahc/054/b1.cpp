@@ -2,6 +2,7 @@
 using namespace std;
 // #include <atcoder/all>
 // using namespace atcoder;
+using Mask = vector<vector<char>>;
 // using mint = modint998244353;
 using ll     = long long;
 using i128   = __int128_t;
@@ -953,28 +954,38 @@ void expand_tree_to_maximal(const vector<vector<char>> &orig, vector<vector<char
 
 // 距離維持でサイクルを削り、その後、木を最大化して無駄な壁をなくす。
 // orig: 元の盤面（最初に読んだ b をそのまま渡す）。orig=='T' は二度と開けない。
-void prune(vector<vector<char>> &b, int sx, int sy, int gx, int gy, const vector<vector<char>> &orig,
-           int passes = 2, uint64_t seed = 20250921ULL) {
-    // 1) 既存の距離維持プルーニング
+// ループ保護マスク付き prune（must_keep==1 のセルは必ず残す）
+void prune_keep_mask(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
+                     const vector<vector<char>> &orig, const Mask *must_keep, int passes = 1,
+                     uint64_t seed = 20250921ULL) {
+    // 1) 既存の距離維持プルーニング（サイクル削減は行うが、最終書き戻しで保護する）
     prune_cycles_preserve_distance(b, sx, sy, gx, gy, passes, seed);
 
-    // 2) 現在の開セルを keep として取り出し → 木を最大化
+    // 2) 現在の開セル → keep
     int N = (int)b.size();
     vector<vector<char>> keep(N, vector<char>(N, 0));
     for (int x = 0; x < N; ++x)
         for (int y = 0; y < N; ++y)
             if (b[x][y] != 'T') keep[x][y] = 1;
 
+    // 3) 木を最大化（葉を貪欲に追加）
     expand_tree_to_maximal(/*orig=*/orig, /*keep=*/keep);
 
-    // 念のため S/G を確実に開けておく
+    // 4) S/G は常に開
     keep[sx][sy] = 1;
     keep[gx][gy] = 1;
 
-    // 3) 書き戻し：orig=='.' の範囲で keep==1 を '.'、それ以外を 'T'
+    // 5) ★ループ保護：must_keep を OR
+    if (must_keep) {
+        for (int x = 0; x < N; ++x)
+            for (int y = 0; y < N; ++y)
+                if (orig[x][y] == '.' && (*must_keep)[x][y]) keep[x][y] = 1;
+    }
+
+    // 6) 書き戻し（orig=='.' の範囲のみ）
     for (int x = 0; x < N; ++x)
         for (int y = 0; y < N; ++y) {
-            if (orig[x][y] == 'T') continue; // 元壁は触らない
+            if (orig[x][y] == 'T') continue;
             b[x][y] = keep[x][y] ? '.' : 'T';
         }
 }
@@ -1100,6 +1111,332 @@ bool narrow_goal_biased_toward_wall_away_from_start(
 }
 
 // ---- 追記ここまで ----
+// === 安全ユーティリティ ===
+static inline bool insideN(int x, int y, int N) { return 0 <= x && x < N && 0 <= y && y < N; }
+
+static bool try_place_wall_safe(vector<vector<char>> &b, int sx, int sy, int gx, int gy, int x, int y) {
+    int N = (int)b.size();
+    if (!insideN(x, y, N)) return false;
+    if ((x == sx && y == sy) || (x == gx && y == gy)) return false;
+    if (b[x][y] != '.') return false;
+    char old = b[x][y];
+    b[x][y]  = 'T';
+    if (!path_exists_to_G(b, sx, sy, gx, gy)) {
+        b[x][y] = old;
+        return false;
+    }
+    return true;
+}
+
+static void collect_pinned(const vector<vector<char>> &before, const vector<vector<char>> &after,
+                           vector<pair<int, int>> &pinned) {
+    int N = (int)before.size();
+    for (int x = 0; x < N; ++x)
+        for (int y = 0; y < N; ++y)
+            if (before[x][y] == '.' && after[x][y] == 'T') pinned.emplace_back(x, y);
+}
+
+// セクタ ID を返す（十字 or グリッド用の境界に基づく）
+static int sector4(int x, int y, int cx, int cy) {     // 4分割
+    return (x < cx ? 0 : 1) | ((y < cy ? 0 : 1) << 1); // {00,01,10,11}
+}
+static int sector9(int x, int y, int x1, int x2, int y1, int y2) { // 3x3
+    int a = (x < x1) ? 0 : (x < x2 ? 1 : 2);
+    int b = (y < y1) ? 0 : (y < y2 ? 1 : 2);
+    return a * 3 + b; // 0..8
+}
+
+// 外周にだけ“門”を作る（壁帯に対して）
+static void open_border_gates_along_band(vector<vector<char>> &b, int sx, int sy, int gx, int gy, int x0,
+                                         int y0, int x1, int y1, int gate_span = 1, int gate_gap = 3) {
+    // 壁帯の外周側だけ gate_gap 毎に 1 幅ゲートを作る
+    int N          = (int)b.size();
+    auto placeGate = [&](int x, int y) {
+        // ゲートは「開ける」のではなく“開けない”= 何もしない、なので帯生成時にそこを避ける形で壁を置く
+        // ここではダミー
+    };
+    // ここでは簡単に：帯を敷くループ内で「外周に近い位置だけスキップ」する実装にする
+}
+
+// 帯を引く：長方形 [ax..bx]×[ay..by] を厚さ thick で壁化
+// - edge_gates: 外周側だけ一定ピッチで穴を空ける（従来の挙動）
+// - inner_gates: 帯の“走行方向”に沿って一定ピッチで穴を空ける（十字の途中にも穴）
+//   例: 縦帯なら y 方向に every_inner 間隔、横帯なら x 方向に every_inner 間隔
+// 帯を引く：長方形 [ax..bx]×[ay..by] を厚さ thick で壁化
+// - edge_gates: 外周側だけ一定ピッチで穴を空ける
+// - inner_gates: 帯の“走行方向”に沿って一定ピッチで穴（十字の途中にも穴）
+//
+// 走行方向: 縦帯=Y軸方向, 横帯=X軸方向
+// 厚み     : 走行方向と直交方向（縦帯→x側, 横帯→y側）に付ける
+static void draw_band_with_gates(vector<vector<char>> &b, int sx, int sy, int gx, int gy, int ax, int ay,
+                                 int bx, int by, int thick, bool edge_gates = true, int every_edge = 3,
+                                 bool inner_gates = false, int every_inner = 6, int phase = 0) {
+    const int N    = (int)b.size();
+    auto dist_edge = [&](int x, int y) { return min(min(x, N - 1 - x), min(y, N - 1 - y)); };
+
+    int lenX           = abs(bx - ax);
+    int lenY           = abs(by - ay);
+    bool vertical_band = (lenY >= lenX); // 走行方向が長い方
+
+    for (int x = ax; x <= bx; ++x) {
+        for (int y = ay; y <= by; ++y) {
+            for (int t = 0; t < thick; ++t) {
+                int xx = x, yy = y;
+
+                // ★厚みは走行方向と直交側に付ける
+                if (vertical_band) { // 縦帯: 厚みは x 側へ
+                    xx = x + t;
+                    if (xx > bx) break;
+                } else { // 横帯: 厚みは y 側へ
+                    yy = y + t;
+                    if (yy > by) break;
+                }
+
+                bool is_gate = false;
+
+                // 外周ゲート（従来）
+                if (edge_gates) {
+                    int de = dist_edge(xx, yy);
+                    if (de <= 1 && ((xx + yy) % every_edge == 0)) is_gate = true;
+                }
+
+                // 内側ゲート（十字途中も穴）
+                if (!is_gate && inner_gates && every_inner > 0) {
+                    if (vertical_band) {
+                        if (((yy + phase) % every_inner) == 0) is_gate = true; // 走行=Y
+                    } else {
+                        if (((xx + phase) % every_inner) == 0) is_gate = true; // 走行=X
+                    }
+                }
+
+                if (is_gate) continue;                          // 穴→壁を置かない
+                try_place_wall_safe(b, sx, sy, gx, gy, xx, yy); // 安全に壁
+            }
+        }
+    }
+}
+
+// === 十字分割（4分割） ===
+// 中心 (cx,cy) に縦横の帯を置く。S/G が別セクタになるよう cx,cy を±2 以内で探索。
+static bool seed_big_cross(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
+                           vector<pair<int, int>> &pinned, int thick = 2) {
+    int N                       = (int)b.size();
+    vector<vector<char>> before = b;
+    int best_dx = 0, best_dy = 0;
+    bool ok = false;
+    for (int dx = -2; dx <= 2 && !ok; ++dx) {
+        for (int dy = -2; dy <= 2 && !ok; ++dy) {
+            vector<vector<char>> tmp = b;
+            int cx = N / 2 + dx, cy = N / 2 + dy;
+            int sS = sector4(sx, sy, cx, cy), sG = sector4(gx, gy, cx, cy);
+            if (sS == sG)
+                continue; // 別セクタ条件
+                          // 縦帯
+                          // 十字
+            draw_band_with_gates(tmp, sx, sy, gx, gy, cx, 0, cx, N - 1, /*thick=*/2,
+                                 /*edge_gates=*/true, /*every_edge=*/3,
+                                 /*inner_gates=*/true, /*every_inner=*/6, /*phase=*/0);
+
+            draw_band_with_gates(tmp, sx, sy, gx, gy, 0, cy, N - 1, cy, /*thick=*/2,
+                                 /*edge_gates=*/true, /*every_edge=*/3,
+                                 /*inner_gates=*/true, /*every_inner=*/6, /*phase=*/3);
+
+            if (path_exists_to_G(tmp, sx, sy, gx, gy)) {
+                b.swap(tmp);
+                best_dx = dx;
+                best_dy = dy;
+                ok      = true;
+                break;
+            }
+        }
+    }
+    if (!ok) return false;
+    collect_pinned(before, b, pinned);
+    return true;
+}
+
+// === 3×3 グリッド（8分割） ===
+// x= x1,x2 / y= y1,y2 に帯。S/G が別セクタになるよう (x1,x2,y1,y2) を±2 以内で探索。
+static bool seed_8_sectors(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
+                           vector<pair<int, int>> &pinned, int thick = 2) {
+    int N                       = (int)b.size();
+    vector<vector<char>> before = b;
+    int X1 = N / 3, X2 = 2 * N / 3, Y1 = N / 3, Y2 = 2 * N / 3;
+    bool ok = false;
+    for (int dx1 = -2; dx1 <= 2 && !ok; ++dx1)
+        for (int dx2 = -2; dx2 <= 2 && !ok; ++dx2)
+            for (int dy1 = -2; dy1 <= 2 && !ok; ++dy1)
+                for (int dy2 = -2; dy2 <= 2 && !ok; ++dy2) {
+                    vector<vector<char>> tmp = b;
+                    int x1 = clamp(X1 + dx1, 2, N - 3), x2 = clamp(X2 + dx2, 3, N - 2);
+                    int y1 = clamp(Y1 + dy1, 2, N - 3), y2 = clamp(Y2 + dy2, 3, N - 2);
+                    if (!(x1 < x2 && y1 < y2)) continue;
+
+                    int sS = sector9(sx, sy, x1, x2, y1, y2), sG = sector9(gx, gy, x1, x2, y1, y2);
+                    if (sS == sG) continue; // 別セクタに
+
+                    // 4 本の帯（外周側にだけ“門”）
+                    draw_band_with_gates(tmp, sx, sy, gx, gy, x1, 0, x1, N - 1, thick, true, 3);
+                    draw_band_with_gates(tmp, sx, sy, gx, gy, x2, 0, x2, N - 1, thick, true, 3);
+                    draw_band_with_gates(tmp, sx, sy, gx, gy, 0, y1, N - 1, y1, thick, true, 3);
+                    draw_band_with_gates(tmp, sx, sy, gx, gy, 0, y2, N - 1, y2, thick, true, 3);
+
+                    if (path_exists_to_G(tmp, sx, sy, gx, gy)) {
+                        b.swap(tmp);
+                        ok = true;
+                        break;
+                    }
+                }
+    if (!ok) return false;
+    collect_pinned(before, b, pinned);
+    return true;
+}
+
+// === ラッパ：S/G 距離や G の中央度で選択 ===
+static void seed_partition_force_edge_route(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
+                                            vector<pair<int, int>> &pinned) {
+    int N          = (int)b.size();
+    auto manhattan = [&](int ax, int ay, int bx, int by) { return abs(ax - bx) + abs(ay - by); };
+    auto dist_edge = [&](int x, int y) { return min(min(x, N - 1 - x), min(y, N - 1 - y)); };
+
+    // 中央寄りG or S-G近い → 8分割、そうでなければ十字
+    bool use8 = (dist_edge(gx, gy) >= N / 4) || (manhattan(sx, sy, gx, gy) <= N / 2);
+    if (use8) {
+        if (!seed_8_sectors(b, sx, sy, gx, gy, pinned, /*thick=*/2)) {
+            seed_big_cross(b, sx, sy, gx, gy, pinned, /*thick=*/2);
+        }
+    } else {
+        if (!seed_big_cross(b, sx, sy, gx, gy, pinned, /*thick=*/2)) {
+            seed_8_sectors(b, sx, sy, gx, gy, pinned, /*thick=*/2);
+        }
+    }
+}
+
+// === 追加: ループ用マスク型 ===
+
+// === 追加: 外周リング + 十字帯の外縁回廊を keep するマスクを作る ===
+// - origin は「帯を立て終わった後」の盤面（= origin_hard 推奨）
+// - outer_ring_width: 0 なら外周リングなし。1 なら外周1マスを残す
+// - band_hole_allow: 十字の列/行の中で '.' がこの数以下なら「帯」と見なす（ゲートが多少あってOK）
+//   例: N<=40 なので 2〜4 くらいが使いやすい
+Mask build_loop_mask_outer_and_cross(const vector<vector<char>> &origin, int outer_ring_width = 1,
+                                     int band_hole_allow = 3) {
+    const int N = (int)origin.size();
+    Mask m(N, vector<char>(N, 0));
+    auto inside    = [&](int x, int y) { return 0 <= x && x < N && 0 <= y && y < N; };
+    auto dist_edge = [&](int x, int y) { return min(min(x, N - 1 - x), min(y, N - 1 - y)); };
+
+    // 1) 外周リング
+    if (outer_ring_width > 0) {
+        for (int x = 0; x < N; ++x)
+            for (int y = 0; y < N; ++y)
+                if (origin[x][y] == '.' && dist_edge(x, y) <= outer_ring_width) m[x][y] = 1;
+    }
+
+    // 2) 十字帯（ほぼ全面が 'T' の列/行）を検出
+    //    （ゲート用の少数 '.' は許容）
+    vector<int> vcols, hrows;
+    for (int x = 0; x < N; ++x) {
+        int dots = 0;
+        for (int y = 0; y < N; ++y)
+            if (origin[x][y] == '.') ++dots;
+        // 列のほとんどが壁なら「縦帯」
+        if (dots <= band_hole_allow) vcols.push_back(x);
+    }
+    for (int y = 0; y < N; ++y) {
+        int dots = 0;
+        for (int x = 0; x < N; ++x)
+            if (origin[x][y] == '.') ++dots;
+        // 行のほとんどが壁なら「横帯」
+        if (dots <= band_hole_allow) hrows.push_back(y);
+    }
+
+    // 3) 帯の「外縁1セル」を回廊として keep
+    //    縦帯: 両側 (x-1) と (x+1) を回す
+    for (int x : vcols) {
+        for (int y = 0; y < N; ++y)
+            if (origin[x][y] == 'T') {
+                if (inside(x - 1, y) && origin[x - 1][y] == '.') m[x - 1][y] = 1;
+                if (inside(x + 1, y) && origin[x + 1][y] == '.') m[x + 1][y] = 1;
+            }
+    }
+    //    横帯: 両側 (y-1) と (y+1) を回す
+    for (int y : hrows) {
+        for (int x = 0; x < N; ++x)
+            if (origin[x][y] == 'T') {
+                if (inside(x, y - 1) && origin[x][y - 1] == '.') m[x][y - 1] = 1;
+                if (inside(x, y + 1) && origin[x][y + 1] == '.') m[x][y + 1] = 1;
+            }
+    }
+
+    // 4) 交差部の“角抜け”を少し埋めてループを安定化
+    //    （帯の直外側4セルの斜向かいが切れがちなので、直交方向1セルを追加で keep）
+    for (int x : vcols)
+        for (int y : hrows) {
+            // (x-1, y-1)…(x+1, y+1) の近傍で、orig=='.' なら keep
+            for (int dx = -1; dx <= 1; ++dx)
+                for (int dy = -1; dy <= 1; ++dy) {
+                    int xx = x + dx, yy = y + dy;
+                    if (!inside(xx, yy)) continue;
+                    if (origin[xx][yy] == '.') m[xx][yy] = 1;
+                }
+        }
+
+    return m;
+}
+
+// === 既存関数に“extra_keep”を追加（keep に OR するだけ） ===
+// 変更点は (★) コメントの3か所です
+void carve_long_path_tree_SA_with_branches(vector<vector<char>> &b, const vector<vector<char>> &orig,
+                                           int sx, int sy, int gx, int gy, int iters = 6000,
+                                           double T0 = 0.20, uint64_t seed = 114514ULL,
+                                           double p_branch = 0.65, int max_branch_len = 4,
+                                           const Mask *extra_keep = nullptr // ★追加: 残したい回廊マスク
+) {
+    int N = (int)b.size();
+    if (!path_exists_to_G(b, sx, sy, gx, gy)) return;
+
+    auto comp = collect_component(b, sx, sy);
+    if (comp.empty()) return;
+    int s_id = vid(sx, sy, N), g_id = vid(gx, gy, N);
+    {
+        vector<char> mark(N * N, 0);
+        for (int v : comp) mark[v] = 1;
+        if (!mark[g_id]) return;
+    }
+    auto Eall = all_open_edges(b, comp);
+    auto tadj = build_random_tree(b, comp, s_id, seed);
+    optimize_tree_SG_distance(tadj, Eall, s_id, g_id, iters, T0, seed ^ 0x9e37);
+
+    auto path = restore_path_vec(tadj, s_id, g_id);
+    if (path.empty()) return;
+
+    vector<vector<char>> keep(N, vector<char>(N, 0));
+    for (int v : path) {
+        auto [x, y] = XY(v, N);
+        keep[x][y]  = 1;
+    }
+    keep[sx][sy] = 1;
+    keep[gx][gy] = 1;
+    sprout_branches_straight(/*orig=*/orig, keep, path, p_branch, max_branch_len, seed ^ 0xf00d);
+
+    // ★追加: 回廊マスクを OR（ここが肝）
+    if (extra_keep) {
+        for (int x = 0; x < N; ++x)
+            for (int y = 0; y < N; ++y)
+                if (orig[x][y] == '.' && (*extra_keep)[x][y]) keep[x][y] = 1;
+    }
+
+    // ★既存: orig=='.' の範囲だけ keep を残して他は閉じる
+    for (int x = 0; x < N; ++x)
+        for (int y = 0; y < N; ++y) {
+            if (orig[x][y] == 'T') {
+                b[x][y] = 'T';
+                continue;
+            }
+            b[x][y] = keep[x][y] ? '.' : 'T';
+        }
+}
 
 int main() {
     cin.tie(nullptr);
@@ -1117,15 +1454,19 @@ int main() {
 
     vector<pair<int, int>> pinned;
     narrow_goal_biased_toward_wall_away_from_start(b, sx, sy, gx, gy, &pinned, /*w_edge=*/1.0,
-                                                             /*w_away=*/2.5);
+                                                   /*w_away=*/2.5);
+    seed_partition_force_edge_route(b, sx, sy, gx, gy, pinned);
+
     auto origin_hard = origin; // コピー
     for (auto [x, y] : pinned) origin_hard[x][y] = 'T';
+    Mask loop_mask = build_loop_mask_outer_and_cross(origin_hard,
+                                                     /*outer_ring_width=*/1, /*band_hole_allow=*/3);
 
     // “原盤面を基準に上書きする” carve/prune へは origin_hard を渡す
-    carve_long_path_tree_SA_with_branches(b, origin_hard, sx, sy, gx, gy, 6000, 0.20, 114514ULL, 0.65,
-                                          4);
-    prune(b, /*S*/ sx, sy, /*G*/ gx, gy, /*orig=*/origin_hard,
-          /*passes=*/1, /*seed=*/20250921ULL);
+    carve_long_path_tree_SA_with_branches(b, origin_hard, sx, sy, gx, gy, 6000, 0.20, 114514ULL, 0.65, 4,
+                                          &loop_mask);
+    prune_keep_mask(b, sx, sy, gx, gy, /*orig=*/origin_hard,
+                    /*must_keep=*/&loop_mask, /*passes=*/1, /*seed=*/20250921ULL);
     vector<pll> ans;
 
     rep(i, N) rep(j, N) {
