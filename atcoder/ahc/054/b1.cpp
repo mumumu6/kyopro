@@ -1117,7 +1117,7 @@ int main() {
 
     vector<pair<int, int>> pinned;
     narrow_goal_biased_toward_wall_away_from_start(b, sx, sy, gx, gy, &pinned, /*w_edge=*/1.0,
-                                                             /*w_away=*/2.5);
+                                                   /*w_away=*/2.5);
     auto origin_hard = origin; // コピー
     for (auto [x, y] : pinned) origin_hard[x][y] = 'T';
 
