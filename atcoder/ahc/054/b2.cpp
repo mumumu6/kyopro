@@ -206,24 +206,12 @@ void obscure_goal(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
 
 // ==== ここから追記（または置換） ====
 
-// 方向ベクトルは既存の dx, dy を使用（x=行, y=列）
-static inline bool is_open(const vector<vector<char>> &b, int x, int y) {
-    int N = (int)b.size();
-    return inside(x, y, N, N) && b[x][y] == '.';
-}
-
 struct Eval {
-    double score    = -1e100;
-    int path_len    = -1;
-    int turns       = 0;
-    int junctions   = 0;
-    int loops       = 0;
-    int two2        = 0;
-    int unreachable = 0;
+    double score = -1e100;
 };
 
 struct SAParams {
-    double TIME_LIMIT = 1.8;  // 秒
+    double TIME_LIMIT = 1.6;  // 秒（評価が重いためやや短縮）
     double T0         = 0.8;  // 初期温度
     double T1         = 0.02; // 終端温度
 };
@@ -236,18 +224,6 @@ static inline uint64_t rng64() {
 }
 static inline int rand_int(int n) { return (int)(rng64() % n); }
 static inline double rand01() { return (rng64() >> 11) * (1.0 / 9007199254740992.0); } // [0,1)
-
-static inline int count_2x2(const vector<vector<char>> &b) {
-    int N = (int)b.size();
-    int c = 0;
-    for (int i = 0; i + 1 < N; i++) {
-        for (int j = 0; j + 1 < N; j++) {
-            if (b[i][j] == '.' && b[i + 1][j] == '.' && b[i][j + 1] == '.' && b[i + 1][j + 1] == '.')
-                c++;
-        }
-    }
-    return c;
-}
 
 // SからBFS：到達距離/親/到達集合、S->G の最短路・曲がり回数も取る
 static inline void bfs_from_s(const vector<vector<char>> &b, int sx, int sy, vector<int> &dist,
@@ -279,126 +255,275 @@ static inline void bfs_from_s(const vector<vector<char>> &b, int sx, int sy, vec
     }
 }
 
-// 最短路の曲がり回数
+static inline uint64_t calc_board_hash(const vector<vector<char>> &b) {
+    uint64_t h = 1469598103934665603ull;
+    for (const auto &row : b) {
+        for (char c : row) {
+            h ^= static_cast<unsigned char>(c);
+            h *= 1099511628211ull;
+        }
+    }
+    return h;
+}
+
+static inline int count_2x2(const vector<vector<char>> &b) {
+    int N = (int)b.size();
+    int c = 0;
+    for (int i = 0; i + 1 < N; i++)
+        for (int j = 0; j + 1 < N; j++)
+            if (b[i][j] == '.' && b[i + 1][j] == '.' && b[i][j + 1] == '.' && b[i + 1][j + 1] == '.') c++;
+    return c;
+}
+
 static inline int count_turns_on_path(const vector<int> &par, int N, int sx, int sy, int gx, int gy) {
     auto id = [&](int x, int y) { return x * N + y; };
-    int g = id(gx, gy), s = id(sx, sy);
-    if (par[g] == -1 && !(gx == sx && gy == sy)) return 0;
+    int g   = id(gx, gy);
+    int s   = id(sx, sy);
+    if (g != s && par[g] == -1) return 0;
     vector<pair<int, int>> path;
-    int cur = g;
-    if (!(gx == sx && gy == sy)) {
-        while (cur != -1) {
-            int x = cur / N, y = cur % N;
-            path.push_back({x, y});
-            if (cur == s) break;
-            cur = par[cur];
-        }
-        if (path.empty() || path.back() != make_pair(sx, sy)) return 0;
-        reverse(path.begin(), path.end());
-    } else {
-        path.push_back({sx, sy});
+    for (int cur = g; cur != -1;) {
+        int x = cur / N;
+        int y = cur % N;
+        path.emplace_back(x, y);
+        if (cur == s) break;
+        cur = par[cur];
     }
-
+    if (path.empty() || path.back() != make_pair(sx, sy)) return 0;
+    reverse(path.begin(), path.end());
     int turns = 0;
-    for (int k = 1; k + 1 < (int)path.size(); k++) {
-        int x0 = path[k - 1].first, y0 = path[k - 1].second;
-        int x1 = path[k].first, y1 = path[k].second;
-        int x2 = path[k + 1].first, y2 = path[k + 1].second;
-        int dx1 = x1 - x0, dy1 = y1 - y0;
-        int dx2 = x2 - x1, dy2 = y2 - y1;
+    for (int i = 1; i + 1 < (int)path.size(); i++) {
+        int dx1 = path[i].first - path[i - 1].first;
+        int dy1 = path[i].second - path[i - 1].second;
+        int dx2 = path[i + 1].first - path[i].first;
+        int dy2 = path[i + 1].second - path[i].second;
         if (dx1 != dx2 || dy1 != dy2) turns++;
     }
     return turns;
 }
 
-// 到達集合上での E, V, ループ数と分岐数（deg>=3）
 static inline void reach_graph_stats(const vector<vector<char>> &b, const vector<int> &dist, int sx,
                                      int sy, int &V, int &E2, int &loops, int &junctions) {
-    int N     = (int)b.size();
-    auto id   = [&](int x, int y) { return x * N + y; };
-    V         = 0;
-    E2        = 0;
-    junctions = 0;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    int N   = (int)b.size();
+    auto id = [&](int x, int y) { return x * N + y; };
+    V = E2 = junctions = 0;
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
             if (b[i][j] == '.' && dist[id(i, j)] < (int)1e9) {
                 V++;
                 int deg = 0;
                 for (int d = 0; d < 4; d++) {
-                    int ni = i + dx[d], nj = j + dy[d];
+                    int ni = i + dx[d];
+                    int nj = j + dy[d];
                     if (inside(ni, nj, N, N) && b[ni][nj] == '.' && dist[id(ni, nj)] < (int)1e9) deg++;
                 }
-                E2 += deg; // 後で /2
+                E2 += deg;
                 if (deg >= 3) junctions++;
             }
-        }
-    }
     int E = E2 / 2;
-    // 到達成分は1個想定（到達集合なので）かつ S が開いていれば連結成分=1
-    // ただし S が壁なら V=0
     if (V == 0) loops = 0;
     else loops = max(0, E - V + 1);
 }
 
-static inline Eval evaluate(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
+static inline int simulate_steps(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
     int N = (int)b.size();
-    Eval ev;
-    // 2x2
-    ev.two2 = count_2x2(b);
+    if (!inside(sx, sy, N, N) || !inside(gx, gy, N, N)) return -1;
+    if (b[sx][sy] == 'T' || b[gx][gy] == 'T') return -1;
 
-    // BFS
+    const int total      = N * N;
+    const int INF        = 1e9;
+    const int MAX_STEPS  = N * N * 20;
+    const array<int, 4> move_dx = {-1, 1, 0, 0};
+    const array<int, 4> move_dy = {0, 0, -1, 1};
+
+    vector<uint8_t> confirmed(total, 0);
+    vector<int> dist_from_cur(total, INF);
+    vector<int> dist_to_target(total, INF);
+    vector<int> que(total);
+    vector<int> candidates;
+    candidates.reserve(total);
+
+    auto id = [&](int x, int y) { return x * N + y; };
+
+    auto is_blocked = [&](int x, int y) -> bool {
+        if (!inside(x, y, N, N)) return true;
+        int idx = id(x, y);
+        if (!confirmed[idx]) return false;
+        return b[x][y] == 'T';
+    };
+
+    auto bfs_provisional = [&](int sx0, int sy0, vector<int> &dist) {
+        fill(dist.begin(), dist.end(), INF);
+        if (is_blocked(sx0, sy0)) return;
+        int start = id(sx0, sy0);
+        int head  = 0;
+        int tail  = 0;
+        que[tail++] = start;
+        dist[start] = 0;
+        while (head < tail) {
+            int v  = que[head++];
+            int x0 = v / N;
+            int y0 = v % N;
+            int nd = dist[v] + 1;
+            for (int d = 0; d < 4; d++) {
+                int nx = x0 + (int)dx[d];
+                int ny = y0 + (int)dy[d];
+                if (is_blocked(nx, ny)) continue;
+                int nid = id(nx, ny);
+                if (dist[nid] <= nd) continue;
+                dist[nid] = nd;
+                que[tail++] = nid;
+            }
+        }
+    };
+
+    uint64_t seed = calc_board_hash(b);
+    seed ^= ((uint64_t)(sx + 1) << 1) ^ ((uint64_t)(sy + 7) << 12);
+    seed ^= ((uint64_t)(gx + 13) << 24) ^ ((uint64_t)(gy + 101) << 36);
+    auto next_rand = [&]() -> uint64_t {
+        seed ^= seed << 7;
+        seed ^= seed >> 9;
+        return seed;
+    };
+    auto pick_index = [&](int bound) { return (int)(next_rand() % bound); };
+
+    int curx = sx, cury = sy;
+    int target_x = -1, target_y = -1;
+    bool has_target = false;
+    confirmed[id(curx, cury)] = 1;
+
+    int steps = 0;
+    while (steps < MAX_STEPS) {
+        if (curx == gx && cury == gy) return steps;
+
+        for (int dir = 0; dir < 4; dir++) {
+            int nx = curx;
+            int ny = cury;
+            while (true) {
+                nx += move_dx[dir];
+                ny += move_dy[dir];
+                if (!inside(nx, ny, N, N)) break;
+                int nid = id(nx, ny);
+                if (!confirmed[nid]) confirmed[nid] = 1;
+                if (b[nx][ny] == 'T') break;
+            }
+        }
+
+        confirmed[id(curx, cury)] = 1;
+
+        if (confirmed[id(gx, gy)]) {
+            has_target = true;
+            target_x   = gx;
+            target_y   = gy;
+        }
+
+        bfs_provisional(curx, cury, dist_from_cur);
+
+        if (has_target) {
+            int tgt_id = id(target_x, target_y);
+            if (dist_from_cur[tgt_id] >= INF) has_target = false;
+        }
+
+        if (!has_target || (confirmed[id(target_x, target_y)] && !(target_x == gx && target_y == gy))) {
+            candidates.clear();
+            for (int i = 0; i < N; i++) {
+                for (int j = 0; j < N; j++) {
+                    int idx = id(i, j);
+                    if (dist_from_cur[idx] < INF && !confirmed[idx]) candidates.push_back(idx);
+                }
+            }
+            if (candidates.empty()) return -1;
+            int chosen = candidates[pick_index((int)candidates.size())];
+            target_x   = chosen / N;
+            target_y   = chosen % N;
+            has_target = true;
+        }
+
+        bfs_provisional(target_x, target_y, dist_to_target);
+        int cur_id = id(curx, cury);
+        if (dist_to_target[cur_id] >= INF) return -1;
+
+        int best_dir = -1;
+        for (int dir = 0; dir < 4; dir++) {
+            int nx = curx + move_dx[dir];
+            int ny = cury + move_dy[dir];
+            if (!inside(nx, ny, N, N)) continue;
+            if (b[nx][ny] != '.') continue;
+            int nid = id(nx, ny);
+            if (dist_to_target[nid] < dist_to_target[cur_id]) {
+                best_dir = dir;
+                break;
+            }
+        }
+        if (best_dir == -1) return -1;
+
+        curx += move_dx[best_dir];
+        cury += move_dy[best_dir];
+        confirmed[id(curx, cury)] = 1;
+        steps++;
+    }
+
+    return -1;
+}
+
+static inline Eval evaluate(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
+    Eval ev;
+
     vector<int> dist, par;
+    int N = (int)b.size();
     bfs_from_s(b, sx, sy, dist, par);
     auto id = [&](int x, int y) { return x * N + y; };
-    int dG  = dist[id(gx, gy)];
-    if (dG >= (int)1e9) {
-        // S→G不達は超大罰
-        ev.score       = -1e95 - 1e3 * ev.two2;
-        ev.path_len    = -1;
-        ev.unreachable = 0;
+    if (gx < 0 || gy < 0 || gx >= N || gy >= N) {
+        ev.score = -1e95;
         return ev;
     }
-    ev.path_len = dG;
+    int dG = dist[id(gx, gy)];
+    if (dG >= (int)1e9) {
+        ev.score = -1e95;
+        return ev;
+    }
 
-    // 到達不能空きマス
+    int steps = simulate_steps(b, sx, sy, gx, gy);
+    if (steps < 0) {
+        ev.score = -1e95;
+        return ev;
+    }
+
+    int two2 = count_2x2(b);
+
     int total_open = 0, reach_open = 0;
     for (int i = 0; i < N; i++)
-        for (int j = 0; j < N; j++) {
+        for (int j = 0; j < N; j++)
             if (b[i][j] == '.') {
                 total_open++;
                 if (dist[id(i, j)] < (int)1e9) reach_open++;
             }
-        }
-    ev.unreachable = total_open - reach_open;
+    int unreachable = total_open - reach_open;
 
-    // ループ・分岐
-    int V, E2, loops, junc;
-    reach_graph_stats(b, dist, sx, sy, V, E2, loops, junc);
-    ev.loops     = loops;
-    ev.junctions = junc;
+    int V, E2, loops, junctions;
+    reach_graph_stats(b, dist, sx, sy, V, E2, loops, junctions);
+    int turns = count_turns_on_path(par, N, sx, sy, gx, gy);
 
-    // 最短路の曲がり
-    ev.turns = count_turns_on_path(par, N, sx, sy, gx, gy);
+    const double STEP_W      = 1.0;
+    const double W_LEN       = 0.6;
+    const double W_TURN      = 0.4;
+    const double W_JUNC      = 0.3;
+    const double W_LOOP      = 0.5;
+    const double W_REACH     = 0.08;
+    const double LOOP_CAP    = 200.0;
+    const double PENALTY_2X2 = 800.0;
+    const double PENALTY_UNR = 12.0;
 
-    // ---- スコア合成 ----
-    // 重みは適宜調整可。2x2は強罰、S->G長さ＆曲がり＆分岐＆ループを報酬、到達不能は軽い罰
-    const double W_LEN    = 5.0;
-    const double W_TURN   = 2.0;
-    const double W_JUNC   = 1.6;
-    const double W_LOOP   = 3.0;    // ループは程々に
-    const double LOOP_CAP = 200.0;  // 飽和上限
-    const double P_2X2    = 1000.0; // 2x2 は絶対潰す
-    const double P_UNR    = 6.0;    // 到達不能はやや罰
+    double score = 0.0;
+    score += STEP_W * steps;
+    score += W_LEN * dG;
+    score += W_TURN * turns;
+    score += W_JUNC * junctions;
+    score += W_LOOP * min<double>(loops, LOOP_CAP);
+    score += W_REACH * reach_open;
+    score -= PENALTY_2X2 * two2;
+    if (unreachable > 0) score -= PENALTY_UNR * sqrt((double)unreachable);
 
-    double s = 0.0;
-    s += W_LEN * ev.path_len;
-    s += W_TURN * ev.turns;
-    s += W_JUNC * ev.junctions;
-    s += W_LOOP * min<double>(ev.loops, LOOP_CAP);
-    s -= P_2X2 * ev.two2;
-    s -= P_UNR * ev.unreachable;
-
-    ev.score = s;
+    ev.score = score;
     return ev;
 }
 

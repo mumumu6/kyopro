@@ -359,6 +359,67 @@ static inline void reach_graph_stats(const vector<vector<char>> &b, const vector
     else loops = max(0, E - V + 1);
 }
 
+struct ConnectivityInfo {
+    bool valid = false;
+    int loops  = 0;
+};
+
+static inline ConnectivityInfo analyze_connectivity(const vector<vector<char>> &b, int sx, int sy,
+                                                    int gx, int gy) {
+    ConnectivityInfo info;
+    const int N = (int)b.size();
+    if (!inside(sx, sy, N, N) || !inside(gx, gy, N, N)) return info;
+    if (b[sx][sy] != '.' || b[gx][gy] != '.') return info;
+
+    auto id = [&](int x, int y) { return x * N + y; };
+    vector<int> dist(N * N, -1);
+    queue<pair<int, int>> q;
+    dist[id(sx, sy)] = 0;
+    q.emplace(sx, sy);
+    while (!q.empty()) {
+        auto [x, y] = q.front();
+        q.pop();
+        for (int d = 0; d < 4; ++d) {
+            int nx = x + dx[d], ny = y + dy[d];
+            if (!inside(nx, ny, N, N)) continue;
+            if (b[nx][ny] == 'T') continue;
+            int nid = id(nx, ny);
+            if (dist[nid] != -1) continue;
+            dist[nid] = dist[id(x, y)] + 1;
+            q.emplace(nx, ny);
+        }
+    }
+
+    bool goal_ok = dist[id(gx, gy)] != -1;
+    int total_open = 0;
+    int V          = 0;
+    long long E2   = 0;
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            if (b[i][j] != '.') continue;
+            ++total_open;
+            int vid = id(i, j);
+            if (dist[vid] == -1) continue;
+            ++V;
+            for (int d = 0; d < 4; ++d) {
+                int ni = i + dx[d], nj = j + dy[d];
+                if (!inside(ni, nj, N, N)) continue;
+                if (b[ni][nj] != '.') continue;
+                if (dist[id(ni, nj)] == -1) continue;
+                ++E2;
+            }
+        }
+    }
+
+    bool all_reached = (V == total_open);
+    info.valid        = goal_ok && all_reached;
+    if (info.valid && V > 0) {
+        int E = (int)(E2 / 2);
+        info.loops = max(0, E - V + 1);
+    }
+    return info;
+}
+
 static inline Eval evaluate(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
     int N = (int)b.size();
     Eval ev;
@@ -435,7 +496,7 @@ static inline void greedy_fix_2x2(vector<vector<char>> &b, const vector<vector<c
     auto keeps_if_OK = [&](int x, int y) -> bool {
         char old = b[x][y];
         b[x][y]  = 'T';
-        bool ok  = (count_2x2(b) >= 0) && all_open(b, sx, sy, gx, gy);
+        bool ok  = analyze_connectivity(b, sx, sy, gx, gy).valid;
         if (!ok) b[x][y] = old;
         return ok;
     };
@@ -486,9 +547,9 @@ static bool repair_connectivity_local(vector<vector<char>> &b, const vector<vect
 
     auto ok_board = [&]() {
         if (count_2x2(b) > 0) return false;
-        if (!all_open(b, sx, sy, gx, gy)) return false;
-        if (loops_all_open_connected(b, sx, sy) < LOOPS_MIN) return false;
-        return true;
+        ConnectivityInfo ci = analyze_connectivity(b, sx, sy, gx, gy);
+        if (!ci.valid) return false;
+        return ci.loops >= LOOPS_MIN;
     };
 
     // Sから'.'だけで到達可否を取る
@@ -602,170 +663,179 @@ struct SimResult {
     bool reached;
 };
 
-static inline bool can_walk_provisional(const vector<vector<char>> &b,
-                                        const vector<vector<uint8_t>> &confirmed, int x, int y) {
-    int N = (int)b.size();
-    if (!inside(x, y, N, N)) return false;
-    if (confirmed[x][y] && b[x][y] == 'T') return false; // 確認済みで木なら壁
-    return true;                                         // 未確認は空き扱い、確認済みの'.'も通れる
-}
-
-static inline void bfs_dist_provisional(const vector<vector<char>> &b,
-                                        const vector<vector<uint8_t>> &confirmed, int gx, int gy,
-                                        vector<int> &dist) {
-    int N = (int)b.size(), INF = 1e9;
-    auto id = [&](int i, int j) { return i * N + j; };
-    dist.assign(N * N, INF);
-    if (!can_walk_provisional(b, confirmed, gx, gy)) return;
-    queue<pair<int, int>> q;
-    dist[id(gx, gy)] = 0;
-    q.push({gx, gy});
-    while (!q.empty()) {
-        auto [x, y] = q.front();
-        q.pop();
-        int d = dist[id(x, y)];
-        for (int k = 0; k < 4; k++) {
-            int nx = x + UX[k], ny = y + UY[k];
-            if (!can_walk_provisional(b, confirmed, nx, ny)) continue;
-            int nid = id(nx, ny);
-            if (dist[nid] > d + 1) {
-                dist[nid] = d + 1;
-                q.push({nx, ny});
-            }
-        }
-    }
-}
-
-static inline void reveal_rays(const vector<vector<char>> &b, int cx, int cy,
-                               vector<vector<uint8_t>> &confirmed) {
-    int N = (int)b.size();
-    for (int k = 0; k < 4; k++) {
-        int x = cx, y = cy;
-        while (true) {
-            int nx = x + UX[k], ny = y + UY[k];
-            if (!inside(nx, ny, N, N)) break; // 盤外は最初から確認済み扱い
-            if (!confirmed[nx][ny]) confirmed[nx][ny] = 1;
-            if (b[nx][ny] == 'T') break; // 最初の木を含めて止める
-            x = nx;
-            y = ny;
-        }
-    }
-}
-
-static inline bool can_move_real(const vector<vector<char>> &b, int x, int y) {
-    int N = (int)b.size();
-    return inside(x, y, N, N) && b[x][y] == '.';
-}
-
-static inline void reachable_unconfirmed(const vector<vector<char>> &b,
-                                         const vector<vector<uint8_t>> &confirmed, int sx, int sy,
-                                         vector<pair<int, int>> &unconf, vector<uint8_t> &seen) {
-    int N   = (int)b.size();
-    auto id = [&](int i, int j) { return i * N + j; };
-    seen.assign(N * N, 0);
-    unconf.clear();
-    if (!can_walk_provisional(b, confirmed, sx, sy)) return;
-    queue<pair<int, int>> q;
-    q.push({sx, sy});
-    seen[id(sx, sy)] = 1;
-    while (!q.empty()) {
-        auto [x, y] = q.front();
-        q.pop();
-        if (!confirmed[x][y]) unconf.push_back({x, y});
-        for (int k = 0; k < 4; k++) {
-            int nx = x + UX[k], ny = y + UY[k];
-            if (!can_walk_provisional(b, confirmed, nx, ny)) continue;
-            int nid = id(nx, ny);
-            if (!seen[nid]) {
-                seen[nid] = 1;
-                q.push({nx, ny});
-            }
-        }
-    }
-}
-
-// 問題文準拠のシミュレータ（ターン数）
+// 高速シミュレーション：距離計算を必要時のみ更新し、探索を再利用する
 static SimResult simulate_adventurer(const vector<vector<char>> &b, int sx, int sy, int gx, int gy,
                                      uint64_t seed = 123456789ull, int hard_cap_mul = 10) {
-    int N = (int)b.size();
+    const int N  = (int)b.size();
+    const int NN = N * N;
+    const int INF = 1e9;
     XRng rng(seed);
-    vector<vector<uint8_t>> confirmed(N, vector<uint8_t>(N, 0));
-    confirmed[sx][sy] = 1;
 
-    int cx = sx, cy = sy; // 現在位置
-    int tx = -1, ty = -1; // 目的地（-1 は未定）
-    vector<int> dist;
-    dist.reserve(N * N);
-    vector<pair<int, int>> unconf;
-    unconf.reserve(N * N);
-    vector<uint8_t> seen;
-    seen.reserve(N * N);
+    static vector<uint8_t> confirmed;
+    static vector<int> dist;
+    static vector<int> q;
+    static vector<int> visited;
+    static vector<int> unconf;
+    static int allocated = 0;
 
-    const int HARD_CAP = max(1, hard_cap_mul) * N * N;
+    if (allocated != NN) {
+        allocated = NN;
+        confirmed.assign(NN, 0);
+        dist.assign(NN, INF);
+        q.resize(NN);
+        visited.assign(NN, 0);
+        unconf.reserve(NN);
+    } else {
+        fill(confirmed.begin(), confirmed.end(), 0);
+    }
+
+    auto id = [&](int x, int y) { return x * N + y; };
+    auto insideN = [&](int x, int y) { return 0 <= x && x < N && 0 <= y && y < N; };
+
+    int goal_id = id(gx, gy);
+
+    auto can_walk_provisional = [&](int v) -> bool {
+        int x = v / N, y = v % N;
+        return !(confirmed[v] && b[x][y] == 'T');
+    };
+
+    bool dist_valid = false;
+    int stamp_counter = 1;
+
+    auto bfs_reachable = [&](int start) {
+        unconf.clear();
+        int stamp = ++stamp_counter;
+        if (stamp_counter == INT_MAX) {
+            fill(visited.begin(), visited.end(), 0);
+            stamp_counter = 2;
+            stamp         = ++stamp_counter;
+        }
+        if (!can_walk_provisional(start)) return stamp;
+        int head = 0, tail = 0;
+        q[tail++] = start;
+        visited[start] = stamp;
+        while (head < tail) {
+            int v = q[head++];
+            if (!confirmed[v]) unconf.push_back(v);
+            int x = v / N, y = v % N;
+            for (int dir = 0; dir < 4; ++dir) {
+                int nx = x + UX[dir], ny = y + UY[dir];
+                if (!insideN(nx, ny)) continue;
+                int nv = id(nx, ny);
+                if (!can_walk_provisional(nv)) continue;
+                if (visited[nv] == stamp) continue;
+                visited[nv] = stamp;
+                q[tail++]  = nv;
+            }
+        }
+        return stamp;
+    };
+
+    auto recompute_dist = [&](int target, int cur_id) -> bool {
+        if (!can_walk_provisional(target)) return false;
+        fill(dist.begin(), dist.end(), INF);
+        int head = 0, tail = 0;
+        q[tail++] = target;
+        dist[target] = 0;
+        while (head < tail) {
+            int v = q[head++];
+            int x = v / N, y = v % N;
+            int nd = dist[v] + 1;
+            for (int dir = 0; dir < 4; ++dir) {
+                int nx = x + UX[dir], ny = y + UY[dir];
+                if (!insideN(nx, ny)) continue;
+                int nv = id(nx, ny);
+                if (!can_walk_provisional(nv)) continue;
+                if (dist[nv] <= nd) continue;
+                dist[nv] = nd;
+                q[tail++] = nv;
+            }
+        }
+        return dist[cur_id] != INF;
+    };
+
+    auto reveal_from = [&](int cx, int cy) -> bool {
+        int cur_id = id(cx, cy);
+        confirmed[cur_id] = 1;
+        bool touched      = false;
+        for (int dir = 0; dir < 4; ++dir) {
+            int x = cx, y = cy;
+            while (true) {
+                x += UX[dir];
+                y += UY[dir];
+                if (!insideN(x, y)) break;
+                int nid = id(x, y);
+                if (!confirmed[nid]) {
+                    confirmed[nid] = 1;
+                    if (dist_valid && b[x][y] == 'T' && dist[nid] != INF) touched = true;
+                }
+                if (b[x][y] == 'T') break;
+            }
+        }
+        return touched;
+    };
+
+    int cx = sx, cy = sy;
+    confirmed[id(cx, cy)] = 1;
+    int target_id = -1;
+    const int HARD_CAP = max(1, hard_cap_mul) * NN;
     int turns          = 0;
 
     while (turns < HARD_CAP) {
-        // 1) 目的達成？
         if (cx == gx && cy == gy) return {turns, true};
 
-        // 2) レイキャストで確認更新
-        reveal_rays(b, cx, cy, confirmed);
+        if (reveal_from(cx, cy)) dist_valid = false;
 
-        // 3) ゴールが確認済みなら目的地＝ゴール
-        if (confirmed[gx][gy]) {
-            tx = gx;
-            ty = gy;
+        if (confirmed[goal_id] && target_id != goal_id) {
+            target_id = goal_id;
+            dist_valid = false;
         }
 
-        // 4) 目的地が未定 or （ゴール以外で）確認済み → 未確認候補から選び直す
-        bool need_pick = (tx == -1) || ((tx != gx || ty != gy) && confirmed[tx][ty]);
+        int cur_id = id(cx, cy);
+        int stamp  = bfs_reachable(cur_id);
 
-        // 暫定地図での到達性チェック（4と5をまとめて）
-        reachable_unconfirmed(b, confirmed, cx, cy, unconf, seen);
-
-        if (tx != -1 && !seen.empty()) {
-            int N2  = N;
-            auto id = [&](int i, int j) { return i * N2 + j; };
-            if (!inside(tx, ty, N, N) || !seen[id(tx, ty)]) {
-                tx        = -1;
-                ty        = -1;
-                need_pick = true;
+        if (target_id != -1) {
+            if (visited[target_id] != stamp || (target_id != goal_id && confirmed[target_id])) {
+                target_id = -1;
+                dist_valid = false;
             }
         }
 
-        if (need_pick) {
-            if (!confirmed[gx][gy]) {
-                if (unconf.empty()) return {turns, false}; // 到達不能想定外
-                auto p = unconf[rng.randint((int)unconf.size())];
-                tx     = p.first;
-                ty     = p.second;
+        if (target_id == -1) {
+            if (confirmed[goal_id]) {
+                target_id = goal_id;
             } else {
-                tx = gx;
-                ty = gy;
+                if (unconf.empty()) return {turns, false};
+                target_id = unconf[rng.randint((int)unconf.size())];
             }
+            dist_valid = false;
         }
 
-        // 6) 暫定地図で距離が減る方向へ（上下左右優先）1歩、ただし実マップ上で'.'
-        bfs_dist_provisional(b, confirmed, tx, ty, dist);
-        int N2   = N;
-        auto id  = [&](int i, int j) { return i * N2 + j; };
-        int dcur = dist[id(cx, cy)];
-        if (dcur >= 1e9) return {turns, false};
+        if (!dist_valid) {
+            if (!recompute_dist(target_id, cur_id)) return {turns, false};
+            dist_valid = true;
+        }
+
+        int dcur = dist[cur_id];
+        if (dcur >= INF) return {turns, false};
 
         bool moved = false;
-        for (int pr = 0; pr < 4; pr++) {
+        for (int pr = 0; pr < 4; ++pr) {
             int nx = cx + UX[pr], ny = cy + UY[pr];
-            if (!can_move_real(b, nx, ny)) continue;
-            if (dist[id(nx, ny)] < dcur) {
-                cx    = nx;
-                cy    = ny;
+            if (!insideN(nx, ny)) continue;
+            if (b[nx][ny] != '.') continue;
+            int nid = id(nx, ny);
+            if (dist[nid] < dcur) {
+                cx = nx;
+                cy = ny;
+                confirmed[nid] = 1;
                 moved = true;
                 break;
             }
         }
-        if (!moved) return {turns, false}; // セーフティ
+        if (!moved) return {turns, false};
 
-        turns++;
+        ++turns;
     }
     return {turns, false};
 }
@@ -778,15 +848,15 @@ static inline double eval_by_sim(const vector<vector<char>> &b, const vector<vec
     // 幅1: 2x2 は即失格
     if (count_2x2(b) > 0) return -1e90;
 
-    // NEW: 全空き連結（S から全'.'へ到達）＆ S->G 必須
-    if (!all_open(b, sx, sy, gx, gy)) return -1e90;
+    ConnectivityInfo conn = analyze_connectivity(b, sx, sy, gx, gy);
+    if (!conn.valid) return -1e90;
 
     // NEW: ループ最低本数（完全な木を禁止）
     const int LOOPS_MIN  = 1;   // ここを 2,3… に上げると「よりループ多め」を強制
     const int LOOPS_GOAL = 200; // ここまで加点（それ以上は飽和）
     const double W_LOOP  = 1.5; // ループ加点の重み（控えめ）
 
-    int loops = loops_all_open_connected(b, sx, sy);
+    int loops = conn.loops;
     if (loops < LOOPS_MIN) return -1e90; // 木は不許可
 
     // 冒険者シミュレーション（ターン数の平均）
@@ -831,8 +901,10 @@ void clean_added_T4_safe(vector<vector<char>> &b, const vector<vector<char>> &or
 
         bool ok = true;
         if (count_2x2(b) > 0) ok = false;
-        else if (!all_open(b, sx, sy, gx, gy)) ok = false;
-        else if (loops_all_open_connected(b, sx, sy) < LOOPS_MIN) ok = false;
+        else {
+            ConnectivityInfo ci = analyze_connectivity(b, sx, sy, gx, gy);
+            ok                   = ci.valid && ci.loops >= LOOPS_MIN;
+        }
 
         if (!ok) {
             // ロールバック
@@ -912,7 +984,7 @@ void clean_added_T4_safe(vector<vector<char>> &b, const vector<vector<char>> &or
 void make_maze(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
                const vector<vector<char>> &orig) {
     struct SAParams {
-        double TIME_LIMIT = 1.5, T0 = 0.8, T1 = 0.02;
+        double TIME_LIMIT = 1.2, T0 = 0.8, T1 = 0.02;
     } P;
     int N = (int)b.size();
 
@@ -968,13 +1040,6 @@ void make_maze(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
         auto [x, y] = pick;
         char old    = b[x][y];
         b[x][y]     = (b[x][y] == '.' ? 'T' : '.');
-
-        // ★ NEW: 早期棄却（高速）—— 2x2 / 連結 / ループ最低本数
-        if (count_2x2(b) > 0 || !all_open(b, sx, sy, gx, gy) ||
-            loops_all_open_connected(b, sx, sy) < 1) {
-            b[x][y] = old;
-            continue;
-        }
 
         double nxt  = eval_by_sim(b, orig, sx, sy, gx, gy, /*seed*/ 1919810, /*samples*/ EVAL_SAMPLES);
         double diff = nxt - cur;

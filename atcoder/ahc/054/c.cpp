@@ -99,109 +99,99 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
 // すべての通路が繋がっていて、かつ S→G が存在するか
-bool all_open(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
+struct ConnectivityState {
+    int reachable   = 0;
+    int total_open  = 0;
+    bool reach_goal = false;
+};
+
+ConnectivityState analyze_connectivity(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
+    ConnectivityState st;
     int N = (int)b.size();
+    if (!inside(sx, sy, N, N) || !inside(gx, gy, N, N)) return st;
+    if (b[sx][sy] == 'T' || b[gx][gy] == 'T') return st;
 
-    if (!inside(sx, sy, N, N) || !inside(gx, gy, N, N)) return false;
-    if (b[sx][sy] == 'T' || b[gx][gy] == 'T') return false;
-
-    int total = 0;
-    rep(i, N) rep(j, N) if (b[i][j] == '.') total++;
+    rep(i, N) rep(j, N) if (b[i][j] == '.') st.total_open++;
 
     vector<vector<bool>> vis(N, vector<bool>(N, false));
     queue<pair<int, int>> q;
     vis[sx][sy] = true;
     q.push({sx, sy});
-    int reached = 0;
 
     while (!q.empty()) {
         auto [x, y] = q.front();
         q.pop();
-        reached++;
+        st.reachable++;
+        if (x == gx && y == gy) st.reach_goal = true;
 
         rep(d, 4) {
             int nx = x + dx[d], ny = y + dy[d];
-
             if (!inside(nx, ny, N, N) || vis[nx][ny]) continue;
             if (b[nx][ny] == 'T') continue;
             vis[nx][ny] = true;
             q.push({nx, ny});
         }
     }
-    return reached == total;
+
+    return st;
 }
 
+bool layout_ok(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
+    auto st = analyze_connectivity(b, sx, sy, gx, gy);
+    if (!st.reach_goal) return false;
+    return st.reachable == st.total_open;
+}
+
+bool has_path_to_goal(const vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
+    return analyze_connectivity(b, sx, sy, gx, gy).reach_goal;
+}
+
+struct GoalGate {
+    int x             = -1;
+    int y             = -1;
+    int dir           = -1;
+    int approach_x    = -1;
+    int approach_y    = -1;
+    bool closed       = false;
+    bool ever_visible = false;
+};
+
 // ゴールの周辺に壁を置いて見えにくくする処理
-void obscure_goal(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
-                  vector<pair<int, int>> &placed_out) {
+
+ll obscure_goal(vector<vector<char>> &b, int sx, int sy, int gx, int gy,
+                vector<pair<int, int>> &placed_out, vector<pair<int, int>> &reserved_open) {
     int N = b.size();
 
-    vector<pair<int, int>> touched;
-
-    // (x,y) に壁を置く（置けるなら）
-    auto placeWall = [&](int x, int y) {
+    auto try_wall = [&](int x, int y) {
         if (!inside(x, y, N, N)) return;
         if ((x == sx && y == sy) || (x == gx && y == gy)) return;
-        if (b[x][y] == '.') {
-            b[x][y] = 'T';
-            touched.emplace_back(x, y);
+        if (b[x][y] != '.') return;
+        b[x][y] = 'T';
+        if (!layout_ok(b, sx, sy, gx, gy)) {
+            b[x][y] = '.';
+            return;
         }
-    };
-
-    auto rollback = [&]() {
-        for (auto &p : touched) b[p.first][p.second] = '.';
-        touched.clear();
-    };
-
-    auto dist_edge = [&](int x, int y) { return min(min(x, N - 1 - x), min(y, N - 1 - y)); };
-
-    struct Cand {
-        double score;
-        vector<pair<int, int>> walls;
-    };
-    Cand best{
-        -1e100,
-        {},
-    };
-
-    rep(d, 4) { // 空きますの位置
-        int nx = gx + dx[d], ny = gy + dy[d];
-        if (!inside(nx, ny, N, N) || b[nx][ny] == 'T') continue; // 範囲外 or 壁
-
-        rep(i, 2) { // 壁をうめる方向
-            int nnx = nx + dy[d] * (i == 0 ? 1 : -1);
-            int nny = ny - dx[d] * (i == 0 ? 1 : -1);
-
-            touched.clear();
-            rep(dd, 4) {
-                if (dd == d) continue;
-                int wx = gx + dx[dd], wy = gy + dy[dd];
-                placeWall(wx, wy);
-            }
-
-            placeWall(nx + dx[d], ny + dy[d]); // 奥
-            placeWall(nnx, nny);               // 横
-
-            if (!all_open(b, sx, sy, gx, gy)) {
-                rollback();
-                continue;
-            }
-
-            int score = -dist_edge(nnx, nny);
-
-            if (score > best.score) {
-                best.score = score;
-                best.walls = touched;
-            }
-
-            rollback();
-        }
-    }
-
-    for (auto &[x, y] : best.walls) {
-        if (b[x][y] == '.') b[x][y] = 'T';
         placed_out.emplace_back(x, y);
+    };
+
+    // 隣接斜めは隠しやすいので、通路を壊さない範囲で壁にする
+    try_wall(gx + 1, gy + 1);
+    try_wall(gx + 1, gy - 1);
+    try_wall(gx - 1, gy + 1);
+    try_wall(gx - 1, gy - 1);
+
+    // 四方向のゲートと手前1マスを「必ず空けたい候補」として記録
+    rep(d, 4) {
+        int gate_x = gx + dx[d], gate_y = gy + dy[d];
+        int approach_x = gate_x + dx[d];
+        int approach_y = gate_y + dy[d];
+        if (inside(gate_x, gate_y, N, N) && b[gate_x][gate_y] == '.')
+            reserved_open.emplace_back(gate_x, gate_y);
+        if (inside(approach_x, approach_y, N, N) && b[approach_x][approach_y] == '.')
+            reserved_open.emplace_back(approach_x, approach_y);
     }
+
+    return (ll)placed_out.size();
 }
 
 // ==== ここから追記（または置換） ====
@@ -220,6 +210,7 @@ struct Eval {
     int loops       = 0;
     int two2        = 0;
     int unreachable = 0;
+    int wall_4dir   = 0;
 };
 
 struct SAParams {
@@ -311,6 +302,89 @@ static inline int count_turns_on_path(const vector<int> &par, int N, int sx, int
     return turns;
 }
 
+static inline vector<pair<int, int>> extract_path(const vector<int> &par, int N, int sx, int sy, int gx,
+                                                  int gy) {
+    vector<pair<int, int>> path;
+    auto id = [&](int x, int y) { return x * N + y; };
+    int s   = id(sx, sy);
+    int g   = id(gx, gy);
+    if (g == s) {
+        path.emplace_back(sx, sy);
+        return path;
+    }
+    if (g < 0 || g >= N * N || par[g] == -1) return path;
+    int cur = g;
+    while (cur != -1) {
+        int x = cur / N;
+        int y = cur % N;
+        path.emplace_back(x, y);
+        if (cur == s) break;
+        cur = par[cur];
+    }
+    if (path.empty() || path.back() != make_pair(sx, sy)) return {};
+    reverse(path.begin(), path.end());
+    return path;
+}
+
+static inline vector<pair<int, int>> shortest_path_any(const vector<vector<char>> &b, int sx, int sy,
+                                                       int gx, int gy) {
+    int N          = (int)b.size();
+    const int INFV = 1e9;
+    if (!inside(sx, sy, N, N) || !inside(gx, gy, N, N)) return {};
+    if (b[sx][sy] == 'T' || b[gx][gy] == 'T') return {};
+    vector<int> dist(N * N, INFV);
+    vector<int> par(N * N, -1);
+    auto id = [&](int x, int y) { return x * N + y; };
+    queue<pair<int, int>> q;
+    dist[id(sx, sy)] = 0;
+    q.push({sx, sy});
+    while (!q.empty()) {
+        auto [x, y] = q.front();
+        q.pop();
+        if (x == gx && y == gy) break;
+        rep(d, 4) {
+            int nx = x + dx[d], ny = y + dy[d];
+            if (!inside(nx, ny, N, N)) continue;
+            if (b[nx][ny] == 'T') continue;
+            int nid = id(nx, ny);
+            if (dist[nid] <= dist[id(x, y)] + 1) continue;
+            dist[nid] = dist[id(x, y)] + 1;
+            par[nid]  = id(x, y);
+            q.push({nx, ny});
+        }
+    }
+    if (dist[id(gx, gy)] >= INFV) return {};
+    return extract_path(par, N, sx, sy, gx, gy);
+}
+
+static inline void seal_unreachable(vector<vector<char>> &b, int sx, int sy, int gx, int gy) {
+    int N = (int)b.size();
+    vector<vector<bool>> vis(N, vector<bool>(N, false));
+    queue<pair<int, int>> q;
+    if (inside(sx, sy, N, N) && b[sx][sy] == '.') {
+        vis[sx][sy] = true;
+        q.push({sx, sy});
+    }
+    while (!q.empty()) {
+        auto [x, y] = q.front();
+        q.pop();
+        rep(d, 4) {
+            int nx = x + dx[d], ny = y + dy[d];
+            if (!inside(nx, ny, N, N)) continue;
+            if (vis[nx][ny]) continue;
+            if (b[nx][ny] == 'T') continue;
+            vis[nx][ny] = true;
+            q.push({nx, ny});
+        }
+    }
+    rep(i, N) rep(j, N) {
+        if (b[i][j] != '.') continue;
+        if (vis[i][j]) continue;
+        if ((i == gx && j == gy) || (i == sx && j == sy)) continue;
+        b[i][j] = 'T';
+    }
+}
+
 // 到達集合上での E, V, ループ数と分岐数（deg>=3）
 static inline void reach_graph_stats(const vector<vector<char>> &b, const vector<int> &dist, int sx,
                                      int sy, int &V, int &E2, int &loops, int &junctions) {
@@ -360,6 +434,21 @@ static inline Eval evaluate(const vector<vector<char>> &b, int sx, int sy, int g
     }
     ev.path_len = dG;
 
+    // 4面壁に囲まれた木を罰する
+    rep(i, N) rep(j, N) {
+        if (b[i][j] == 'T') {
+            bool isolated = true;
+            rep(d, 4) {
+                int ni = i + dx[d], nj = j + dy[d];
+                if (inside(ni, nj, N, N) && b[ni][nj] == '.') {
+                    isolated = false;
+                    break;
+                }
+            }
+            if (isolated) ev.wall_4dir++;
+        }
+    }
+
     // 到達不能空きマス
     int total_open = 0, reach_open = 0;
     for (int i = 0; i < N; i++)
@@ -384,19 +473,21 @@ static inline Eval evaluate(const vector<vector<char>> &b, int sx, int sy, int g
     // 重みは適宜調整可。2x2は強罰、S->G長さ＆曲がり＆分岐＆ループを報酬、到達不能は軽い罰
     const double W_LEN    = 5.0;
     const double W_TURN   = 2.0;
-    const double W_JUNC   = 1.6;
-    const double W_LOOP   = 3.0;    // ループは程々に
-    const double LOOP_CAP = 200.0;  // 飽和上限
-    const double P_2X2    = 1000.0; // 2x2 は絶対潰す
-    const double P_UNR    = 6.0;    // 到達不能はやや罰
+    const double W_JUNC   = 1.2;
+    const double W_LOOP   = 5.0;   // ループは程々に
+    const double LOOP_CAP = 200.0; // 飽和上限
+    const double P_2X2    = 800.0; // 2x2 は絶対潰す
+    const double P_UNR    = 500.0; // 到達不能は罰
+    const double P_WALL4  = 500.0; // 4面壁に囲まれた木は罰
 
     double s = 0.0;
-    s += W_LEN * ev.path_len;
+    // s += W_LEN * ev.path_len;
     s += W_TURN * ev.turns;
     s += W_JUNC * ev.junctions;
     s += W_LOOP * min<double>(ev.loops, LOOP_CAP);
     s -= P_2X2 * ev.two2;
     s -= P_UNR * ev.unreachable;
+    s -= P_WALL4 * ev.wall_4dir;
 
     ev.score = s;
     return ev;
@@ -425,6 +516,7 @@ static inline void greedy_fix_2x2(vector<vector<char>> &b, const vector<vector<c
         int N2  = N;
         auto id = [&](int a, int c) { return a * N2 + c; };
         bool ok = (b[sx][sy] == '.' && dist[id(gx, gy)] < (int)1e9);
+
         if (!ok) b[x][y] = old;
         return ok;
     };
@@ -538,12 +630,31 @@ int main() {
 
     vector origin = b;
     vector<pair<int, int>> pinned;
+    vector<pair<int, int>> reserved_open;
 
-    obscure_goal(b, sx, sy, gx, gy, pinned);
+    obscure_goal(b, sx, sy, gx, gy, pinned, reserved_open);
     auto processed_origin = origin; // コピー
     for (auto &[x, y] : pinned) processed_origin[x][y] = 'T';
+    for (auto &[x, y] : reserved_open) processed_origin[x][y] = 'T';
 
     make_maze(b, sx, sy, gx, gy, processed_origin);
+    seal_unreachable(b, sx, sy, gx, gy);
+
+    vector<vector<char>> current_board = b;
+
+    vector<GoalGate> goal_gates;
+    rep(d, 4) {
+        int nx = gx + dx[d], ny = gy + dy[d];
+        if (!inside(nx, ny, N, N)) continue;
+        if (current_board[nx][ny] != '.') continue;
+        GoalGate gate;
+        gate.x          = nx;
+        gate.y          = ny;
+        gate.dir        = d;
+        gate.approach_x = nx + dx[d];
+        gate.approach_y = ny + dy[d];
+        goal_gates.push_back(gate);
+    }
 
     vector<pll> ans;
 
@@ -551,25 +662,89 @@ int main() {
         if (b[i][j] != origin[i][j]) ans.emplace_back(i, j);
     }
 
+    vector<vector<bool>> confirmed(N, vector<bool>(N, false));
+    vector<vector<bool>> seen(N, vector<bool>(N, false));
+
     bool first = true;
 
+    vector<pii> target(n ^ 2 - 1);
+
+    rep(i, n * n - 1) { cin >> target[i].first >> target[i].second; }
+
     while (true) {
-        ll x, y;
-        if (!(cin >> x >> y)) break;
-        if (x == gx && y == gy) break;
+        ll x_in, y_in;
+        if (!(cin >> x_in >> y_in)) break;
+        int ax = (int)x_in;
+        int ay = (int)y_in;
+        if (ax == gx && ay == gy) break;
 
         ll n;
         if (!(cin >> n)) break;
         vec xs(n), ys(n);
-        rep(i, n) cin >> xs[i] >> ys[i];
+        rep(i, n) {
+            cin >> xs[i] >> ys[i];
+            int cx = (int)xs[i];
+            int cy = (int)ys[i];
+            if (!inside(cx, cy, N, N)) continue;
+
+            confirmed[cx][cy] = true;
+            seen[cx][cy]      = true;
+        }
+        if (inside(ax, ay, N, N)) {
+            confirmed[ax][ay] = true;
+            seen[ax][ay]      = true;
+        }
+
+        for (auto &gate : goal_gates) {
+            if (inside(gate.x, gate.y, N, N) && confirmed[gate.x][gate.y]) gate.ever_visible = true;
+        }
 
         if (first) {
             first = false;
             cout << ans.size();
-            for (auto &[x, y] : ans) cout << ' ' << x << ' ' << y;
+            for (auto &[px, py] : ans) cout << ' ' << px << ' ' << py;
             cout << endl;
-        } else {
-            cout << 0 << endl;
+            continue;
         }
+
+        vector<pair<int, int>> placements;
+
+        const int INF_PATH = 1e9;
+        auto path_now      = shortest_path_any(current_board, ax, ay, gx, gy);
+        int dist_now       = path_now.empty() ? INF_PATH : (int)path_now.size() - 1;
+
+        if (dist_now == 2) {
+            auto try_seal_gate = [&](GoalGate &gate) -> bool {
+                if (gate.closed) return false;
+                if (gate.ever_visible) return false;
+                if (!inside(gate.x, gate.y, N, N)) return false;
+                if (!inside(gate.approach_x, gate.approach_y, N, N)) return false;
+                if (current_board[gate.x][gate.y] != '.') return false;
+                if (confirmed[gate.x][gate.y] || seen[gate.x][gate.y]) return false;
+                if (path_now.size() < 3) return false;
+                if (!(path_now[1].first == gate.approach_x && path_now[1].second == gate.approach_y &&
+                      path_now[2].first == gate.x && path_now[2].second == gate.y))
+                    return false;
+
+                current_board[gate.x][gate.y] = 'T';
+                auto new_path                 = shortest_path_any(current_board, ax, ay, gx, gy);
+                if (new_path.empty()) {
+                    current_board[gate.x][gate.y] = '.';
+                    return false;
+                }
+
+                placements.emplace_back(gate.x, gate.y);
+                gate.closed = true;
+                return true;
+            };
+
+            for (auto &gate : goal_gates) {
+                if (try_seal_gate(gate)) break;
+            }
+        }
+
+        cout << placements.size();
+        for (auto [px, py] : placements) cout << ' ' << px << ' ' << py;
+        cout << endl;
     }
 }
