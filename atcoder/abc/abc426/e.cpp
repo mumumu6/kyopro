@@ -4,6 +4,7 @@ using namespace std;
 // using namespace atcoder;
 // using mint = modint998244353;
 using ll     = long long;
+using ld    = long double;
 using i128   = __int128_t;
 const ll INF = 4e18;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
@@ -98,23 +99,7 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
-ld golden_section_search(auto f, ld a, ld b) {
-    const ld PHI_1 = (sqrtl(5) - 1) / 2;
-    ld x = lerp(b, a, PHI_1), fx = f(x), fy;
-    rep(60) {
-        ld y = lerp(a, b, PHI_1);
-        fy = f(y);
-        if (fx < fy) {
-            b = a;
-            a = y;
-        } else {
-            a = x;
-            x = y;
-            fx = fy;
-        }
-    }
-    return fx;
-}
+
 
 int main() {
     cin.tie(nullptr);
@@ -165,6 +150,7 @@ int main() {
         auto g = [&](long double time) {
             long double d = (tg.ft - ts.ft) * (tg.ft - ts.ft) + (tg.sd - ts.sd) * (tg.sd - ts.sd);
             d             = sqrt(d);
+            
 
             long double dx = ts.ft + time * (long double)(tg.ft - ts.ft) / (long double)d - ag.ft;
             long double dy = ts.sd + time * (long double)(tg.sd - ts.sd) / (long double)d - ag.sd;

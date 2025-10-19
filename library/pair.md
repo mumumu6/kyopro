@@ -33,7 +33,7 @@ template<class T> P<T> normalize(P<T> a) {
 ld golden_section_search(auto f, ld a, ld b) {
     const ld PHI_1 = (sqrtl(5) - 1) / 2;
     ld x = lerp(b, a, PHI_1), fx = f(x), fy;
-    rep(60) {
+    rep(i,60) {
         ld y = lerp(a, b, PHI_1);
         fy = f(y);
         if (fx < fy) {
