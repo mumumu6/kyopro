@@ -30,7 +30,7 @@ PCH_FILE="$PCH_DIR/pch.hpp.gch"
 # ヘッダが存在しなければコピー（更新されたら毎回コピーし直す）
 if [ ! -f "$PCH_HEADER" ] || [ "$SRC_PCH_HEADER" -nt "$PCH_HEADER" ]; then
   echo "[run_cpp.sh] Copying precompiled header..."
-  cp "$SRC_PCH_HEADER" "$PCH_HEADER"
+  cp -u --preserve=timestamps "$SRC_PCH_HEADER" "$PCH_HEADER"
 fi
 
 # PCH が無い、もしくはヘッダが更新されていたら再生成
