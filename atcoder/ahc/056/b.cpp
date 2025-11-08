@@ -345,6 +345,7 @@ int main() {
         }
     }
     rep(i, n - 1) {
+        
         rep(j, n) {
             if (down_wall[i][j] == '1') continue;
             int a = idx(i, j);

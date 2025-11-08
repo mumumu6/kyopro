@@ -9,6 +9,7 @@ using i128   = __int128_t;
 const ll INF = 4e18;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
 #define reps(i, a, b) for (ll i = (a); i < (b); i++)
+
 #define rrep(i, n) for (ll i = (n) - 1; i >= 0; i--)
 #define rreps(i, a, b) for (ll i = (b) - 1; i >= (a); i--)
 bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
@@ -198,6 +199,8 @@ int main() {
                 que.push(nv);
             }
         }
+
+        
 
         int cur = goal;
         vector<int> path;
