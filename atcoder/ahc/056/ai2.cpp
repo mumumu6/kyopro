@@ -1,5 +1,3 @@
-// 経路全部に状態を与えて最短経路でつなげるだけ
-
 #include <bits/stdc++.h>
 using namespace std;
 // #include <atcoder/all>
@@ -119,11 +117,12 @@ int main() {
     rep(i, k) cin >> points[i].first >> points[i].second;
 
     auto to_index = [&](int x, int y) { return x * n + y; };
-    vector<char> program;
 
-    vector<ll> cnt(n * n, 0); // 各マス南海とおったかもつ
+    vector<char> moves;
+    vector<pll> positions;
+    positions.reserve(k * n * n);
+    positions.push_back(points[0]);
 
-    // BFS shortest path between two points and append the directions.
     auto append_path = [&](pll s, pll g) {
         if (s == g) return;
         vector<int> prev(n * n, -1);
@@ -135,6 +134,7 @@ int main() {
         que.push(start);
 
         auto enqueue = [&](int nx, int ny, int v, char dir) {
+            if (!inside(nx, ny, n, n)) return;
             int ni = to_index(nx, ny);
             if (prev[ni] != -1) return;
             prev[ni]     = v;
@@ -151,10 +151,8 @@ int main() {
             if (y - 1 >= 0 && right_wall[x][y - 1] == '0') enqueue(x, y - 1, v, 'L');
             if (x + 1 < n && down_wall[x][y] == '0') enqueue(x + 1, y, v, 'D');
             if (x - 1 >= 0 && down_wall[x - 1][y] == '0') enqueue(x - 1, y, v, 'U');
-
-            cnt[v]++;
         }
-        if (prev[goal] == -1) return; // should not happen due to connectivity
+        if (prev[goal] == -1) return;
 
         vector<char> seq;
         int cur = goal;
@@ -163,29 +161,127 @@ int main() {
             cur = prev[cur];
         }
         reverse(all(seq));
-        program.insert(program.end(), seq.begin(), seq.end());
+        for (char d : seq) {
+            moves.push_back(d);
+            auto [x, y] = positions.back();
+            if (d == 'U') --x;
+            if (d == 'D') ++x;
+            if (d == 'L') --y;
+            if (d == 'R') ++y;
+            positions.emplace_back(x, y);
+        }
     };
 
     rep(i, k - 1) append_path(points[i], points[i + 1]);
 
-    if ((ll)program.size() > t) program.resize(t); // guard just in case
+    int L = moves.size();
 
-    int C = 1;
-    int Q = max(1, (int)program.size() + 1);
-    int M = (int)program.size();
+    auto dir_to_idx = [&](char c) {
+        if (c == 'R') return 0;
+        if (c == 'D') return 1;
+        if (c == 'L') return 2;
+        return 3;
+    };
 
-    cout << C << spa << Q << spa << M << el;
+    struct NodeStage {
+        char dir;
+        int cell_next;   // stage id for next visit to the same cell
+        int global_next; // stage id for the next overall step
+    };
+    vector<NodeStage> nodes(1, NodeStage{'?', 0, 0});
+    unordered_map<long long, int> key2node;
+    auto pack_key = [&](int dir_idx, int cell_next, int global_next) -> long long {
+        return (((long long)dir_idx << 42) | ((long long)cell_next << 21) | (long long)global_next);
+    };
+
+    vector<int> stage_of_step(L, 0);
+    vector<int> next_stage_same_cell(n * n, 0);
+    for (int i = L - 1; i >= 0; --i) {
+        int cell        = to_index(positions[i].first, positions[i].second);
+        int dir_idx     = dir_to_idx(moves[i]);
+        int cell_next   = next_stage_same_cell[cell];
+        int global_next = (i + 1 < L ? stage_of_step[i + 1] : 0);
+        long long key   = pack_key(dir_idx, cell_next, global_next);
+        int node_id;
+        auto it = key2node.find(key);
+        if (it == key2node.end()) {
+            node_id = nodes.size();
+            nodes.push_back(NodeStage{moves[i], cell_next, global_next});
+            key2node[key] = node_id;
+        } else {
+            node_id = it->second;
+        }
+        stage_of_step[i]           = node_id;
+        next_stage_same_cell[cell] = node_id;
+    }
+    vector<int> initial_node = next_stage_same_cell;
+    
+
+    int node_cnt     = nodes.size();
+    auto choose_pair = [&](int total) -> pair<int, int> {
+        int bestC   = total;
+        int bestQ   = total;
+        int bestSum = bestC + bestQ;
+
+        int total_root = (int)sqrt(total);
+
+        vector<int> dc = {0, 0, 1, 1};
+        vector<int> dq = {0, 1, 0, 1};
+
+        rep(i, 4) {
+            int c = total_root + dc[i];
+            int q = total_root + dq[i];
+
+            if (c <= 0 || q <= 0) continue;
+            if (c * q < total) continue;
+
+            if (chmin(bestSum, c + q)) {
+                bestC = c;
+                bestQ = q;
+            }
+        }
+
+        return {bestC, bestQ};
+    };
+
+    int start_node = stage_of_step[0];
+    vector<int> order;
+    order.push_back(start_node);
+    rep(i, node_cnt) if (i != start_node) order.push_back(i);
+    vector<int> rank(node_cnt);
+    rep(i, node_cnt) rank[order[i]] = i;
+
+    auto [C, Q] = choose_pair(node_cnt);
+    vector<int> node_color(node_cnt), node_state(node_cnt);
+    rep(i, node_cnt) {
+        node_color[i] = rank[i] % C;
+        node_state[i] = rank[i] / C;
+    }
+    int color_cnt = 0, state_cnt = 0;
+
+    rep(i, node_cnt) {
+        color_cnt = max(color_cnt, node_color[i] + 1);
+        state_cnt = max(state_cnt, node_state[i] + 1);
+    }
+
+    vector<int> init_color(n * n, 0);
+    rep(cell, n * n) init_color[cell] = node_color[initial_node[cell]];
+
+    int M = node_cnt - 1;
+    cout << color_cnt << spa << state_cnt << spa << M << el;
     rep(i, n) {
         rep(j, n) {
             if (j) cout << spa;
-            cout << 0;
+            cout << init_color[to_index(i, j)];
         }
         cout << el;
     }
-    rep(i, M) { cout << 0 << spa << i << spa << 0 << spa << i + 1 << spa << program[i] << el; }
 
-    cout << cnt << el;
-    ll sum = 0;
-    rep(i, n * n) sum += cnt[i];
-    cout << "Total visited cells: " << sum << el;
+    for (int id = 1; id < node_cnt; ++id) {
+        auto &nd  = nodes[id];
+        int paint = node_color[nd.cell_next];
+        int nxts  = node_state[nd.global_next];
+        cout << node_color[id] << spa << node_state[id] << spa << paint << spa << nxts << spa << nd.dir
+             << el;
+    }
 }

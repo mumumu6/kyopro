@@ -136,9 +136,9 @@ int main() {
         points[i] = {x, y};
     }
 
+// 書くマスに対してどういう方向でそこを通るかを持つ
 
-    vector<ll> cnt(n * n, 0); // 各頂点が何回経由されたか
-
+    vector<vector<ll>> next_dir(n * n, vector<ll>(n * n, -1));
     
     
     
