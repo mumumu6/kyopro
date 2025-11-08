@@ -99,6 +99,11 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
+bool is_prefix(const vector<char> &small, const vector<char> &large) {
+    if (small.size() > large.size()) return false;
+    return equal(small.begin(), small.end(), large.begin());
+}
+
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
@@ -107,27 +112,59 @@ int main() {
     ll n, k, t;
     cin >> n >> k >> t;
 
-    vector<vector<ll>> g(n);
+    vector<vector<ll>> g(n * n);
     vector<pll> points(k);
 
     // xy座標から indexへ
-    auto to_index = [&](ll x, ll y) { return x * n + y; };
+    auto to_index   = [&](ll x, ll y) { return x * n + y; };
+    auto to_index_p = [&](pll x) { return x.x * n + x.y; };
 
-    rep(i, n) rep(j, n - 1) {
-        int v;
-        cin >> v;
+    auto get_dir = [&](int from, int to) -> char {
+        int fx = from / n;
+        int fy = from % n;
+        int tx = to / n;
+        int ty = to % n;
 
-        if (v) continue;
+        if (fx == tx) {
+            if (fy + 1 == ty) return 'R';
+            if (fy - 1 == ty) return 'L';
+        } else if (fy == ty) {
+            if (fx + 1 == tx) return 'D';
+            if (fx - 1 == tx) return 'U';
+        }
 
-        g[to_index(i, j)].push_back(to_index(i, j + 1));
+        return '?';
+    };
+    auto dir_to_idx = [&](char c) {
+        if (c == 'R') return 0;
+        if (c == 'D') return 1;
+        if (c == 'L') return 2;
+        return 3;
+    };
+
+    rep(i, n) {
+        string row;
+        cin >> row;
+        rep(j, n - 1) {
+            int v = row[j] - '0';
+            if (v) continue;
+
+            g[to_index(i, j)].push_back(to_index(i, j + 1));
+            g[to_index(i, j + 1)].push_back(to_index(i, j));
+        }
     }
-    rep(i, n - 1) rep(j, n) {
-        int u;
-        cin >> u;
 
-        if (u) continue;
+    rep(i, n - 1) {
+        string row;
+        cin >> row;
+        rep(j, n) {
+            int u = row[j] - '0';
 
-        g[to_index(i, j)].push_back(to_index(i + 1, j));
+            if (u) continue;
+
+            g[to_index(i, j)].push_back(to_index(i + 1, j));
+            g[to_index(i+1, j)].push_back(to_index(i, j));
+        }
     }
 
     rep(i, k) {
@@ -136,10 +173,111 @@ int main() {
         points[i] = {x, y};
     }
 
-// 書くマスに対してどういう方向でそこを通るかを持つ
+    // 書くマスに対してどういう方向でそこを通るかを持つ
 
-    vector<vector<ll>> next_dir(n * n, vector<ll>(n * n, -1));
-    
-    
-    
+    vector<vector<char>> next_dir(n * n);
+    vector<int> move;
+    // 各マスにどういう方向で入るかをBFSで決定
+    rep(i, k) {
+        int start = to_index_p(points[i]);
+        int goal  = to_index_p(points[(i + 1) % k]);
+
+        queue<int> que;
+        vector<int> prev(n * n, -1);
+
+        que.push(start);
+        prev[start] = start;
+
+        while (!que.empty() && prev[goal] == -1) {
+            int v = que.front();
+            que.pop();
+
+            for (auto nv : g[v]) {
+                if (prev[nv] != -1) continue;
+                prev[nv] = v;
+                que.push(nv);
+            }
+        }
+
+        int cur = goal;
+        vector<int> path;
+        while (cur != start) {
+            int pv = prev[cur];
+            next_dir[pv].push_back(get_dir(pv, cur));
+            cur = pv;
+            path.push_back(cur);
+        }
+        reverse(all(path));
+        move.insert(move.end(), all(path));
+    }
+
+    rep(cell, n * n) { reverse(all(next_dir[cell])); }
+
+    auto choose_pair = [&](int total) -> pair<int, int> {
+        int bestC   = total;
+        int bestQ   = total;
+        int bestSum = bestC + bestQ;
+
+        int total_root = (int)sqrt(total);
+
+        vector<int> dc = {0, 0, 1, 1};
+        vector<int> dq = {0, 1, 0, 1};
+
+        rep(i, 4) {
+            int c = total_root + dc[i];
+            int q = total_root + dq[i];
+
+            if (c <= 0 || q <= 0) continue;
+            if (c * q < total) continue;
+
+            if (chmin(bestSum, c + q)) {
+                bestC = c;
+                bestQ = q;
+            }
+        }
+
+        return {bestC, bestQ};
+    };
+
+    int node_cnt = move.size();
+    auto [c, q]  = choose_pair(node_cnt);
+
+    cout << c << spa << q << spa  <<  node_cnt - 1 << el;
+
+    // color = node % c
+    // state = node / c
+
+    vector<int> init_color(n * n, -1);
+    vector<queue<int>> stage_of_step(n*n);
+
+    rep(i, move.size()) {
+        int cell = move[i];
+
+        stage_of_step[cell].push(i);
+        if (init_color[cell] == -1) { init_color[cell] = i % c; }
+    }
+    rep(i, n * n) {
+        if (init_color[i] == -1) init_color[i] = 0;
+        stage_of_step[i].push(0); // dummy state
+        stage_of_step[i].pop();
+    }
+
+    rep(i, n) {
+        rep(j, n) { cout << init_color[to_index(i, j)] << spa; }
+        cout << el;
+    }
+
+    rep(i, move.size() - 1) {
+        int from       = move[i];
+        int to         = move[i + 1];
+        char d         = get_dir(from, to);
+        
+        int next_cell_stage = stage_of_step[from].front();
+        stage_of_step[from].pop();
+        int next_color = next_cell_stage % c;
+        int next_state = (i + 1) / c;
+
+
+        cout << i % c << spa << i / c << spa << next_color << spa << next_state << spa << d << el;
+    }
 }
