@@ -194,7 +194,7 @@ int main() {
         dsu uf(n);
         vector<pll> edges;
         edges.reserve(n - m);
-        ll cost = 0;
+        ld cost = 0;
 
         for (int seed : order) {
             for (auto [_, u] : dist[seed]) {
@@ -219,14 +219,14 @@ int main() {
                 if (best_v == -1) continue;
 
                 edges.push_back({best_v, u});
-                cost += best_d;
+                cost += sqrt(best_d);
                 uf.merge(best_v, u);
             }
             if (uf.size(uf.leader(seed)) < k) return make_pair(INF, vector<pll>{});
         }
 
         if ((int)edges.size() != n - m) return make_pair(INF, vector<pll>{});
-        return make_pair(cost, edges);
+        return make_pair((ll)cost, edges);
     };
 
     auto seeds0               = build_seeds(0);
@@ -234,7 +234,7 @@ int main() {
 
     // 初期 seed を変えたり順序をシャッフルしたりして探索
     while (chrono::steady_clock::now() < deadline) {
-        int first = rng() % n;
+        int first  = rng() % n;
         auto seeds = build_seeds(first);
 
         auto [c1, e1] = build_plan(seeds);

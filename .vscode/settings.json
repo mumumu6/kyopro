@@ -103,7 +103,8 @@
     "*.cpp": "cpp",
     "internal_math": "cpp",
     "generator": "cpp",
-    "text_encoding": "cpp"
+    "text_encoding": "cpp",
+    "print": "cpp"
   },
   "clangd.path": "clangd",
   "C_Cpp.errorSquiggles": "enabled",
