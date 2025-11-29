@@ -143,115 +143,87 @@ int main() {
     vector<pll> p(n);
     vector<pll> v(n);
     rep(i, n) { cin >> p[i].x >> p[i].y >> v[i].x >> v[i].y; }
+    // --- seed を 10 個選ぶ ---
+    vector<int> seeds;
+    vector<bool> is_seed(n, false);
+    seeds.push_back(0);
+    is_seed[0] = true;
 
-    // 前計算：全点間距離の二乗と、各点からの昇順近傍リスト
-    vector<vector<ll>> dist2(n, vector<ll>(n, 0));
+    while ((int)seeds.size() < m) { // m = 10
+        ll best_d  = -1;
+        int best_i = -1;
+        rep(i, n) {
+            if (is_seed[i]) continue;
+            ll mind = INF;
+            for (int s : seeds) { chmin(mind, torus_dist2(p[i], p[s])); }
+            if (mind > best_d) {
+                best_d = mind;
+                best_i = i;
+            }
+        }
+        seeds.push_back(best_i);
+        is_seed[best_i] = true;
+    }
+
+    // 一旦自国0で全部結合させる
+    dsu uf(n);
+
+    vector<pair<ld, pll>> edges;
     vector<vector<pll>> dist(n);
-    rep(i, n) {
-        dist[i].reserve(n - 1);
-        rep(j, n) {
-            dist2[i][j] = torus_dist2(p[i], p[j]);
-            if (i == j) continue;
-            dist[i].push_back({dist2[i][j], j});
-        }
-        so(dist[i]);
+    rep(i, n) reps(j, i + 1, n) {
+        edges.push_back({torus_dist2(p[i], p[j]), {i, j}});
+        dist[i].push_back({torus_dist2(p[i], p[j]), j});
+        dist[j].push_back({torus_dist2(p[i], p[j]), i});
     }
 
-    // 時間いっぱい seed を探す
-    auto clock_start = chrono::steady_clock::now();
-    auto deadline    = clock_start + chrono::milliseconds(1900); // 2sec ぎりぎりまで使う
-    mt19937 rng((uint32_t)chrono::steady_clock::now().time_since_epoch().count());
+    rep(i, n) { so(dist[i]); }
 
-    auto build_seeds = [&](int first) {
-        vector<int> seeds;
-        seeds.reserve(m);
-        vector<char> used(n, false);
-        seeds.push_back(first);
-        used[first] = true;
+    so(edges);
 
-        while ((int)seeds.size() < m) {
-            ll best_d  = -1;
-            int best_i = -1;
-            rep(i, n) {
-                if (used[i]) continue;
-                ll mind = INF;
-                for (int s : seeds) { chmin(mind, dist2[i][s]); }
-                if (mind > best_d) {
-                    best_d = mind;
-                    best_i = i;
-                }
-            }
-            seeds.push_back(best_i);
-            used[best_i] = true;
-        }
-        return seeds;
-    };
+    vector<pll> ans;
 
-    auto build_plan = [&](const vector<int> &order) {
-        vector<char> is_seed(n, false);
-        for (int s : order) is_seed[s] = true;
+    for (int seed : seeds) {
+        for (auto [_, u] : dist[seed]) {
+            int rseed = uf.leader(seed);
+            if (uf.size(rseed) >= k) break;
+            if (uf.size(u) > 1) continue;
+            if (uf.same(rseed, u)) continue;
+            if (is_seed[u]) continue;
 
-        dsu uf(n);
-        vector<pll> edges;
-        edges.reserve(n - m);
-        ll cost = 0;
+            // ★ ここで seed が属する成分を uf.groups() から探す
+            ll best_d  = INF;
+            int best_v = -1;
 
-        for (int seed : order) {
-            for (auto [_, u] : dist[seed]) {
-                int rseed = uf.leader(seed);
-                if (uf.size(rseed) >= k) break;
-                if (uf.size(u) > 1) continue;
-                if (uf.same(rseed, u) || is_seed[u]) continue;
-
-                ll best_d  = INF;
-                int best_v = -1;
-                for (auto &comp : uf.groups()) {
-                    if (uf.leader(comp[0]) != rseed) continue;
-                    for (int vtx : comp) {
-                        ll d2 = dist2[vtx][u];
-                        if (d2 < best_d) {
-                            best_d = d2;
-                            best_v = vtx;
-                        }
+            // 全コンポーネントを取得
+            auto comps = uf.groups();
+            for (auto &comp : comps) {
+                bool has_seed = false;
+                for (int v : comp) {
+                    if (uf.leader(v) == rseed) { // この comp が seed 成分か？
+                        has_seed = true;
+                        break;
                     }
-                    break; // seed 成分は1つだけ
                 }
-                if (best_v == -1) continue;
+                if (!has_seed) continue;
 
-                edges.push_back({best_v, u});
-                cost += best_d;
-                uf.merge(best_v, u);
+                // このコンポーネントの中から u に一番近い v を探す
+                for (int v : comp) {
+                    ll d2 = torus_dist2(p[v], p[u]);
+                    if (d2 < best_d) {
+                        best_d = d2;
+                        best_v = v;
+                    }
+                }
+                break; // seed 成分は1つだけなので抜ける
             }
-            if (uf.size(uf.leader(seed)) < k) return make_pair(INF, vector<pll>{});
-        }
 
-        if ((int)edges.size() != n - m) return make_pair(INF, vector<pll>{});
-        return make_pair(cost, edges);
-    };
+            if (best_v == -1) continue; // 念のため
 
-    auto seeds0               = build_seeds(0);
-    auto [best_cost, bestans] = build_plan(seeds0);
-
-    // 初期 seed を変えたり順序をシャッフルしたりして探索
-    while (chrono::steady_clock::now() < deadline) {
-        int first = rng() % n;
-        auto seeds = build_seeds(first);
-
-        auto [c1, e1] = build_plan(seeds);
-        if (c1 < best_cost) {
-            best_cost = c1;
-            bestans   = std::move(e1);
-        }
-
-        if (chrono::steady_clock::now() >= deadline) break;
-
-        shuffle(seeds.begin(), seeds.end(), rng);
-        auto [c2, e2] = build_plan(seeds);
-        if (c2 < best_cost) {
-            best_cost = c2;
-            bestans   = std::move(e2);
+            ans.push_back({best_v, u});
+            uf.merge(best_v, u);
         }
     }
+    
 
-    for (auto [u, w] : bestans) cout << 0 << " " << u << " " << w << el;
+    for (auto [u, w] : ans) cout << 0 << " " << u << " " << w << el;
 }
