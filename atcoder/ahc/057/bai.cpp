@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-
 using namespace std;
 #include <atcoder/all>
 using namespace atcoder;
@@ -8,7 +7,6 @@ using ll     = long long;
 using ld     = long double;
 using i128   = __int128_t;
 const ll INF = 4e18;
-const ld INF_LD = 1e30L;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
 #define reps(i, a, b) for (ll i = (a); i < (b); i++)
 #define rrep(i, n) for (ll i = (n) - 1; i >= 0; i--)
@@ -146,58 +144,24 @@ int main() {
     vector<pll> v(n);
     rep(i, n) { cin >> p[i].x >> p[i].y >> v[i].x >> v[i].y; }
 
-    // 前計算：全点間距離の二乗と、各点からの昇順近傍リスト (b.cpp と同様)
+    // 前計算：全点間距離の二乗と、各点からの昇順近傍リスト
     vector<vector<ll>> dist2(n, vector<ll>(n, 0));
-    vector<vector<pll>> nearest(n); // nearest[i] = {距離^2, 点番号} のソート済みリスト
+    vector<vector<pll>> dist(n);
     rep(i, n) {
-        nearest[i].reserve(n - 1);
+        dist[i].reserve(n - 1);
         rep(j, n) {
             dist2[i][j] = torus_dist2(p[i], p[j]);
             if (i == j) continue;
-            nearest[i].push_back({dist2[i][j], j});
+            dist[i].push_back({dist2[i][j], j});
         }
-        so(nearest[i]);
+        so(dist[i]);
     }
-
-    // 時間経過を考慮した貪欲法
-    // 各クラスタについて、現在時刻以降で最も近い未所属点を探して結合する
-    // これを K-1 回繰り返す (初期点1 + 29回結合 = 30点)
-
-    struct Cluster {
-        int id;             // 代表点のID (初期seed)
-        vector<int> members; // 構成メンバ
-        ld x, y;            // 現在位置 (時刻 last_t における)
-        ld vx, vy;          // 現在速度
-        int last_t;         // 最後に更新された時刻 (この時刻での位置が x, y)
-    };
-
-    auto get_pos = [&](ld x, ld y, ld vx, ld vy, int dt) -> pair<ld, ld> {
-        ld nx = x + vx * dt;
-        ld ny = y + vy * dt;
-        // 負の剰余に注意しながら正規化
-        nx = fmod(nx, (ld)l);
-        if (nx < 0) nx += l;
-        ny = fmod(ny, (ld)l);
-        if (ny < 0) ny += l;
-        return {nx, ny};
-    };
-
-    auto dist_at_t = [&](ld x1, ld y1, ld x2, ld y2) -> ll {
-        ld dx = abs(x1 - x2);
-        dx    = min(dx, (ld)l - dx);
-        ld dy = abs(y1 - y2);
-        dy    = min(dy, (ld)l - dy);
-        return llround(dx * dx + dy * dy);
-    };
 
     // 時間いっぱい seed を探す
     auto clock_start = chrono::steady_clock::now();
-    auto deadline    = clock_start + chrono::milliseconds(1900);
+    auto deadline    = clock_start + chrono::milliseconds(1900); // 2sec ぎりぎりまで使う
     mt19937 rng((uint32_t)chrono::steady_clock::now().time_since_epoch().count());
 
-
-
-    // 初期シード決定 (k-means++っぽく離れた点を選ぶのが良さそうだが、ランダムでも)
     auto build_seeds = [&](int first) {
         vector<int> seeds;
         seeds.reserve(m);
@@ -211,7 +175,7 @@ int main() {
             rep(i, n) {
                 if (used[i]) continue;
                 ll mind = INF;
-                for (int s : seeds) { chmin(mind, dist2[i][s]); } // 初期位置での距離で簡易判定
+                for (int s : seeds) { chmin(mind, dist2[i][s]); }
                 if (mind > best_d) {
                     best_d = mind;
                     best_i = i;
@@ -223,135 +187,72 @@ int main() {
         return seeds;
     };
 
-    // b.cppベースの貪欲法 + 時間考慮版
-    auto build_plan = [&](const vector<int> &seeds) -> pair<ld, vector<tuple<int, int, int>>> {
-        // seedかどうかの判定
-        vector<bool> is_seed(n, false);
-        for (int s : seeds) is_seed[s] = true;
+    auto build_plan = [&](const vector<int> &order) {
+        vector<char> is_seed(n, false);
+        for (int s : order) is_seed[s] = true;
 
-        // Union-Find で連結成分管理
         dsu uf(n);
-        vector<tuple<int, int, int>> commands; // t, u, w
-        ld total_cost = 0;
+        vector<pll> edges;
+        edges.reserve(n - m);
+        ld cost = 0;
 
-        int merge_count = 0; // 結合回数をカウント
+        for (int seed : order) {
+            for (auto [_, u] : dist[seed]) {
+                int rseed = uf.leader(seed);
+                if (uf.size(rseed) >= k) break;
+                if (uf.size(u) > 1) continue;
+                if (uf.same(rseed, u) || is_seed[u]) continue;
 
-        // seedごとに順番に処理
-        for (int seed_idx = 0; seed_idx < m; seed_idx++) {
-            int seed = seeds[seed_idx];
-            
-            // このseedを含むクラスタに K 個の点を集める
-            while (uf.size(uf.leader(seed)) < k) {
-                // 未使用でseedでない点の中から、このクラスタに最も近い点を探す
-                ll best_cost_sq = INF;
-                int best_u = -1; // クラスタ内の点
-                int best_w = -1; // 結合対象の点
-                int best_time = 0;
-
-                int seed_leader = uf.leader(seed);
-
-                // クラスタ内の全点を探す
-                vector<int> cluster_members;
+                ll best_d  = INF;
+                int best_v = -1;
                 for (auto &comp : uf.groups()) {
-                    if (uf.leader(comp[0]) != seed_leader) continue;
-                    cluster_members = comp;
-                    break;
-                }
-
-                // 結合回数に応じて探索範囲を拡大: (merge_count + 1) * 50
-                int max_time = min((ll)((merge_count + 1) * 50), t);
-                
-                ll best_dist_sq = INF;
-                int best_u_cand = -1;
-                int best_w_cand = -1;
-                int best_t_cand = 0;
-                
-                // クラスタ内の全点と未使用点の組み合わせを探索
-                for (int u : cluster_members) {
-                    rep(w, n) {
-                        // 条件チェック
-                        if (uf.size(w) > 1) continue;
-                        if (uf.same(seed, w)) continue;
-                        if (is_seed[w]) continue;
-                        
-                        // 0〜max_time の範囲を5刻みでサンプリング
-                        for (int curr_t = 0; curr_t < max_time; curr_t += 5) {
-                            // u の時刻 curr_t での位置
-                            ld ux = p[u].x + v[u].x * curr_t;
-                            ld uy = p[u].y + v[u].y * curr_t;
-                            ux = fmod(ux, (ld)l); if (ux < 0) ux += l;
-                            uy = fmod(uy, (ld)l); if (uy < 0) uy += l;
-
-                            // w の時刻 curr_t での位置
-                            ld wx = p[w].x + v[w].x * curr_t;
-                            ld wy = p[w].y + v[w].y * curr_t;
-                            wx = fmod(wx, (ld)l); if (wx < 0) wx += l;
-                            wy = fmod(wy, (ld)l); if (wy < 0) wy += l;
-
-                            // トーラス距離
-                            ld dx = abs(ux - wx);
-                            dx = min(dx, (ld)l - dx);
-                            ld dy = abs(uy - wy);
-                            dy = min(dy, (ld)l - dy);
-                            ll d_sq = llround(dx * dx + dy * dy);
-
-                            if (d_sq < best_dist_sq) {
-                                best_dist_sq = d_sq;
-                                best_u_cand = u;
-                                best_w_cand = w;
-                                best_t_cand = curr_t;
-                            }
+                    if (uf.leader(comp[0]) != rseed) continue;
+                    for (int vtx : comp) {
+                        ll d2 = dist2[vtx][u];
+                        if (d2 < best_d) {
+                            best_d = d2;
+                            best_v = vtx;
                         }
                     }
+                    break; // seed 成分は1つだけ
                 }
-                
-                if (best_w_cand == -1) {
-                    // 結合できる点が見つからなかった
-                    return {INF_LD, {}};
-                }
+                if (best_v == -1) continue;
 
-                // 結合実行
-                commands.emplace_back(best_t_cand, best_u_cand, best_w_cand);
-                total_cost += sqrt((ld)best_dist_sq);
-                uf.merge(best_u_cand, best_w_cand);
-                merge_count++;
+                edges.push_back({best_v, u});
+                cost += sqrt(best_d);
+                uf.merge(best_v, u);
             }
+            if (uf.size(uf.leader(seed)) < k) return make_pair(INF, vector<pll>{});
         }
 
-        if ((int)commands.size() != n - m) {
-            return {INF_LD, {}};
-        }
-
-        return {total_cost, commands};
+        if ((int)edges.size() != n - m) return make_pair(INF, vector<pll>{});
+        return make_pair((ll)cost, edges);
     };
 
+    auto seeds0               = build_seeds(0);
+    auto [best_cost, bestans] = build_plan(seeds0);
 
-    ld best_cost      = INF_LD;
-    vector<tuple<int, int, int>> bestans;
-    
-    int loop_cnt = 0;
+    // 初期 seed を変えたり順序をシャッフルしたりして探索
     while (chrono::steady_clock::now() < deadline) {
-        loop_cnt++;
-        int first = rng() % n;
+        int first  = rng() % n;
         auto seeds = build_seeds(first);
-        
-        // ランダムに少し入れ替えてみる
-        if (loop_cnt % 2 == 0) {
-             shuffle(seeds.begin(), seeds.end(), rng);
+
+        auto [c1, e1] = build_plan(seeds);
+        if (c1 < best_cost) {
+            best_cost = c1;
+            bestans   = std::move(e1);
         }
 
-        auto [cost, cmds] = build_plan(seeds);
-        
-        if (cost < best_cost) {
-            best_cost = cost;
-            bestans = cmds;
+        if (chrono::steady_clock::now() >= deadline) break;
+
+        shuffle(seeds.begin(), seeds.end(), rng);
+        auto [c2, e2] = build_plan(seeds);
+        if (c2 < best_cost) {
+            best_cost = c2;
+            bestans   = std::move(e2);
         }
     }
 
-    // 出力
-    // 時刻順にソートが必要
-    sort(all(bestans));
-    for (auto [t, u, v] : bestans) {
-        cout << t << " " << u << " " << v << el;
-    }
+    for (auto [u, w] : bestans) cout << 0 << " " << u << " " << w << el;
 }
+

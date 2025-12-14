@@ -49,3 +49,7 @@ out
 !.vscode/** 
 *.Identifier
 ac-library
+
+tools
+pahcer
+pahcer-studio
