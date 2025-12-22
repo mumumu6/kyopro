@@ -1,80 +1,78 @@
 {
+  "version": "2.0.0",
   "tasks": [
     {
-      "label": "compile",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
+      "label": "mkdir out",
       "type": "shell",
-      "command": "g++",
+      "command": "mkdir",
+      "args": ["-p", "${fileDirname}/out"],
+      "options": { "cwd": "${fileDirname}" },
+      "problemMatcher": []
+    },
+
+    {
+      "type": "cppbuild",
+      "label": "コンパイルのみ（デバッグ）",
+      "command": "/usr/bin/ccache",
       "args": [
-        "-I",
-        "${workspaceFolder}/pch_overlay",
-        "-std=gnu++23",
-        "-include",
-        "${workspaceFolder}/pch.hpp",
-        "-O2",
-        "-pipe",
+        "/usr/bin/g++-14",
+        "-fsanitize=undefined,address",
+        "-fno-sanitize-recover=all",
+        "-fdiagnostics-color=always",
+        "-Wall",
+        "-Wextra",
+        "-Wshadow",
+        "-std=gnu++2b",
+        "-g",
         "${file}",
         "-o",
         "${fileDirname}/out/${fileBasenameNoExtension}"
       ],
-      //    g++ -std=c++23 -x c++-header pch.hpp -o pch.hpp.gch をヘッダを変えたら実行する
+      "options": { "cwd": "${fileDirname}" },
       "problemMatcher": ["$gcc"],
-      "detail": "コンパイルのみ"
+      "group": { "kind": "build", "isDefault": true },
+      "dependsOn": ["mkdir out"],
+      "detail": "表示中のファイルをデバッグ用にコンパイルします。"
     },
+
     {
-      "label": "run",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
+      "label": "実行のみ",
       "type": "shell",
-      "command": "${fileDirname}/out/${fileBasenameNoExtension}",
+      "command": "bash",
+      "args": ["-lc", "\"${fileDirname}/out/${fileBasenameNoExtension}\""],
+      "options": { "cwd": "${fileDirname}" },
       "problemMatcher": [],
-      "detail": "実行のみ"
+      "detail": "out/ の実行ファイルをそのまま実行（コンパイルはしない）",
+      "group": { "kind": "build", "isDefault": true }
     },
+
     {
       "label": "input.txtを読み込み実行",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
       "type": "shell",
       "command": "bash",
-
       "args": [
-        "-c",
-        "${fileDirname}/out/${fileBasenameNoExtension} < ${fileDirname}/input.txt > ${fileDirname}/output.txt"
+        "-lc",
+        "\"${fileDirname}/out/${fileBasenameNoExtension}\" < \"${fileDirname}/input.txt\""
       ],
+      "options": { "cwd": "${fileDirname}" },
       "problemMatcher": [],
-      "detail": "input.txtから読み込み、output.txtに出力"
+      "detail": "input.txt から読み込んで実行（コンパイルはしない）",
+      "group": { "kind": "build", "isDefault": true }
     },
+
     {
       "label": "コンパイルしてinput.txtを読み込み実行",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
       "type": "shell",
       "command": "bash",
       "args": [
-        "-c",
-        "g++ -std=c++23 ${file} -o ${fileDirname}/out/${fileBasenameNoExtension} && ${fileDirname}/out/${fileBasenameNoExtension} < ${fileDirname}/input.txt > ${fileDirname}/output.txt"
-      ]
-    },
-    {
-      "label": "fast-run",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-c",
-        "g++ -I ${workspaceFolder}/pch_overlay -std=gnu++23 -include ${workspaceFolder}/pch.hpp -O0 -march=native -pipe ${file} -o ${fileDirname}/out/${fileBasenameNoExtension} && ${fileDirname}/out/${fileBasenameNoExtension}"
+        "-lc",
+        "\"${fileDirname}/out/${fileBasenameNoExtension}\" < \"${fileDirname}/input.txt\""
       ],
-      "problemMatcher": ["$gcc"],
-      "detail": "O0 で高速ビルド＆実行"
+      "options": { "cwd": "${fileDirname}" },
+      "dependsOn": ["コンパイルのみ（デバッグ）"],
+      "problemMatcher": [],
+      "detail": "コンパイルしてから input.txt を読み込んで実行",
+      "group": { "kind": "build", "isDefault": true }
     }
-  ],
-  "version": "2.0.0"
+  ]
 }
