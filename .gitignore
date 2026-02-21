@@ -40,7 +40,6 @@ kentyonbon
 *.in
 *.out
 *.json
-*.sh
 *.txt
 test
 onlinejudge

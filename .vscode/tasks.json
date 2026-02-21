@@ -9,7 +9,6 @@
       "options": { "cwd": "${fileDirname}" },
       "problemMatcher": []
     },
-
     {
       "type": "cppbuild",
       "label": "コンパイルのみ（デバッグ）",
@@ -34,7 +33,6 @@
       "dependsOn": ["mkdir out"],
       "detail": "表示中のファイルをデバッグ用にコンパイルします。"
     },
-
     {
       "label": "実行のみ",
       "type": "shell",
@@ -45,7 +43,6 @@
       "detail": "out/ の実行ファイルをそのまま実行（コンパイルはしない）",
       "group": { "kind": "build", "isDefault": true }
     },
-
     {
       "label": "input.txtを読み込み実行",
       "type": "shell",
@@ -59,7 +56,6 @@
       "detail": "input.txt から読み込んで実行（コンパイルはしない）",
       "group": { "kind": "build", "isDefault": true }
     },
-
     {
       "label": "コンパイルしてinput.txtを読み込み実行",
       "type": "shell",
@@ -73,6 +69,27 @@
       "problemMatcher": [],
       "detail": "コンパイルしてから input.txt を読み込んで実行",
       "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "ABC セットアップ",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/scripts/setup_abc_contest.py",
+        "${input:abcContestId}"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "a.cppからf.cppまでをコンテスト名から特定のディレクトリに生成",
+      "group": { "kind": "build", "isDefault": true }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "abcContestId",
+      "type": "promptString",
+      "description": "Contest ID like abc422",
+      "default": "abc422"
     }
   ]
 }
