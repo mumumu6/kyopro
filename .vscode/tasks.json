@@ -2,36 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "mkdir out",
       "type": "shell",
-      "command": "mkdir",
-      "args": ["-p", "${fileDirname}/out"],
-      "options": { "cwd": "${fileDirname}" },
-      "problemMatcher": []
-    },
-    {
-      "type": "cppbuild",
       "label": "コンパイルのみ（デバッグ）",
-      "command": "/usr/bin/ccache",
-      "args": [
-        "/usr/bin/g++-14",
-        "-fsanitize=undefined,address",
-        "-fno-sanitize-recover=all",
-        "-fdiagnostics-color=always",
-        "-Wall",
-        "-Wextra",
-        "-Wshadow",
-        "-std=gnu++2b",
-        "-g",
-        "${file}",
-        "-o",
-        "${fileDirname}/out/${fileBasenameNoExtension}"
-      ],
+      "command": "mise",
+      "args": ["run", "cpp-build", "${file}"],
       "options": { "cwd": "${fileDirname}" },
       "problemMatcher": ["$gcc"],
       "group": { "kind": "build", "isDefault": true },
-      "dependsOn": ["mkdir out"],
-      "detail": "表示中のファイルをデバッグ用にコンパイルします。"
+      "detail": "デバッグ用に必要時のみコンパイル（更新なしなら skip）"
     },
     {
       "label": "実行のみ",
@@ -73,60 +51,17 @@
     {
       "label": "コンパイルして実行",
       "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "mkdir -p \"${fileDirname}/out\" && /usr/bin/ccache /usr/bin/g++-14 -fsanitize=undefined,address -fno-sanitize-recover=all -fdiagnostics-color=always -Wall -Wextra -Wshadow -std=gnu++2b -g \"${file}\" -o \"${fileDirname}/out/${fileBasenameNoExtension}\" && \"${fileDirname}/out/${fileBasenameNoExtension}\""
-      ],
+      "command": "mise",
+      "args": ["run", "cpp", "${file}"],
       "options": {
         "cwd": "${fileDirname}"
       },
-      "problemMatcher": [
-        "$gcc",
-        {
-          "owner": "cpp",
-          "fileLocation": "absolute",
-          "severity": "error",
-          "pattern": [
-            {
-              "regexp": "^==\\d+==ERROR: (AddressSanitizer|UndefinedBehaviorSanitizer): (.*)$",
-              "message": 0
-            },
-            {
-              "regexp": "^\\s*#\\d+\\s+0x[0-9a-fA-F]+\\s+in\\s+.*\\s+(\\/.*\\.(?:c|cc|cpp|cxx|h|hh|hpp)):(\\d+)(?::(\\d+))?.*$",
-              "file": 1,
-              "line": 2,
-              "column": 3
-            }
-          ]
-        }
-      ],
+      "problemMatcher": ["$gcc"],
       "group": {
         "kind": "build",
         "isDefault": true
       },
-      "detail": "コンパイルしてそのまま実行"
-    },
-    {
-      "label": "ABC セットアップ",
-      "type": "shell",
-      "command": "python3",
-      "args": [
-        "${workspaceFolder}/scripts/setup_abc_contest.py",
-        "${input:abcContestId}"
-      ],
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "detail": "a.cppからf.cppまでをコンテスト名から特定のディレクトリに生成",
-      "group": { "kind": "build", "isDefault": true }
-    }
-  ],
-  "inputs": [
-    {
-      "id": "abcContestId",
-      "type": "promptString",
-      "description": "Contest ID like abc422",
-      "default": "abc422"
+      "detail": "必要ならコンパイルして実行（mise）"
     }
   ]
 }

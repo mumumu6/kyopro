@@ -8,6 +8,9 @@
       "program": "${fileDirname}/out/${fileBasenameNoExtension}",
       "cwd": "${fileDirname}",
       "preLaunchTask": "コンパイルのみ（デバッグ）",
+      "env": {
+        "ASAN_OPTIONS": "detect_leaks=0:abort_on_error=1:symbolize=1"
+      },
       "stopOnEntry": false,
       "initCommands": [
         "process handle SIGABRT -p true -s true -n false",
