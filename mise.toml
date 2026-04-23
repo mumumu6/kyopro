@@ -13,6 +13,7 @@ set -eu
 SRC="${usage_src:-}"
 if [ -z "$SRC" ]; then
   if [ -t 0 ]; then
+    ls
     read -r -p "source file (e.g. a.cpp): " SRC
   else
     echo "src is required (e.g. a.cpp)" >&2
@@ -114,6 +115,7 @@ set -eu
 SRC="${usage_src:-}"
 if [ -z "$SRC" ]; then
   if [ -t 0 ]; then
+    ls
     read -r -p "source file (e.g. a.cpp): " SRC
   else
     echo "src is required (e.g. a.cpp)" >&2
