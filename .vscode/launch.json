@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug current file",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${fileDirname}/out/${fileBasenameNoExtension}",
+      "cwd": "${fileDirname}",
+      "preLaunchTask": "コンパイルのみ（デバッグ）",
+      "stopOnEntry": false,
+      "initCommands": [
+        "process handle SIGABRT -p true -s true -n false",
+        "process handle SIGSEGV -p true -s true -n false"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+[tasks.cpp]
+description = "必要ならコンパイルして実行"
+alias = "r"
+shell = "bash -c"
+usage = '''
+arg "<src>" help="source file"
+'''
+run = '''
+set -eu
+
+SRC="$usage_src"
+SRC_DIR="$(dirname "$SRC")"
+STEM="$(basename "${SRC%.*}")"
+OUT_DIR="${SRC_DIR}/out"
+BIN="${OUT_DIR}/${STEM}"
+
+FLAGS=(
+  -fsanitize=undefined,address
+  -fno-sanitize-recover=all
+  -fdiagnostics-color=always
+  -Wall
+  -Wextra
+  -Wshadow
+  -std=gnu++23
+  -g
+  -fno-omit-frame-pointer
+)
+
+mkdir -p "$OUT_DIR"
+
+need_build=0
+
+if [ ! -f "$BIN" ]; then
+  need_build=1
+elif [ "$SRC" -nt "$BIN" ]; then
+  need_build=1
+else
+  for hdr in "$SRC_DIR"/*.h "$SRC_DIR"/*.hpp; do
+    [ -e "$hdr" ] || continue
+    if [ "$hdr" -nt "$BIN" ]; then
+      need_build=1
+      break
+    fi
+  done
+fi
+
+if [ "$need_build" -eq 1 ]; then
+  echo "[build] $SRC -> $BIN"
+  /usr/bin/ccache /usr/bin/g++-14 "${FLAGS[@]}" "$SRC" -o "$BIN"
+else
+  echo "[skip] $BIN is up to date"
+fi
+
+LLVM_SYMBOLIZER="$(command -v llvm-symbolizer || true)"
+if [ -n "$LLVM_SYMBOLIZER" ]; then
+  export ASAN_SYMBOLIZER_PATH="$LLVM_SYMBOLIZER"
+fi
+export ASAN_OPTIONS="abort_on_error=1:symbolize=1"
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
+
+exec "$BIN"
+'''

@@ -71,6 +71,43 @@
       "group": { "kind": "build", "isDefault": true }
     },
     {
+      "label": "コンパイルして実行",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "mkdir -p \"${fileDirname}/out\" && /usr/bin/ccache /usr/bin/g++-14 -fsanitize=undefined,address -fno-sanitize-recover=all -fdiagnostics-color=always -Wall -Wextra -Wshadow -std=gnu++2b -g \"${file}\" -o \"${fileDirname}/out/${fileBasenameNoExtension}\" && \"${fileDirname}/out/${fileBasenameNoExtension}\""
+      ],
+      "options": {
+        "cwd": "${fileDirname}"
+      },
+      "problemMatcher": [
+        "$gcc",
+        {
+          "owner": "cpp",
+          "fileLocation": "absolute",
+          "severity": "error",
+          "pattern": [
+            {
+              "regexp": "^==\\d+==ERROR: (AddressSanitizer|UndefinedBehaviorSanitizer): (.*)$",
+              "message": 0
+            },
+            {
+              "regexp": "^\\s*#\\d+\\s+0x[0-9a-fA-F]+\\s+in\\s+.*\\s+(\\/.*\\.(?:c|cc|cpp|cxx|h|hh|hpp)):(\\d+)(?::(\\d+))?.*$",
+              "file": 1,
+              "line": 2,
+              "column": 3
+            }
+          ]
+        }
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "コンパイルしてそのまま実行"
+    },
+    {
       "label": "ABC セットアップ",
       "type": "shell",
       "command": "python3",
