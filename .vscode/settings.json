@@ -1,6 +1,6 @@
 {
   "code-runner.runInTerminal": true,
   "code-runner.executorMap": {
-    "cpp": "mise run cpp $fullFileName"
+    "cpp": "cd $dir && mise run cpp $fileName"
   }
 }
