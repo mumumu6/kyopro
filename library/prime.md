@@ -181,6 +181,7 @@ bool is_prime(ll n) {
 ```
 
 ## 区間篩
+[l,r]みたいな区間でエラトステネスをする
 
 ```cpp
 vector<long long> segment_sieve(long long a, long long b) {

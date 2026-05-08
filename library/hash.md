@@ -13,3 +13,17 @@ template <class T, class S> struct std::hash<std::pair<T, S>> {
     }
 };
 ```
+
+
+出力
+
+```cpp
+template <class T> ostream &operator<<(ostream &os, const unordered_set<T> &s) {
+    os << '{';
+    for (auto it = s.begin(); it != s.end(); ++it) {
+        if (it != s.begin()) os << ", ";
+        os << *it;
+    }
+    return os << '}';
+}
+```

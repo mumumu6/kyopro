@@ -29,6 +29,7 @@ int lowbit(ll x) { return x == 0 ? -1 : __builtin_ctzll(x); }
 #define sor(z) sort(z.rbegin(), z.rend())
 #define vec vector<ll>
 #define vecc vector<vector<ll>>
+#define veccc vector<vecc>
 #define Yes cout << "Yes" << el
 #define No cout << "No" << el
 #define spa " "
@@ -54,15 +55,6 @@ template <class T> ostream &operator<<(ostream &os, const vector<T> &v) {
     return os << ']';
 }
 template <class T> ostream &operator<<(ostream &os, const set<T> &s) {
-    os << '{';
-    for (auto it = s.begin(); it != s.end(); ++it) {
-        if (it != s.begin()) os << ", ";
-        os << *it;
-    }
-    return os << '}';
-}
-
-template <class T> ostream &operator<<(ostream &os, const unordered_set<T> &s) {
     os << '{';
     for (auto it = s.begin(); it != s.end(); ++it) {
         if (it != s.begin()) os << ", ";
@@ -106,108 +98,110 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 } // namespace dbg
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
-template <class T> size_t HashCombine(const size_t seed, const T &v) {
-    return seed ^ (std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
-}
-/* pair用 */
-template <class T, class S> struct std::hash<std::pair<T, S>> {
-    size_t operator()(const std::pair<T, S> &keyval) const noexcept {
-        return HashCombine(std::hash<T>()(keyval.first), keyval.second);
-    }
-};
-
-template <typename T> struct LazySegmentTree {
-    ll n;
-    vector<T> data, lazy;
-    T e;
-
-    LazySegmentTree(ll sz, T e) : e(e) {
-        n = bit_ceil((unsigned)sz);
-        data.assign(2 * n, e);
-        lazy.assign(2 * n, 0);
-    }
-
-    void build(const vector<T> &a) {
-        for (ll i = 0; i < (ll)a.size(); i++) { data[n + i] = a[i]; }
-        for (ll i = n - 1; i >= 1; i--) { data[i] = min(data[i << 1], data[i << 1 | 1]); }
-    }
-
-    void apply(ll i, T x) {
-        data[i] += x;
-        lazy[i] += x;
-    }
-
-    void push(ll i) {
-        if (lazy[i] == 0) return;
-        apply(i << 1, lazy[i]);
-        apply(i << 1 | 1, lazy[i]);
-        lazy[i] = 0;
-    }
-
-    void range_add(ll l, ll r, T x) { range_add(l, r, x, 1, 0, n); }
-
-    T range_min(ll l, ll r) { return range_min(l, r, 1, 0, n); }
-
-  private:
-    void range_add(ll l, ll r, T x, ll i, ll il, ll ir) {
-        if (r <= il || ir <= l) return;
-
-        if (l <= il && ir <= r) {
-            apply(i, x);
-            return;
-        }
-
-        push(i);
-
-        ll mid = (il + ir) / 2;
-        range_add(l, r, x, i << 1, il, mid);
-        range_add(l, r, x, i << 1 | 1, mid, ir);
-
-        data[i] = min(data[i << 1], data[i << 1 | 1]);
-    }
-
-    T range_min(ll l, ll r, ll i, ll il, ll ir) {
-        if (r <= il || ir <= l) return e;
-
-        if (l <= il && ir <= r) { return data[i]; }
-
-        push(i);
-
-        ll mid = (il + ir) / 2;
-        return min(range_min(l, r, i << 1, il, mid), range_min(l, r, i << 1 | 1, mid, ir));
-    }
-};
 
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    unordered_set<pair<int, int>> st;
+    ll t;
+    cin >> t;
 
-    st.insert({1, 2});
+    rep(ti, t) {
+        ll n, m;
+        cin >> n >> m;
 
-    ll N, Q;
-    cin >> N >> Q;
+        vector<pll> edge;
+        rep(i, m) {
+            ll u, v;
+            cin >> u >> v;
+            u--, v--;
+            edge.push_back({u, v});
+        }
 
-    vector<ll> a(N);
-    rep(i, N) cin >> a[i];
+        ll w;
+        cin >> w;
 
-    LazySegmentTree<ll> seg(N, INF);
-    seg.build(a);
+        vector<string> s(n);
+        rep(i, n) cin >> s[i];
 
-    while (Q--) {
-        ll type;
-        cin >> type;
+        // グラフ作成
+        // g[wi][x] = 曜日 wi に都市 x から、次の曜日に行ける都市たち
+        vector<vector<vector<ll>>> g(w, vector<vector<ll>>(n));
 
-        if (type == 1) {
-            ll l, r, x;
-            cin >> l >> r >> x;
-            seg.range_add(l, r, x); // [l, r) に x 加算
+        rep(wi, w) {
+            ll nwi = (wi + 1) % w;
+
+            for (auto [u, v] : edge) {
+                if (s[u][wi] == 'o' && s[v][nwi] == 'o') {
+                    g[wi][u].push_back(v);
+                }
+                if (s[v][wi] == 'o' && s[u][nwi] == 'o') {
+                    g[wi][v].push_back(u);
+                }
+            }
+
+            // 同じ都市に留まる辺
+            rep(i, n) {
+                if (s[i][wi] == 'o' && s[i][nwi] == 'o') {
+                    g[wi][i].push_back(i);
+                }
+            }
+        }
+
+        // indeg[wi][x] = 頂点 (x, wi) に入ってくる辺の数 トポロジカルソート
+        vector<vector<ll>> indeg(w, vector<ll>(n, 0));
+
+        rep(wi, w) {
+            ll nwi = (wi + 1) % w;
+
+            rep(x, n) {
+                for (ll y : g[wi][x]) {
+                    indeg[nwi][y]++;
+                }
+            }
+        }
+
+        queue<pll> que;
+        ll total = 0;
+
+        // 存在する頂点、つまり s[x][wi] == 'o' の頂点だけ見る
+        rep(wi, w) {
+            rep(x, n) {
+                if (s[x][wi] == 'o') {
+                    total++;
+
+                    if (indeg[wi][x] == 0) {
+                        que.push({x, wi});
+                    }
+                }
+            }
+        }
+
+        ll removed = 0;
+
+        while (!que.empty()) {
+            auto [x, wi] = que.front();
+            que.pop();
+
+            removed++;
+
+            ll nwi = (wi + 1) % w;
+
+            for (ll y : g[wi][x]) {
+                indeg[nwi][y]--;
+
+                if (indeg[nwi][y] == 0) {
+                    que.push({y, nwi});
+                }
+            }
+        }
+
+        // 全部消せなかったら、残った部分にサイクルがある
+        if (removed < total) {
+            Yes;
         } else {
-            ll l, r;
-            cin >> l >> r;
-            cout << seg.range_min(l, r) << endl;
+            No;
         }
     }
 }

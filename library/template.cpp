@@ -4,6 +4,7 @@ using namespace std;
 //using namespace atcoder;
 //using mint = modint998244353;
 using ll = long long;
+using ld = long double;
 using i128 = __int128_t;
 const ll INF = 4e18;
 #define rep(i, n) for (ll i = 0; i < (n); i++)
@@ -33,6 +34,14 @@ int lowbit(ll x) { return x == 0 ? -1 : __builtin_ctzll(x); }
 #define No cout << "No" << el
 #define spa " "
 #define el '\n' 
+#define each1(i,a) for(auto&&i:a)
+#define each2(x,y,a) for(auto&&[x,y]:a)
+#define each3(x,y,z,a) for(auto&&[x,y,z]:a)
+#define each4(w,x,y,z,a) for(auto&&[w,x,y,z]:a)
+#define each(...) overload5(__VA_ARGS__,each4,each3,each2,each1)(__VA_ARGS__)
+// #define sum(...) accumulate(all(__VA_ARGS__),0LL)
+// #define dsum(...) accumulate(all(__VA_ARGS__),0.0L)
+// #define Msum(...) accumulate(all(__VA_ARGS__),mint{})
 
 static inline bool inside(int x,int y,int w,int h){
 return 0<=x && x<w && 0<=y && y<h;
