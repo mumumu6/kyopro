@@ -112,69 +112,33 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    while (true) {
-        ll n, m;
-        cin >> n >> m;
+    ll n, k;
+    cin >> n >> k;
 
-        if (n == 0) break;
-        ll need_win = (n - 1) / 2;
+    vector<vector<ll>> a(n);
+    vec l(n);
+    rep(i, n) {
+        cin >> l[i];
 
-        vector<vector<int>> a(n, vector<int>(n, 0));
+        vector<ll> b(l[i]);
 
-        rep(i, m) {
-            ll x;
-            ll y;
-            cin >> x >> y;
-            x--;
-            y--;
-            a[x][y] = 1;  // 勝ち
-            a[y][x] = -1; // 負け
+        rep(li, l[i]) cin >> b[li];
+        a[i] = b;
+    }
+
+    vector<ll> c(n);
+    rep(i, n) cin >> c[i];
+
+    ll now = 0;
+    rep(i, n) {
+        if (k <= now + c[i] * l[i]) {
+            ll id = k - now; // 残り
+            ll x  = id % (l[i]);
+            // debug(i, id, x, now, k);
+            cout << a[i][(x -1 +  l[i]) % l[i]] << endl;
+            return 0;
+        } else {
+            now += c[i] * l[i];
         }
-
-        ll ans = 0;
-
-        auto dfs = [&](auto self, vector<vector<int>> &b, int num) {
-            if (num == n) {
-                ans++;
-                return;
-            }
-
-            vector<int> idx;
-            ll cnt = 0; // 勝ち数をみる
-            rep(j, n) {
-                if (b[num][j] == 1) cnt++;
-                if (b[num][j] == 0 && j != num) idx.pb(j);
-            }
-
-            ll rem = need_win - cnt;
-            if (rem < 0 || rem > idx.size()) return;
-            vector<int> t(idx.size(), 0);
-
-            rep(j, need_win - cnt) { t[j] = 1; }
-            so(t);
-
-            do {
-                rep(i, idx.size()) {
-                    ll id = idx[i];
-                    if (t[i] == 1) {
-                        b[num][id] = 1;
-                        b[id][num] = -1;
-                    } else {
-                        b[num][id] = -1;
-                        b[id][num] = 1;
-                    }
-                }
-                self(self, b, num + 1);
-                rep(i, idx.size()) {
-                    ll id      = idx[i];
-                    b[num][id] = 0;
-                    b[id][num] = 0;
-                }
-            } while (next_permutation(all(t)));
-        };
-
-        dfs(dfs, a, 0);
-
-        cout << ans << endl;
     }
 }

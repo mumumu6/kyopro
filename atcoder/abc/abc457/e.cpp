@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
-// #include <atcoder/all>
-// using namespace atcoder;
+#include <atcoder/all>
+using namespace atcoder;
 // using mint = modint998244353;
 using ll     = long long;
 using ld     = long double;
@@ -107,74 +107,103 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
 
+ll l_op(ll a, ll b) { return std::min(a, b); }
+ll l_e() { return INF; }
+ll r_op(ll a, ll b) { return std::max(a, b); }
+ll r_e() { return -INF; }
+
 int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    while (true) {
-        ll n, m;
-        cin >> n >> m;
+    ll n, m;
+    cin >> n >> m;
 
-        if (n == 0) break;
-        ll need_win = (n - 1) / 2;
+    vecc l(n); // 左側がiにあるやつの右側
+    vecc r(n); // 右側がiにあるやつの左側
 
-        vector<vector<int>> a(n, vector<int>(n, 0));
+    vec a(n, INF);  // 左のみてそれのの一番左
+    vec b(n, -INF); // 右の見てそれの一番右
+    map<pll, ll> cnt;
+    rep(i, m) {
+        ll x, y;
+        cin >> x >> y;
+        x--;
+        y--;
+        cnt[{x, y}]++;
+        l[x].pb(y);
+        r[y].pb(x);
+        chmin(a[x], y);
+        chmax(b[y], x);
+    }
 
-        rep(i, m) {
-            ll x;
-            ll y;
-            cin >> x >> y;
-            x--;
-            y--;
-            a[x][y] = 1;  // 勝ち
-            a[y][x] = -1; // 負け
+    segtree<ll, l_op, l_e> l_seg(a);
+    segtree<ll, r_op, r_e> r_seg(b);
+
+    rep(i, n) {
+        so(l[i]);
+        so(r[i]);
+    }
+
+    ll q;
+    cin >> q;
+
+    rep(qi, q) {
+        ll s, t;
+        cin >> s >> t;
+        s--;
+        t--;
+
+        if (l[s].size() == 0 || r[t].size() == 0) {
+            No;
+            continue;
         }
 
-        ll ans = 0;
+        auto x = upper_bound(all(l[s]), t);
+        auto y = lower_bound(all(r[t]), s);
+        // ll y = r_seg.prod(s, t); // migi
+        // debug(x, y, s, t);
 
-        auto dfs = [&](auto self, vector<vector<int>> &b, int num) {
-            if (num == n) {
-                ans++;
-                return;
+        if (x == l[s].begin() || y == r[t].end()) {
+            No;
+            // debug(s, t);
+
+            // cout << a << " " << b << endl;
+            continue;
+        }
+
+        ll a = *prev(x);
+        // debug(s, t, a, *y);
+        // if (a > t || *y < s) {
+        //     No;
+        //     continue;
+        // }
+
+        if (*prev(x) == t && *y == s) {
+            if (cnt[{s, t}] > 1) {
+                Yes;
+                continue;
+            } else if (cnt[{s, t}] == 1) {
+                ll c = r_seg.prod(s, t);
+                if (c >= s) {
+                    Yes;
+                    continue;
+                }
+                c = l_seg.prod(s + 1, t + 1);
+                if (c <= t) {
+                    Yes;
+                    continue;
+                }
             }
 
-            vector<int> idx;
-            ll cnt = 0; // 勝ち数をみる
-            rep(j, n) {
-                if (b[num][j] == 1) cnt++;
-                if (b[num][j] == 0 && j != num) idx.pb(j);
-            }
+            No;
+            continue;
+        }
 
-            ll rem = need_win - cnt;
-            if (rem < 0 || rem > idx.size()) return;
-            vector<int> t(idx.size(), 0);
+        // if (a == t && b == s) {
 
-            rep(j, need_win - cnt) { t[j] = 1; }
-            so(t);
-
-            do {
-                rep(i, idx.size()) {
-                    ll id = idx[i];
-                    if (t[i] == 1) {
-                        b[num][id] = 1;
-                        b[id][num] = -1;
-                    } else {
-                        b[num][id] = -1;
-                        b[id][num] = 1;
-                    }
-                }
-                self(self, b, num + 1);
-                rep(i, idx.size()) {
-                    ll id      = idx[i];
-                    b[num][id] = 0;
-                    b[id][num] = 0;
-                }
-            } while (next_permutation(all(t)));
-        };
-
-        dfs(dfs, a, 0);
-
-        cout << ans << endl;
+        if (*prev(x) + 1 >= *y) Yes;
+        else No;
     }
 }

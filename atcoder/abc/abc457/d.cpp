@@ -112,69 +112,36 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    while (true) {
-        ll n, m;
-        cin >> n >> m;
+    ll n, k;
+    cin >> n >> k;
 
-        if (n == 0) break;
-        ll need_win = (n - 1) / 2;
+    vec a(n);
+    rep(i, n) cin >> a[i];
 
-        vector<vector<int>> a(n, vector<int>(n, 0));
+    auto f = [&](ll x) -> bool { // minがx以上でいけるか
+        ll cnt = 0;
+        rep(i, n) {
 
-        rep(i, m) {
-            ll x;
-            ll y;
-            cin >> x >> y;
-            x--;
-            y--;
-            a[x][y] = 1;  // 勝ち
-            a[y][x] = -1; // 負け
+            if (x > a[i]) {
+                ll p = (x - a[i] + i) / (i + 1);
+                if(p > k - cnt) return false;
+                cnt += p;
+            }
         }
+        // debug(cnt, x);
 
-        ll ans = 0;
+        return true;
+    };
 
-        auto dfs = [&](auto self, vector<vector<int>> &b, int num) {
-            if (num == n) {
-                ans++;
-                return;
-            }
-
-            vector<int> idx;
-            ll cnt = 0; // 勝ち数をみる
-            rep(j, n) {
-                if (b[num][j] == 1) cnt++;
-                if (b[num][j] == 0 && j != num) idx.pb(j);
-            }
-
-            ll rem = need_win - cnt;
-            if (rem < 0 || rem > idx.size()) return;
-            vector<int> t(idx.size(), 0);
-
-            rep(j, need_win - cnt) { t[j] = 1; }
-            so(t);
-
-            do {
-                rep(i, idx.size()) {
-                    ll id = idx[i];
-                    if (t[i] == 1) {
-                        b[num][id] = 1;
-                        b[id][num] = -1;
-                    } else {
-                        b[num][id] = -1;
-                        b[id][num] = 1;
-                    }
-                }
-                self(self, b, num + 1);
-                rep(i, idx.size()) {
-                    ll id      = idx[i];
-                    b[num][id] = 0;
-                    b[id][num] = 0;
-                }
-            } while (next_permutation(all(t)));
-        };
-
-        dfs(dfs, a, 0);
-
-        cout << ans << endl;
+    ll ok = 1;
+    ll ng = 4e18;
+    ll mid;
+    while (abs(ok - ng) > 1) {
+        mid = (ok + ng) / 2;
+        if (f(mid)) ok = mid;
+        else ng = mid;
+        // debug(mid, ok, ng);
     }
+
+    cout << ok << endl;
 }

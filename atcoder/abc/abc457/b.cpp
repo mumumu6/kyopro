@@ -112,69 +112,22 @@ int main() {
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
 
-    while (true) {
-        ll n, m;
-        cin >> n >> m;
+    ll n;
+    cin >> n;
+    vector<vector<ll>> a(n);
 
-        if (n == 0) break;
-        ll need_win = (n - 1) / 2;
+    rep(i, n) {
+        ll L;
+        cin >> L;
 
-        vector<vector<int>> a(n, vector<int>(n, 0));
+        vector<ll> b(L);
 
-        rep(i, m) {
-            ll x;
-            ll y;
-            cin >> x >> y;
-            x--;
-            y--;
-            a[x][y] = 1;  // 勝ち
-            a[y][x] = -1; // 負け
-        }
-
-        ll ans = 0;
-
-        auto dfs = [&](auto self, vector<vector<int>> &b, int num) {
-            if (num == n) {
-                ans++;
-                return;
-            }
-
-            vector<int> idx;
-            ll cnt = 0; // 勝ち数をみる
-            rep(j, n) {
-                if (b[num][j] == 1) cnt++;
-                if (b[num][j] == 0 && j != num) idx.pb(j);
-            }
-
-            ll rem = need_win - cnt;
-            if (rem < 0 || rem > idx.size()) return;
-            vector<int> t(idx.size(), 0);
-
-            rep(j, need_win - cnt) { t[j] = 1; }
-            so(t);
-
-            do {
-                rep(i, idx.size()) {
-                    ll id = idx[i];
-                    if (t[i] == 1) {
-                        b[num][id] = 1;
-                        b[id][num] = -1;
-                    } else {
-                        b[num][id] = -1;
-                        b[id][num] = 1;
-                    }
-                }
-                self(self, b, num + 1);
-                rep(i, idx.size()) {
-                    ll id      = idx[i];
-                    b[num][id] = 0;
-                    b[id][num] = 0;
-                }
-            } while (next_permutation(all(t)));
-        };
-
-        dfs(dfs, a, 0);
-
-        cout << ans << endl;
+        rep(li, L) cin >> b[li];
+        a[i] = b;
     }
+
+    ll x, y;
+    cin >> x >> y;
+
+    cout << a[--x][--y] << endl;
 }
