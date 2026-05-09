@@ -16,8 +16,10 @@ def parse_args() -> argparse.Namespace:
 
 def validate_contest_id(contest_id: str) -> str:
     normalized = contest_id.lower()
+    if re.fullmatch(r"\d{3}", normalized):
+        return f"abc{normalized}"
     if not re.fullmatch(r"abc\d{3}", normalized):
-        print("Contest ID must match abc + 3 digits (e.g., abc422).", file=sys.stderr)
+        print("Contest ID must be 3 digits or abc + 3 digits (e.g., 422 or abc422).", file=sys.stderr)
         raise SystemExit(1)
     return normalized
 

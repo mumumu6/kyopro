@@ -142,12 +142,12 @@ fi
 '''
 
 [tasks.setup-abc]
-description = "ABC の問題テンプレート a-f を生成(mise run abc abc100)"
+description = "ABC の問題テンプレート a-f を生成(mise run abc 100)"
 alias = "abc"
 shell = "bash -c"
 dir = "{{config_root}}"
 usage = '''
-arg "[contest_id]" help="contest id (e.g. abc422)"
+arg "[contest_id]" help="contest id (e.g. 422 or abc422)"
 '''
 run = '''
 set -eu
@@ -155,9 +155,9 @@ contest_id="${usage_contest_id:-}"
 
 if [ -z "$contest_id" ]; then
   if [ -t 0 ]; then
-    read -r -p "contest id (e.g. abc422): " contest_id
+    read -r -p "contest id (e.g. 422): " contest_id
   else
-    echo "contest_id is required (e.g. abc422)" >&2
+    echo "contest_id is required (e.g. 422)" >&2
     exit 1
   fi
 fi
