@@ -107,7 +107,13 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 }
 } // namespace dbg
 
+// #define DEBUG
+
+#ifdef DEBUG
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
+#else
+#define debug(...) ((void)0)
+#endif
 
 int main() {
     cin.tie(nullptr);
