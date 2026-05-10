@@ -64,6 +64,15 @@ template <class T> ostream &operator<<(ostream &os, const vector<T> &v) {
     }
     return os << ']';
 }
+
+template <class T> ostream &operator<<(ostream &os, const vector<vector<T>> &vv) {
+    os << "[\n";
+    for (ll i = 0; i < (ll)vv.size(); ++i) {
+        os << "  " << vv[i];
+        if (i + 1 < (ll)vv.size()) os << '\n';
+    }
+    return os << "\n]";
+}
 template <class T> ostream &operator<<(ostream &os, const set<T> &s) {
 os << '{';
 for (auto it = s.begin(); it != s.end(); ++it) {
