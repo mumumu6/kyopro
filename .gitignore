@@ -56,3 +56,4 @@ pahcer-studio
 ignore
 
 .cph
+.env

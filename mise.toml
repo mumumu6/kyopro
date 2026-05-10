@@ -164,3 +164,38 @@ fi
 
 python3 scripts/setup_abc_contest.py "$contest_id"
 '''
+
+[tasks.cpp-snippet-wsl]
+description = "template.cpp を WSL から VS Code の cpp.json に上書き"
+alias = "tsnip"
+shell = "bash -c"
+dir = "{{config_root}}"
+quiet = true
+run = '''
+set -eu
+
+SRC="library/template.cpp"
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+WINUSER="${WINUSER:-}"
+if [ -z "$WINUSER" ]; then
+  echo "WINUSER is required (set in .env)" >&2
+  exit 1
+fi
+OUT="/mnt/c/Users/${WINUSER}/AppData/Roaming/Code/User/snippets/cpp.json"
+
+if [ ! -f "$SRC" ]; then
+  echo "missing: $SRC" >&2
+  exit 1
+fi
+
+BODY_JSON="$(jq -R -s -c 'split("\n")[:-1]' "$SRC")"
+jq -n --argjson body "$BODY_JSON" \
+  '{"template":{"prefix":"template","body":$body,"description":"template.cpp"}}' \
+  > "$OUT"
+
+echo "written: $OUT"
+'''
