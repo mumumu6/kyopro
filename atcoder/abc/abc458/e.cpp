@@ -175,6 +175,5 @@ int main() {
         ans += tmp;
     }
 
-
     cout << ans.val() << endl;
 }

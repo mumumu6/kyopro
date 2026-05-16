@@ -116,7 +116,8 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 }
 } // namespace dbg
 
-// #define DEBUG
+// これをon offする
+#define DEBUG
 
 #ifdef DEBUG
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
