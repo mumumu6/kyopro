@@ -21,4 +21,5 @@ mint fact(ll n, bool inv = false) {
 
 mint perm(ll n, ll k) { return fact(n) * fact(n - k, true); }
 mint comb(ll n, ll k) { return perm(n, k) * fact(k, true); }
+mint nHk(ll n, ll k) { return comb(n + k - 1, k); }
 ```
