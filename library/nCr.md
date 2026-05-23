@@ -32,7 +32,7 @@ mint comb(ll n, ll r) {
 
     r = min(r, n - r);
 
-    const ll FACT_LIMIT = 5e5;
+    const ll FACT_LIMIT = 6e5;
 
     // n が小さいなら階乗テーブルで O(1)
     if (n <= FACT_LIMIT) {
@@ -56,7 +56,7 @@ mint perm(ll n, ll r) {
     if (r < 0 || n < r) return 0;
     if (r == 0) return 1;
 
-    const ll FACT_LIMIT = 5e5;
+    const ll FACT_LIMIT = 6e5;
 
     // n が小さいなら階乗テーブルで O(1)
     if (n <= FACT_LIMIT) {
