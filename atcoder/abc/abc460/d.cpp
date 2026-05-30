@@ -43,13 +43,7 @@ int lowbit(ll x) { return x == 0 ? -1 : __builtin_ctzll(x); }
 // #define dsum(...) accumulate(all(__VA_ARGS__),0.0L)
 // #define Msum(...) accumulate(all(__VA_ARGS__),mint{})
 
-struct Inside {
-    ll h, w;
-
-    Inside(ll h, ll w) : h(h), w(w) {}
-
-    bool in(ll i, ll j) const { return 0 <= i && i < h && 0 <= j && j < w; }
-};
+static inline bool inside(int x, int y, int w, int h) { return 0 <= x && x < w && 0 <= y && y < h; }
 
 // ----------------- オーバーロード -----------------
 template <class T, class U> ostream &operator<<(ostream &os, const pair<T, U> &p) {
@@ -121,7 +115,7 @@ template <typename... Ts> void impl(const char *names, Ts &&...xs) {
 } // namespace dbg
 
 // これをon offする
-#define DEBUG
+// #define DEBUG
 
 #ifdef DEBUG
 #define debug(...) dbg::impl(#__VA_ARGS__, __VA_ARGS__)
@@ -133,4 +127,124 @@ int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
+
+    ll h, w;
+    cin >> h >> w;
+
+    vector<vector<pair<char, ll>>> s(h, vector<pair<char, ll>>(w, {'.', -1}));
+    queue<pll> que; // 座標とカウント
+    rep(i, h) rep(j, w) {
+        cin >> s[i][j].ft;
+        if (s[i][j].ft == '#') {
+            s[i][j].sd = 0;
+            que.push({i, j});
+        }
+    }
+
+    while (que.size()) {
+        auto [x, y] = que.front();
+        que.pop();
+
+        if (s[x][y].sd % 2 == 1) {
+            rep(i, 8) {
+                ll nx = x + sin45[i];
+                ll ny = y + cos45[i];
+
+                if (!inside(nx, ny, h, w)) continue;
+
+                if (s[nx][ny].sd == -1) {
+                    s[nx][ny].sd = s[x][y].sd + 1;
+                    que.push({nx, ny});
+                }
+            }
+        }
+    }
+
+    ll cnt = -1;
+    rep(i, h) rep(j, w) chmax(cnt, s[i][j].sd);
+    // debug(cnt);
+
+    // debug(s, cnt);
+
+    
+    rep(i, h) rep(j, w) {
+        if (s[i][j].sd % 2 == 0) s[i][j].ft = '#';
+    }
+    
+    auto tmp = s;
+    rep(i, h) rep(j, w) {
+        if (s[i][j].ft == '#') {
+            tmp[i][j].ft = '.';
+            // debug(s,i,j);
+        } else {
+            rep(k, 8) {
+                ll ni = i + sin45[k];
+                ll nj = j + cos45[k];
+                if (!inside(ni, nj, h, w)) continue;
+                // debug(ni,nj,s[ni][nj]);
+                if (s[ni][nj].ft == '#') {
+                    tmp[i][j].ft = '#';
+
+                    continue;
+                }
+                // debug(tmp,i,j);
+            }
+        }
+    }
+    swap(s,tmp);
+    tmp = s;
+    rep(i, h) rep(j, w) {
+        if (s[i][j].ft == '#') {
+            tmp[i][j].ft = '.';
+            // debug(s,i,j);
+        } else {
+            rep(k, 8) {
+                ll ni = i + sin45[k];
+                ll nj = j + cos45[k];
+                if (!inside(ni, nj, h, w)) continue;
+                // debug(ni,nj,s[ni][nj]);
+                if (s[ni][nj].ft == '#') {
+                    tmp[i][j].ft = '#';
+
+                    continue;
+                }
+                // debug(tmp,i,j);
+            }
+        }
+    }
+    swap(s,tmp);
+
+    if (cnt % 2 == 0) {
+        rep(i, h) {
+            rep(j, w) cout << s[i][j].ft;
+            cout << endl;
+        }
+    } else {
+        auto tmp = s;
+        // debug(s);
+        rep(i, h) rep(j, w) {
+            if (s[i][j].ft == '#') {
+                tmp[i][j].ft = '.';
+                // debug(s,i,j);
+            } else {
+                rep(k, 8) {
+                    ll ni = i + sin45[k];
+                    ll nj = j + cos45[k];
+                    if (!inside(ni, nj, h, w)) continue;
+                    // debug(ni,nj,s[ni][nj]);
+                    if (s[ni][nj].ft == '#') {
+                        tmp[i][j].ft = '#';
+
+                        continue;
+                    }
+                    // debug(tmp,i,j);
+                }
+            }
+        }
+
+        rep(i, h) {
+            rep(j, w) cout << tmp[i][j].ft;
+            cout << endl;
+        }
+    }
 }

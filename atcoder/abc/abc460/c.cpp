@@ -43,13 +43,7 @@ int lowbit(ll x) { return x == 0 ? -1 : __builtin_ctzll(x); }
 // #define dsum(...) accumulate(all(__VA_ARGS__),0.0L)
 // #define Msum(...) accumulate(all(__VA_ARGS__),mint{})
 
-struct Inside {
-    ll h, w;
-
-    Inside(ll h, ll w) : h(h), w(w) {}
-
-    bool in(ll i, ll j) const { return 0 <= i && i < h && 0 <= j && j < w; }
-};
+static inline bool inside(int x, int y, int w, int h) { return 0 <= x && x < w && 0 <= y && y < h; }
 
 // ----------------- オーバーロード -----------------
 template <class T, class U> ostream &operator<<(ostream &os, const pair<T, U> &p) {
@@ -133,4 +127,30 @@ int main() {
     cin.tie(nullptr);
     ios_base::sync_with_stdio(false);
     cout << fixed << setprecision(20);
+
+    ll n, m;
+    cin >> n >> m;
+
+    vec a(n);
+    vec b(m);
+    rep(i, n) cin >> a[i];
+    rep(i, m) cin >> b[i];
+
+    sort(all(a));
+    sort(all(b));
+    ll use = m - 1;
+    ll cnt = 0;
+
+    rep(j, n) {
+
+        ll i = n - 1 - j;
+        while (use >= 0 && a[i] * 2 < b[use]) use--;
+        if (use >= 0 && a[i] * 2 >= b[use]) {
+            cnt++;
+            // debug(a[i], b[use]);
+            use--;
+        }
+    }
+
+    cout << cnt << endl;
 }
