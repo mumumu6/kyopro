@@ -13,45 +13,36 @@ const ll INF = 4e18;
 #define rreps(i, a, b) for (ll i = (b) - 1; i >= (a); i--)
 bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
 bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
-vector<ll> sin45 = {0, 1, 1, 1, 0, -1, -1, -1}, cos45 = {1, 1, 0, -1, -1, -1, 0, 1};
-vector<ll> dx = {0, 1, 0, -1};
-vector<ll> dy = {1, 0, -1, 0};
+vector<ll> dx8 = {0, 1, 1, 1, 0, -1, -1, -1}, dy8 = {1, 1, 0, -1, -1, -1, 0, 1};
+vector<ll> dx = {0, 1, 0, -1}, dy = {1, 0, -1, 0};
 int popcnt(ll x) { return __builtin_popcountll(x); }
 int popcnt_mod_2(ll x) { return __builtin_parityll(x); }
 int topbit(ll x) { return x == 0 ? -1 : 63 - __builtin_clzll(x); }
 int lowbit(ll x) { return x == 0 ? -1 : __builtin_ctzll(x); }
 
 // pair操作
-template<class T> using P = pair<T, T>;
+template <class T> using P = pair<T, T>;
 #define ft first
 #define sd second
-
-template<class T> P<T> operator+(const P<T>& a, const P<T>& b) { return {a.ft + b.ft, a.sd + b.sd}; }
-template<class T> P<T> operator-(const P<T>& a, const P<T>& b) { return {a.ft - b.ft, a.sd - b.sd}; }
-template<class T> P<T> operator-(const P<T>& a) { return {-a.ft, -a.sd}; }
-
-template<class T, class U> P<T> operator*(const P<T>& a, const U& b) { return {a.ft * b, a.sd * b}; }
-template<class T, class U> P<T> operator/(const P<T>& a, const U& b) { return {a.ft / b, a.sd / b}; }
-
-template<class T> P<T>& operator+=(P<T>& a, const P<T>& b) { return a = a + b; }
-template<class T> P<T>& operator-=(P<T>& a, const P<T>& b) { return a = a - b; }
-template<class T, class U> P<T>& operator*=(P<T>& a, const U& b) { return a = a * b; }
-template<class T, class U> P<T>& operator/=(P<T>& a, const U& b) { return a = a / b; }
-
-template<class T> P<T> rotate(const P<T>& a) { return {-a.sd, a.ft}; } // 90 degree ccw
-
-template<class T> T dot(const P<T>& a, const P<T>& b) { return a.ft * b.ft + a.sd * b.sd; } // 内積
-template<class T> T cross(const P<T>& a, const P<T>& b) { return dot(rotate(a), b); }
-template<class T> T square(const P<T>& a) { return dot(a, a); }
-
-template<class T> ld norm(const P<T>& a) { return hypotl(a.ft, a.sd); } // aの長さが出る
-
-template<class T> T gcd(const P<T>& a) { return gcd(a.ft, a.sd); }
-
-template<class T> P<T> normalize(P<T> a) { // (4,6)　-> (2,3) みたいな感じ
-    if(a == P<T>{}) return a;
+template <class T> P<T> operator+(const P<T> &a, const P<T> &b) { return {a.ft + b.ft, a.sd + b.sd}; }
+template <class T> P<T> operator-(const P<T> &a, const P<T> &b) { return {a.ft - b.ft, a.sd - b.sd}; }
+template <class T> P<T> operator-(const P<T> &a) { return {-a.ft, -a.sd}; }
+template <class T, class U> P<T> operator*(const P<T> &a, const U &b) { return {a.ft * b, a.sd * b}; }
+template <class T, class U> P<T> operator/(const P<T> &a, const U &b) { return {a.ft / b, a.sd / b}; }
+template <class T> P<T> &operator+=(P<T> &a, const P<T> &b) { return a = a + b; }
+template <class T> P<T> &operator-=(P<T> &a, const P<T> &b) { return a = a - b; }
+template <class T, class U> P<T> &operator*=(P<T> &a, const U &b) { return a = a * b; }
+template <class T, class U> P<T> &operator/=(P<T> &a, const U &b) { return a = a / b; }
+template <class T> P<T> rotate(const P<T> &a) { return {-a.sd, a.ft}; } // 90 degree ccw
+template <class T> T dot(const P<T> &a, const P<T> &b) { return a.ft * b.ft + a.sd * b.sd; } // 内積
+template <class T> T cross(const P<T> &a, const P<T> &b) { return dot(rotate(a), b); }
+template <class T> T square(const P<T> &a) { return dot(a, a); }
+template <class T> ld norm(const P<T> &a) { return hypotl(a.ft, a.sd); } // aの長さが出る
+template <class T> T gcd(const P<T> &a) { return gcd(a.ft, a.sd); }
+template <class T> P<T> normalize(P<T> a) { // (4,6)　-> (2,3) みたいな感じ
+    if (a == P<T>{}) return a;
     a /= gcd(a);
-    if(a < P<T>{}) a = -a;
+    if (a < P<T>{}) a = -a;
     return a;
 }
 
