@@ -192,7 +192,7 @@ if [ ! -f "$SRC" ]; then
   exit 1
 fi
 
-BODY_JSON="$(jq -R -s -c 'split("\n")[:-1]' "$SRC")"
+BODY_JSON="$(jq -R -s -c 'split("\n")' "$SRC")"
 jq -n --argjson body "$BODY_JSON" \
   '{"template":{"prefix":"template","body":$body,"description":"template.cpp"}}' \
   > "$OUT"
