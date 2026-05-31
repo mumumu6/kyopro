@@ -13,8 +13,6 @@ const ll INF = 4e18;
 #define rreps(i, a, b) for (ll i = (b) - 1; i >= (a); i--)
 bool chmin(auto &a, auto b) { return a > b ? a = b, 1 : 0; }
 bool chmax(auto &a, auto b) { return a < b ? a = b, 1 : 0; }
-vector<ll> dx8 = {0, 1, 1, 1, 0, -1, -1, -1}, dy8 = {1, 1, 0, -1, -1, -1, 0, 1};
-vector<ll> dx = {0, 1, 0, -1}, dy = {1, 0, -1, 0};
 int popcnt(ll x) { return __builtin_popcountll(x); }
 int popcnt_mod_2(ll x) { return __builtin_parityll(x); }
 int topbit(ll x) { return x == 0 ? -1 : 63 - __builtin_clzll(x); }
@@ -24,6 +22,10 @@ int lowbit(ll x) { return x == 0 ? -1 : __builtin_ctzll(x); }
 template <class T> using P = pair<T, T>;
 #define ft first
 #define sd second
+vector<ll> dx8 = {0, 1, 1, 1, 0, -1, -1, -1}, dy8 = {1, 1, 0, -1, -1, -1, 0, 1};
+vector<ll> dx = {0, 1, 0, -1}, dy = {1, 0, -1, 0};
+vector<P<ll>> pdx4 = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+vector<P<ll>> pdx8 = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
 template <class T> P<T> operator+(const P<T> &a, const P<T> &b) { return {a.ft + b.ft, a.sd + b.sd}; }
 template <class T> P<T> operator-(const P<T> &a, const P<T> &b) { return {a.ft - b.ft, a.sd - b.sd}; }
 template <class T> P<T> operator-(const P<T> &a) { return {-a.ft, -a.sd}; }
@@ -69,10 +71,10 @@ template <class T> P<T> normalize(P<T> a) { // (4,6)　-> (2,3) みたいな感�
 
 struct Inside {
     ll h, w;
-
     Inside(ll h, ll w) : h(h), w(w) {}
-
+    Inside(P<ll> hw) : h(hw.ft), w(hw.sd) {}
     bool operator()(ll i, ll j) const { return 0 <= i && i < h && 0 <= j && j < w; }
+    template <class T> bool operator()(P<T> p) const { return (*this)(p.ft, p.sd); }
 };
 
 // ----------------- オーバーロード -----------------
