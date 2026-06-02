@@ -702,5 +702,5 @@ int main() {
         ans = builder.ops.substr(0, t);
     }
 
-    for (char c : ans) cout << c << el;
+    cout << ans << endl;
 }
