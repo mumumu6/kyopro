@@ -1000,128 +1000,101 @@ int main() {
 
     auto buildOpsWithRegisteredMacro = [&](const vector<ll> &ord, const string &macro) {
         static const vector<P<ll>> dd = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
-        map<tuple<ll, ll, ll, ll>, pair<string, ll>> cache;
+        map<tuple<ll, ll, ll, ll, ll>, tuple<string, ll, ll>> cache;
 
         auto cellId = [&](P<ll> p) { return p.ft * n + p.sd; };
-        auto shortestMoveWithMacro = [&](P<ll> start, ll start_dir, P<ll> goal) {
-            auto key = make_tuple(cellId(start), start_dir, goal.ft, goal.sd);
+        auto shortestMoveWithMacro = [&](P<ll> start, ll start_dir, ll start_registered, P<ll> goal) {
+            auto key = make_tuple(cellId(start), start_dir, start_registered, goal.ft, goal.sd);
             if (cache.count(key)) return cache[key];
 
-            ll SZ = n * n * 4;
+            ll SZ = n * n * 4 * 2;
             vector<ll> dist(SZ, INF);
             vector<ll> prv(SZ, -1);
-            vector<char> prv_op(SZ, 0);
-            queue<pll> q;
-            auto sid = [&](P<ll> p, ll d) { return (p.ft * n + p.sd) * 4 + d; };
+            vector<string> prv_op(SZ);
+            priority_queue<pll, vector<pll>, greater<pll>> pq;
+            auto sid = [&](P<ll> p, ll d, ll registered) { return ((p.ft * n + p.sd) * 4 + d) * 2 + registered; };
 
-            dist[sid(start, start_dir)] = 0;
-            q.push({sid(start, start_dir), start_dir});
+            dist[sid(start, start_dir, start_registered)] = 0;
+            pq.push({0, sid(start, start_dir, start_registered)});
             ll goal_state = -1;
 
-            while (!q.empty()) {
-                auto [st, cur_dir] = q.front();
-                q.pop();
-                ll cell = st / 4;
+            while (!pq.empty()) {
+                auto [cur_dist, st] = pq.top();
+                pq.pop();
+                if (cur_dist != dist[st]) continue;
+                ll registered = st % 2;
+                ll x = st / 2;
+                ll cur_dir = x % 4;
+                ll cell = x / 4;
                 P<ll> p = {cell / n, cell % n};
                 if (p == goal) {
                     goal_state = st;
                     break;
                 }
 
-                auto pushState = [&](P<ll> np, ll nd, char op) {
-                    ll ns = sid(np, nd);
-                    if (dist[ns] != INF) return;
-                    dist[ns] = dist[st] + 1;
+                auto pushState = [&](P<ll> np, ll nd, ll nreg, const string &op) {
+                    ll ns = sid(np, nd, nreg);
+                    ll ndist = dist[st] + (ll)op.size();
+                    if (dist[ns] <= ndist) return;
+                    dist[ns] = ndist;
                     prv[ns] = st;
                     prv_op[ns] = op;
-                    q.push({ns, nd});
+                    pq.push({ndist, ns});
                 };
 
-                if (!macro.empty()) {
+                if (registered && !macro.empty()) {
                     auto [np, nd] = simulateMacro(p, cur_dir, macro);
-                    if (np != p || nd != cur_dir) pushState(np, nd, 'P');
+                    if (np != p || nd != cur_dir) pushState(np, nd, 1, "P");
                 }
-                if (canMove(p.ft, p.sd, cur_dir)) pushState(p + dd[cur_dir], cur_dir, 'F');
-                pushState(p, (cur_dir + 1) % 4, 'R');
-                pushState(p, (cur_dir + 3) % 4, 'L');
+                if (!registered && !macro.empty()) {
+                    auto [np, nd] = simulateMacro(p, cur_dir, macro);
+                    pushState(np, nd, 1, "M" + macro + "M");
+                }
+                if (canMove(p.ft, p.sd, cur_dir)) pushState(p + dd[cur_dir], cur_dir, registered, "F");
+                pushState(p, (cur_dir + 1) % 4, registered, "R");
+                pushState(p, (cur_dir + 3) % 4, registered, "L");
             }
 
             string move_ops;
             ll end_dir = start_dir;
-            if (goal_state == -1) return cache[key] = {move_ops, end_dir};
+            ll end_registered = start_registered;
+            if (goal_state == -1) return cache[key] = {move_ops, end_dir, end_registered};
 
+            vector<string> parts;
             for (ll cur = goal_state; prv[cur] != -1; cur = prv[cur]) {
-                move_ops += prv_op[cur];
+                parts.push_back(prv_op[cur]);
             }
-            reverse(all(move_ops));
+            reverse(all(parts));
+            for (const string &part : parts) move_ops += part;
 
+            end_registered = goal_state % 2;
             P<ll> p = start;
             end_dir = start_dir;
-            for (char c : move_ops) {
+            for (ll i = 0; i < (ll)move_ops.size(); ++i) {
+                char c = move_ops[i];
                 if (c == 'R') end_dir = (end_dir + 1) % 4;
                 else if (c == 'L') end_dir = (end_dir + 3) % 4;
                 else if (c == 'F') p += dd[end_dir];
                 else if (c == 'P') tie(p, end_dir) = simulateMacro(p, end_dir, macro);
+                else if (c == 'M') {
+                    tie(p, end_dir) = simulateMacro(p, end_dir, macro);
+                    i += macro.size() + 1;
+                }
             }
-            return cache[key] = {move_ops, end_dir};
+            return cache[key] = {move_ops, end_dir, end_registered};
         };
 
         string ops;
         P<ll> cur_pos = {0, 0};
         ll cur_dir = 1;
-        bool registered = false;
+        ll registered = 0;
 
         auto appendMove = [&](P<ll> goal) {
-            if (registered) {
-                auto [move_ops, nd] = shortestMoveWithMacro(cur_pos, cur_dir, goal);
-                ops += move_ops;
-                cur_pos = goal;
-                cur_dir = nd;
-                return;
-            }
-
-            ll from_id = -1;
-            rep(i, (ll)points.size()) {
-                if (points[i] == cur_pos) {
-                    from_id = i;
-                    break;
-                }
-            }
-            assert(from_id != -1);
-
-            ll to_id = -1;
-            rep(i, (ll)points.size()) {
-                if (points[i] == goal) {
-                    to_id = i;
-                    break;
-                }
-            }
-            assert(to_id != -1);
-
-            auto [move_ops, nd] = getMove(from_id, cur_dir, to_id);
-            ll first = -1;
-            if ((ll)macro.size() <= (ll)move_ops.size()) {
-                rep(i, (ll)move_ops.size() - (ll)macro.size() + 1) {
-                    if (move_ops.compare(i, macro.size(), macro) == 0) {
-                        first = i;
-                        break;
-                    }
-                }
-            }
-
-            if (first == -1) {
-                ops += move_ops;
-            } else {
-                ops += move_ops.substr(0, first);
-                ops += 'M';
-                ops += macro;
-                ops += 'M';
-                ops += move_ops.substr(first + macro.size());
-                registered = true;
-            }
-
+            auto [move_ops, nd, nreg] = shortestMoveWithMacro(cur_pos, cur_dir, registered, goal);
+            ops += move_ops;
             cur_pos = goal;
             cur_dir = nd;
+            registered = nreg;
         };
 
         for (ll k : ord) {
@@ -1213,7 +1186,7 @@ int main() {
     };
 
     double now_before_bfs_sa = chrono::duration<double>(chrono::steady_clock::now() - program_start).count();
-    auto bfs_best = improveOrderAndMacroByBfs(order, max(0.0, 1.88 - now_before_bfs_sa));
+    auto bfs_best = improveOrderAndMacroByBfs(order, max(0.0, 1.72 - now_before_bfs_sa));
     if (bfs_best.macro_id != -1) {
         order = bfs_best.order;
         best_p_macro_ops = buildOpsWithRegisteredMacro(order, macro_candidates[bfs_best.macro_id]);
