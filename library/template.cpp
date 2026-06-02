@@ -60,6 +60,7 @@ template <class T> P<T> normalize(P<T> a) { // (4,6)　-> (2,3) みたいな感�
 #define No cout << "No" << el
 #define spa " "
 #define el '\n'
+#define overload5(a,b,c,d,e,name,...) name
 #define each1(i, a) for (auto &&i : a)
 #define each2(x, y, a) for (auto &&[x, y] : a)
 #define each3(x, y, z, a) for (auto &&[x, y, z] : a)
