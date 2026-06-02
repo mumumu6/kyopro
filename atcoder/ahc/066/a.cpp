@@ -256,6 +256,114 @@ string compressOneMacro(const string &ops) {
     return compressed;
 }
 
+ll estimateOneMacroCompressedLength(const string &ops, ll max_search_len = 80) {
+    ll n = ops.size();
+    ll best_gain = 0;
+    ll max_len = min(max_search_len, n);
+    const unsigned long long BASE = 1000003;
+
+    vector<unsigned long long> pref(n + 1, 0), power(n + 1, 1);
+    rep(i, n) {
+        pref[i + 1] = pref[i] * BASE + (unsigned long long)(unsigned char)ops[i] + 1;
+        power[i + 1] = power[i] * BASE;
+    }
+
+    auto getHash = [&](ll l, ll r) {
+        return pref[r] - pref[l] * power[r - l];
+    };
+
+    reps(len, 3, max_len + 1) {
+        unordered_map<unsigned long long, vector<ll>> pos;
+        pos.reserve(max(1LL, n - len + 1) * 2);
+        rep(i, n - len + 1) pos[getHash(i, i + len)].push_back(i);
+
+        for (auto &[hash_value, positions] : pos) {
+            (void)hash_value;
+            ll count = 0;
+            ll last_end = -1;
+            for (ll p : positions) {
+                if (p >= last_end) {
+                    ++count;
+                    last_end = p + len;
+                }
+            }
+            if (count < 2) continue;
+            ll gain = (count - 1) * (len - 1) - 2;
+            chmax(best_gain, gain);
+        }
+    }
+
+    return n - max(0LL, best_gain);
+}
+
+ll macroGainInOps(const string &ops, const string &macro, ll *first_pos = nullptr) {
+    ll n = ops.size();
+    ll len = macro.size();
+    ll count = 0;
+    ll first = -1;
+    for (ll i = 0; i + len <= n;) {
+        if (ops.compare(i, len, macro) == 0) {
+            if (first == -1) first = i;
+            ++count;
+            i += len;
+        } else {
+            ++i;
+        }
+    }
+    if (first_pos) *first_pos = first;
+    if (count < 2) return 0;
+    return max(0LL, (count - 1) * (len - 1) - 2);
+}
+
+ll estimateCompressedLengthByMacros(const string &ops, const vector<string> &macros) {
+    ll best_gain = 0;
+    for (const string &macro : macros) {
+        chmax(best_gain, macroGainInOps(ops, macro));
+    }
+    return (ll)ops.size() - best_gain;
+}
+
+string compressOneMacroByCandidates(const string &ops, const vector<string> &macros) {
+    string best_macro;
+    ll best_gain = 0;
+    ll best_first = INF;
+
+    for (const string &macro : macros) {
+        ll first = -1;
+        ll gain = macroGainInOps(ops, macro, &first);
+        if (gain > best_gain ||
+            (gain == best_gain && (ll)macro.size() > (ll)best_macro.size()) ||
+            (gain == best_gain && (ll)macro.size() == (ll)best_macro.size() && first < best_first)) {
+            best_gain = gain;
+            best_macro = macro;
+            best_first = first;
+        }
+    }
+
+    if (best_gain <= 0) return ops;
+
+    string compressed;
+    ll len = best_macro.size();
+    compressed.reserve(ops.size() - best_gain);
+    compressed += ops.substr(0, best_first);
+    compressed += 'M';
+    compressed += best_macro;
+    compressed += 'M';
+
+    for (ll i = best_first + len; i < (ll)ops.size();) {
+        if (i + len <= (ll)ops.size() && ops.compare(i, len, best_macro) == 0) {
+            compressed += 'P';
+            i += len;
+        } else {
+            compressed += ops[i];
+            ++i;
+        }
+    }
+
+    assert(expandMacro(compressed) == ops);
+    return compressed;
+}
+
 struct OrderOptimizer {
     static constexpr ll INF_DIST = 1'000'000'000;
     static constexpr ll INF_COST  = (1LL << 60);
@@ -466,13 +574,17 @@ struct OrderOptimizer {
         return order;
     }
 
-    vector<ll> makeBestInitialOrder() const {
+    vector<vector<ll>> makeInitialOrderCandidates() const {
         vector<vector<ll>> candidates;
         candidates.push_back(makeInitialOrderNumbered());
         candidates.push_back(makeInitialOrderNearestPickup());
         candidates.push_back(makeInitialOrderPickupDelivery());
         for (double alpha : {0.3, 0.5, 1.0}) candidates.push_back(makeInitialOrderLookahead(alpha));
+        return candidates;
+    }
 
+    vector<ll> makeBestInitialOrder() const {
+        vector<vector<ll>> candidates = makeInitialOrderCandidates();
         vector<ll> best = candidates[0];
         ll best_cost = calcOrderCost(best);
         for (auto &order : candidates) {
@@ -486,56 +598,72 @@ struct OrderOptimizer {
     }
 
     vector<ll> optimizeOrderSA(double timeLimitSec, uint32_t seed = 1) const {
-        vector<ll> cur_order = makeBestInitialOrder();
-        vector<ll> best_order = cur_order;
-        ll cur_cost = calcOrderCost(cur_order);
-        ll best_cost = cur_cost;
+        vector<vector<ll>> candidates = makeInitialOrderCandidates();
+        vector<ll> best_order = candidates[0];
+        ll best_cost = calcOrderCost(best_order);
+        for (auto &order : candidates) {
+            ll cost = calcOrderCost(order);
+            if (cost < best_cost) {
+                best_cost = cost;
+                best_order = order;
+            }
+        }
         if (M <= 1 || timeLimitSec <= 0.0) return best_order;
 
         mt19937 rng(seed);
         uniform_real_distribution<double> real01(0.0, 1.0);
-        const double startTemp = max(100.0, (double)cur_cost / max(1LL, M) * 0.2);
         const double endTemp = 1e-3;
 
-        auto start = chrono::steady_clock::now();
-        while (true) {
-            double elapsed = chrono::duration<double>(chrono::steady_clock::now() - start).count();
-            if (elapsed >= timeLimitSec) break;
-            double progress = min(1.0, elapsed / timeLimitSec);
-            double temp = startTemp * pow(endTemp / startTemp, progress);
+        auto all_start = chrono::steady_clock::now();
+        rep(cand_idx, (ll)candidates.size()) {
+            double all_elapsed = chrono::duration<double>(chrono::steady_clock::now() - all_start).count();
+            if (all_elapsed >= timeLimitSec) break;
+            double chain_time = (timeLimitSec - all_elapsed) / (double)((ll)candidates.size() - cand_idx);
 
-            vector<ll> nxt_order = cur_order;
-            ll type = uniform_int_distribution<ll>(0, 99)(rng);
-            ll i = uniform_int_distribution<ll>(0, M - 1)(rng);
-            ll j = uniform_int_distribution<ll>(0, M - 1)(rng);
+            vector<ll> cur_order = candidates[cand_idx];
+            ll cur_cost = calcOrderCost(cur_order);
+            const double startTemp = max(100.0, (double)cur_cost / max(1LL, M) * 0.2);
 
-            if (type < 40) {
-                if (i == j) continue;
-                swap(nxt_order[i], nxt_order[j]);
-            } else if (type < 70) {
-                if (i > j) swap(i, j);
-                if (i == j) continue;
-                reverse(nxt_order.begin() + i, nxt_order.begin() + j + 1);
-            } else {
-                if (i == j) continue;
-                ll x = nxt_order[i];
-                nxt_order.erase(nxt_order.begin() + i);
-                nxt_order.insert(nxt_order.begin() + j, x);
-            }
+            auto chain_start = chrono::steady_clock::now();
+            while (true) {
+                double elapsed = chrono::duration<double>(chrono::steady_clock::now() - chain_start).count();
+                if (elapsed >= chain_time) break;
+                double progress = min(1.0, elapsed / chain_time);
+                double temp = startTemp * pow(endTemp / startTemp, progress);
 
-            ll nxt_cost = calcOrderCost(nxt_order);
-            bool accept = nxt_cost <= cur_cost;
-            if (!accept && temp > 0.0) {
-                double prob = exp((double)(cur_cost - nxt_cost) / temp);
-                accept = real01(rng) < prob;
-            }
-            if (!accept) continue;
+                vector<ll> nxt_order = cur_order;
+                ll type = uniform_int_distribution<ll>(0, 99)(rng);
+                ll i = uniform_int_distribution<ll>(0, M - 1)(rng);
+                ll j = uniform_int_distribution<ll>(0, M - 1)(rng);
 
-            cur_order = move(nxt_order);
-            cur_cost = nxt_cost;
-            if (cur_cost < best_cost) {
-                best_cost = cur_cost;
-                best_order = cur_order;
+                if (type < 40) {
+                    if (i == j) continue;
+                    swap(nxt_order[i], nxt_order[j]);
+                } else if (type < 70) {
+                    if (i > j) swap(i, j);
+                    if (i == j) continue;
+                    reverse(nxt_order.begin() + i, nxt_order.begin() + j + 1);
+                } else {
+                    if (i == j) continue;
+                    ll x = nxt_order[i];
+                    nxt_order.erase(nxt_order.begin() + i);
+                    nxt_order.insert(nxt_order.begin() + j, x);
+                }
+
+                ll nxt_cost = calcOrderCost(nxt_order);
+                bool accept = nxt_cost <= cur_cost;
+                if (!accept && temp > 0.0) {
+                    double prob = exp((double)(cur_cost - nxt_cost) / temp);
+                    accept = real01(rng) < prob;
+                }
+                if (!accept) continue;
+
+                cur_order = move(nxt_order);
+                cur_cost = nxt_cost;
+                if (cur_cost < best_cost) {
+                    best_cost = cur_cost;
+                    best_order = cur_order;
+                }
             }
         }
 
@@ -683,24 +811,424 @@ int main() {
 
     OrderOptimizer optimizer(n, m, ball, basket, canMove);
     double elapsed = chrono::duration<double>(chrono::steady_clock::now() - program_start).count();
-    double sa_time = max(0.05, 1.75 - elapsed);
+    double sa_time = max(0.05, 0.60 - elapsed);
     vector<ll> order = optimizer.optimizeOrderSA(sa_time);
 
-    OperationBuilder builder(n, canMove);
-    for (ll k : order) {
-        builder.moveTo(ball[k]);
-        builder.swapBall();
-        builder.moveTo(basket[k]);
-        builder.swapBall();
+    vector<P<ll>> points;
+    points.push_back({0, 0});
+    for (auto p : ball) points.push_back(p);
+    for (auto p : basket) points.push_back(p);
+
+    auto pointIdBall = [&](ll k) { return 1 + k; };
+    auto pointIdBasket = [&](ll k) { return 1 + m + k; };
+
+    map<tuple<ll, ll, ll>, pair<string, ll>> move_cache;
+    auto getMove = [&](ll from_id, ll from_dir, ll to_id) -> pair<string, ll> {
+        auto key = make_tuple(from_id, from_dir, to_id);
+        if (move_cache.count(key)) return move_cache[key];
+
+        OperationBuilder tmp(n, canMove);
+        string move_ops = tmp.shortestMoveOps(points[from_id], from_dir, points[to_id]);
+        ll to_dir = from_dir;
+        for (char c : move_ops) {
+            if (c == 'R') to_dir = (to_dir + 1) % 4;
+            if (c == 'L') to_dir = (to_dir + 3) % 4;
+        }
+        return move_cache[key] = {move_ops, to_dir};
+    };
+
+    auto makeMacroCandidatesFromBfsPaths = [&]() {
+        unordered_map<string, ll> freq;
+        freq.reserve(20000);
+
+        auto addPath = [&](const string &path) {
+            const ll min_len = 4;
+            const ll max_len = min(40LL, (ll)path.size());
+            reps(len, min_len, max_len + 1) {
+                rep(i, (ll)path.size() - len + 1) {
+                    freq[path.substr(i, len)]++;
+                }
+            }
+        };
+
+        rep(dir, 4) {
+            rep(k, m) {
+                addPath(getMove(0, dir, pointIdBall(k)).ft);
+                addPath(getMove(pointIdBall(k), dir, pointIdBasket(k)).ft);
+            }
+            rep(a, m) rep(b, m) {
+                if (a == b) continue;
+                addPath(getMove(pointIdBasket(a), dir, pointIdBall(b)).ft);
+            }
+        }
+
+        vector<tuple<ll, ll, string>> scored;
+        scored.reserve(freq.size());
+        for (auto &[s, count] : freq) {
+            if (count < 2) continue;
+            ll gain_like = (count - 1) * ((ll)s.size() - 1) - 2;
+            if (gain_like <= 0) continue;
+            scored.push_back({gain_like, (ll)s.size(), s});
+        }
+        sort(scored.rbegin(), scored.rend());
+
+        vector<string> candidates;
+        for (auto &[score, len, s] : scored) {
+            (void)score;
+            (void)len;
+            candidates.push_back(s);
+            if ((ll)candidates.size() >= 200) break;
+        }
+        return candidates;
+    };
+
+    vector<string> macro_candidates = makeMacroCandidatesFromBfsPaths();
+
+    auto buildOps = [&](const vector<ll> &ord) {
+        string ops;
+        ll cur_id = 0;
+        ll cur_dir = 1;
+        for (ll k : ord) {
+            auto [to_ball, dir_after_ball] = getMove(cur_id, cur_dir, pointIdBall(k));
+            ops += to_ball;
+            ops += 'S';
+            auto [to_basket, dir_after_basket] = getMove(pointIdBall(k), dir_after_ball, pointIdBasket(k));
+            ops += to_basket;
+            ops += 'S';
+            cur_id = pointIdBasket(k);
+            cur_dir = dir_after_basket;
+        }
+        return ops;
+    };
+
+    auto macroAwareCost = [&](const vector<ll> &ord) {
+        string ops = buildOps(ord);
+        if ((ll)ops.size() > t) return INF + (ll)ops.size();
+        if (macro_candidates.empty()) return (ll)ops.size();
+        return estimateCompressedLengthByMacros(ops, macro_candidates);
+    };
+
+    auto improveOrderByMacro = [&](vector<ll> ord, double timeLimitSec) {
+        if (m <= 1 || timeLimitSec <= 0.0) return ord;
+
+        mt19937 rng(2);
+        uniform_real_distribution<double> real01(0.0, 1.0);
+        ll cur_cost = macroAwareCost(ord);
+        vector<ll> best = ord;
+        ll best_cost = cur_cost;
+        const double startTemp = max(10.0, (double)cur_cost * 0.05);
+        const double endTemp = 1e-3;
+
+        auto start = chrono::steady_clock::now();
+        while (true) {
+            double e = chrono::duration<double>(chrono::steady_clock::now() - start).count();
+            if (e >= timeLimitSec) break;
+            double progress = min(1.0, e / timeLimitSec);
+            double temp = startTemp * pow(endTemp / startTemp, progress);
+
+            vector<ll> nxt = ord;
+            ll type = uniform_int_distribution<ll>(0, 99)(rng);
+            ll i = uniform_int_distribution<ll>(0, m - 1)(rng);
+            ll j = uniform_int_distribution<ll>(0, m - 1)(rng);
+            if (i == j) continue;
+
+            if (type < 45) {
+                swap(nxt[i], nxt[j]);
+            } else if (type < 75) {
+                if (i > j) swap(i, j);
+                reverse(nxt.begin() + i, nxt.begin() + j + 1);
+            } else {
+                ll x = nxt[i];
+                nxt.erase(nxt.begin() + i);
+                nxt.insert(nxt.begin() + j, x);
+            }
+
+            ll nxt_cost = macroAwareCost(nxt);
+            bool accept = nxt_cost <= cur_cost;
+            if (!accept && temp > 0.0) {
+                double prob = exp((double)(cur_cost - nxt_cost) / temp);
+                accept = real01(rng) < prob;
+            }
+            if (!accept) continue;
+
+            ord = move(nxt);
+            cur_cost = nxt_cost;
+            if (cur_cost < best_cost) {
+                best_cost = cur_cost;
+                best = ord;
+            }
+        }
+        return best;
+    };
+
+    elapsed = chrono::duration<double>(chrono::steady_clock::now() - program_start).count();
+    order = improveOrderByMacro(order, max(0.0, 1.05 - elapsed));
+
+    string raw_ops = buildOps(order);
+    string best_p_macro_ops = "";
+    ll best_p_macro_score = INF;
+
+    auto expandedBasicLength = [&](const string &ops, const string &macro) {
+        ll basic = 0;
+        bool recording = false;
+        for (char c : ops) {
+            if (c == 'M') {
+                recording = !recording;
+            } else if (c == 'P') {
+                basic += macro.size();
+            } else if (c == 'F' || c == 'R' || c == 'L' || c == 'S') {
+                ++basic;
+            }
+        }
+        return basic;
+    };
+
+    auto simulateMacro = [&](P<ll> p, ll d0, const string &macro) {
+        static const vector<P<ll>> dd = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
+        ll d = d0;
+        for (char c : macro) {
+            if (c == 'R') {
+                d = (d + 1) % 4;
+            } else if (c == 'L') {
+                d = (d + 3) % 4;
+            } else if (c == 'F') {
+                if (canMove(p.ft, p.sd, d)) p += dd[d];
+            }
+        }
+        return pair<P<ll>, ll>{p, d};
+    };
+
+    auto buildOpsWithRegisteredMacro = [&](const vector<ll> &ord, const string &macro) {
+        static const vector<P<ll>> dd = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
+        map<tuple<ll, ll, ll, ll>, pair<string, ll>> cache;
+
+        auto cellId = [&](P<ll> p) { return p.ft * n + p.sd; };
+        auto shortestMoveWithMacro = [&](P<ll> start, ll start_dir, P<ll> goal) {
+            auto key = make_tuple(cellId(start), start_dir, goal.ft, goal.sd);
+            if (cache.count(key)) return cache[key];
+
+            ll SZ = n * n * 4;
+            vector<ll> dist(SZ, INF);
+            vector<ll> prv(SZ, -1);
+            vector<char> prv_op(SZ, 0);
+            queue<pll> q;
+            auto sid = [&](P<ll> p, ll d) { return (p.ft * n + p.sd) * 4 + d; };
+
+            dist[sid(start, start_dir)] = 0;
+            q.push({sid(start, start_dir), start_dir});
+            ll goal_state = -1;
+
+            while (!q.empty()) {
+                auto [st, cur_dir] = q.front();
+                q.pop();
+                ll cell = st / 4;
+                P<ll> p = {cell / n, cell % n};
+                if (p == goal) {
+                    goal_state = st;
+                    break;
+                }
+
+                auto pushState = [&](P<ll> np, ll nd, char op) {
+                    ll ns = sid(np, nd);
+                    if (dist[ns] != INF) return;
+                    dist[ns] = dist[st] + 1;
+                    prv[ns] = st;
+                    prv_op[ns] = op;
+                    q.push({ns, nd});
+                };
+
+                if (!macro.empty()) {
+                    auto [np, nd] = simulateMacro(p, cur_dir, macro);
+                    if (np != p || nd != cur_dir) pushState(np, nd, 'P');
+                }
+                if (canMove(p.ft, p.sd, cur_dir)) pushState(p + dd[cur_dir], cur_dir, 'F');
+                pushState(p, (cur_dir + 1) % 4, 'R');
+                pushState(p, (cur_dir + 3) % 4, 'L');
+            }
+
+            string move_ops;
+            ll end_dir = start_dir;
+            if (goal_state == -1) return cache[key] = {move_ops, end_dir};
+
+            for (ll cur = goal_state; prv[cur] != -1; cur = prv[cur]) {
+                move_ops += prv_op[cur];
+            }
+            reverse(all(move_ops));
+
+            P<ll> p = start;
+            end_dir = start_dir;
+            for (char c : move_ops) {
+                if (c == 'R') end_dir = (end_dir + 1) % 4;
+                else if (c == 'L') end_dir = (end_dir + 3) % 4;
+                else if (c == 'F') p += dd[end_dir];
+                else if (c == 'P') tie(p, end_dir) = simulateMacro(p, end_dir, macro);
+            }
+            return cache[key] = {move_ops, end_dir};
+        };
+
+        string ops;
+        P<ll> cur_pos = {0, 0};
+        ll cur_dir = 1;
+        bool registered = false;
+
+        auto appendMove = [&](P<ll> goal) {
+            if (registered) {
+                auto [move_ops, nd] = shortestMoveWithMacro(cur_pos, cur_dir, goal);
+                ops += move_ops;
+                cur_pos = goal;
+                cur_dir = nd;
+                return;
+            }
+
+            ll from_id = -1;
+            rep(i, (ll)points.size()) {
+                if (points[i] == cur_pos) {
+                    from_id = i;
+                    break;
+                }
+            }
+            assert(from_id != -1);
+
+            ll to_id = -1;
+            rep(i, (ll)points.size()) {
+                if (points[i] == goal) {
+                    to_id = i;
+                    break;
+                }
+            }
+            assert(to_id != -1);
+
+            auto [move_ops, nd] = getMove(from_id, cur_dir, to_id);
+            ll first = -1;
+            if ((ll)macro.size() <= (ll)move_ops.size()) {
+                rep(i, (ll)move_ops.size() - (ll)macro.size() + 1) {
+                    if (move_ops.compare(i, macro.size(), macro) == 0) {
+                        first = i;
+                        break;
+                    }
+                }
+            }
+
+            if (first == -1) {
+                ops += move_ops;
+            } else {
+                ops += move_ops.substr(0, first);
+                ops += 'M';
+                ops += macro;
+                ops += 'M';
+                ops += move_ops.substr(first + macro.size());
+                registered = true;
+            }
+
+            cur_pos = goal;
+            cur_dir = nd;
+        };
+
+        for (ll k : ord) {
+            appendMove(ball[k]);
+            ops += 'S';
+            appendMove(basket[k]);
+            ops += 'S';
+        }
+        return ops;
+    };
+
+    auto macroBfsCost = [&](const vector<ll> &ord, ll macro_id) {
+        if (macro_id < 0 || macro_id >= (ll)macro_candidates.size()) return INF;
+        const string &macro = macro_candidates[macro_id];
+        string ops = buildOpsWithRegisteredMacro(ord, macro);
+        ll basic_len = expandedBasicLength(ops, macro);
+        if ((ll)ops.size() > t || basic_len > t) return INF + (ll)ops.size();
+        return (ll)ops.size();
+    };
+
+    auto improveOrderAndMacroByBfs = [&](vector<ll> init_order, double timeLimitSec) {
+        struct BfsState {
+            vector<ll> order;
+            ll macro_id = -1;
+            ll cost = INF;
+        };
+
+        BfsState cur, best;
+        cur.order = init_order;
+
+        ll initial_macro_count = min(80LL, (ll)macro_candidates.size());
+        rep(i, initial_macro_count) {
+            ll cost = macroBfsCost(init_order, i);
+            if (cost < cur.cost) {
+                cur.macro_id = i;
+                cur.cost = cost;
+            }
+        }
+        if (cur.macro_id == -1) return best;
+        best = cur;
+
+        if (timeLimitSec <= 0.0) return best;
+
+        mt19937 rng(3);
+        uniform_real_distribution<double> real01(0.0, 1.0);
+        const double startTemp = max(5.0, (double)cur.cost * 0.05);
+        const double endTemp = 1e-3;
+
+        auto start = chrono::steady_clock::now();
+        while (true) {
+            double e = chrono::duration<double>(chrono::steady_clock::now() - start).count();
+            if (e >= timeLimitSec) break;
+            double progress = min(1.0, e / timeLimitSec);
+            double temp = startTemp * pow(endTemp / startTemp, progress);
+
+            BfsState nxt = cur;
+            ll type = uniform_int_distribution<ll>(0, 99)(rng);
+            if (type < 18 && !macro_candidates.empty()) {
+                nxt.macro_id = uniform_int_distribution<ll>(0, min(200LL, (ll)macro_candidates.size()) - 1)(rng);
+            } else {
+                ll i = uniform_int_distribution<ll>(0, m - 1)(rng);
+                ll j = uniform_int_distribution<ll>(0, m - 1)(rng);
+                if (i == j) continue;
+
+                if (type < 48) {
+                    swap(nxt.order[i], nxt.order[j]);
+                } else if (type < 78) {
+                    if (i > j) swap(i, j);
+                    reverse(nxt.order.begin() + i, nxt.order.begin() + j + 1);
+                } else {
+                    ll x = nxt.order[i];
+                    nxt.order.erase(nxt.order.begin() + i);
+                    nxt.order.insert(nxt.order.begin() + j, x);
+                }
+            }
+
+            nxt.cost = macroBfsCost(nxt.order, nxt.macro_id);
+            bool accept = nxt.cost <= cur.cost;
+            if (!accept && temp > 0.0 && nxt.cost < INF) {
+                double prob = exp((double)(cur.cost - nxt.cost) / temp);
+                accept = real01(rng) < prob;
+            }
+            if (!accept) continue;
+
+            cur = move(nxt);
+            if (cur.cost < best.cost) best = cur;
+        }
+        return best;
+    };
+
+    double now_before_bfs_sa = chrono::duration<double>(chrono::steady_clock::now() - program_start).count();
+    auto bfs_best = improveOrderAndMacroByBfs(order, max(0.0, 1.88 - now_before_bfs_sa));
+    if (bfs_best.macro_id != -1) {
+        order = bfs_best.order;
+        best_p_macro_ops = buildOpsWithRegisteredMacro(order, macro_candidates[bfs_best.macro_id]);
+        best_p_macro_score = best_p_macro_ops.size();
     }
 
     string ans;
-    if ((ll)builder.ops.size() <= t) {
-        ans = compressOneMacro(builder.ops);
-        if ((ll)ans.size() > t) ans = builder.ops;
+    if ((ll)raw_ops.size() <= t) {
+        ans = macro_candidates.empty() ? raw_ops : compressOneMacroByCandidates(raw_ops, macro_candidates);
+        if ((ll)ans.size() > t) ans = raw_ops;
     } else {
-        ans = builder.ops.substr(0, t);
+        ans = raw_ops.substr(0, t);
     }
 
-    for (char c : ans) cout << c << el;
+    if (!best_p_macro_ops.empty() && (ll)best_p_macro_ops.size() < (ll)ans.size()) ans = best_p_macro_ops;
+
+    rep(i, (ll)ans.size()) cout << ans[i] << el;
 }
