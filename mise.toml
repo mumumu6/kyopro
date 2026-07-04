@@ -5,21 +5,12 @@ shell = "bash -c"
 dir = "{{cwd}}"
 quiet = true
 usage = '''
-arg "[src]" help="source file"
+arg "<src>" help="source file"
 '''
 run = '''
 set -eu
 
-SRC="${usage_src:-}"
-if [ -z "$SRC" ]; then
-  if [ -t 0 ]; then
-    ls
-    read -r -p "source file (e.g. a.cpp): " SRC
-  else
-    echo "src is required (e.g. a.cpp)" >&2
-    exit 1
-  fi
-fi
+SRC="${usage_src}"
 
 STEM="$(basename "${SRC%.*}")"
 OUT_DIR="out"
@@ -39,43 +30,15 @@ FLAGS=(
 
 mkdir -p "$OUT_DIR"
 
-need_build=1
 
-if [ -f "$BIN" ]; then
-  need_build=0
-
-  for dep in "$SRC" *.h *.hpp; do
-    [ -e "$dep" ] || continue
-    if [ ! "$BIN" -nt "$dep" ]; then
-      need_build=1
-      break
-    fi
-  done
-fi
-
-if [ "$need_build" -eq 1 ]; then
+if [ ! -f "$BIN" ] || [ ! "$BIN" -nt "$SRC" ]; then
   echo "[build] $SRC -> $BIN"
   /usr/bin/g++-14 "${FLAGS[@]}" "$SRC" -o "$BIN"
 else
   echo "[skip]"
 fi
 
-LLVM_SYMBOLIZER="$(command -v llvm-symbolizer || true)"
-if [ -n "$LLVM_SYMBOLIZER" ]; then
-  export ASAN_SYMBOLIZER_PATH="$LLVM_SYMBOLIZER"
-fi
-export ASAN_OPTIONS="abort_on_error=1:symbolize=1"
-export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
-
-LOG_FILE="$(mktemp -t mise-cpp-log.XXXXXX)"
-trap 'rm -f "$LOG_FILE"' EXIT
-
-set +e
-"./$BIN" 2>&1 | tee "$LOG_FILE"
-status=${PIPESTATUS[0]}
-set -e
-
-exit "$status"
+"./$BIN"
 '''
 
 [tasks.cpp-build]
@@ -85,21 +48,12 @@ shell = "bash -c"
 dir = "{{cwd}}"
 quiet = true
 usage = '''
-arg "[src]" help="source file"
+arg "<src>" help="source file"
 '''
 run = '''
 set -eu
 
-SRC="${usage_src:-}"
-if [ -z "$SRC" ]; then
-  if [ -t 0 ]; then
-    ls
-    read -r -p "source file (e.g. a.cpp): " SRC
-  else
-    echo "src is required (e.g. a.cpp)" >&2
-    exit 1
-  fi
-fi
+SRC="${usage_src}"
 
 STEM="$(basename "${SRC%.*}")"
 OUT_DIR="out"
@@ -119,21 +73,7 @@ FLAGS=(
 
 mkdir -p "$OUT_DIR"
 
-need_build=1
-
-if [ -f "$BIN" ]; then
-  need_build=0
-
-  for dep in "$SRC" *.h *.hpp; do
-    [ -e "$dep" ] || continue
-    if [ ! "$BIN" -nt "$dep" ]; then
-      need_build=1
-      break
-    fi
-  done
-fi
-
-if [ "$need_build" -eq 1 ]; then
+if [ ! -f "$BIN" ] || [ ! "$BIN" -nt "$SRC" ]; then
   echo "[build] $SRC -> $BIN"
   /usr/bin/g++-14 "${FLAGS[@]}" "$SRC" -o "$BIN"
 else
